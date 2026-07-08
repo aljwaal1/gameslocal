@@ -5,7 +5,7 @@ import 'core/game_room.dart';
 import 'design/app_theme.dart';
 import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_placeholder.dart';
-import 'games/domino/domino_placeholder.dart';
+import 'games/domino/domino_game.dart';
 import 'games/cards/cards_placeholder.dart';
 import 'games/xo/xo_game.dart';
 
@@ -49,18 +49,18 @@ class HomeScreen extends StatelessWidget {
       builder: (_) => const CheckersGameScreen(),
     ),
     GameDefinition(
+      id: 'domino',
+      name: 'الدومينو',
+      playersText: 'لاعبان الآن / 4 لاحقًا',
+      status: 'نسخة أولى ضد الكمبيوتر',
+      builder: (_) => const DominoGameScreen(),
+    ),
+    GameDefinition(
       id: 'chess',
       name: 'الشطرنج',
       playersText: 'لاعبان',
       status: 'قيد التطوير ضمن مجلد مستقل',
       builder: (_) => const ChessPlaceholderScreen(),
-    ),
-    GameDefinition(
-      id: 'domino',
-      name: 'الدومينو',
-      playersText: '2 إلى 4 لاعبين',
-      status: 'قيد التطوير ضمن مجلد مستقل',
-      builder: (_) => const DominoPlaceholderScreen(),
     ),
     GameDefinition(
       id: 'cards',
