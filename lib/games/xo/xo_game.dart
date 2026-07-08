@@ -20,6 +20,10 @@ class _XoGameScreenState extends State<XoGameScreen> {
   bool botThinking = false;
   String message = 'أنت X - دورك';
   List<int> winLine = [];
+  int xWins = 0;
+  int oWins = 0;
+  int draws = 0;
+  bool roundCounted = false;
 
   void reset() {
     setState(() {
@@ -27,12 +31,22 @@ class _XoGameScreenState extends State<XoGameScreen> {
       xTurn = true;
       botThinking = false;
       winLine = [];
+      roundCounted = false;
       message = playVsBot ? 'أنت X - دورك' : 'دور X';
     });
   }
 
+  void resetScore() {
+    setState(() {
+      xWins = 0;
+      oWins = 0;
+      draws = 0;
+    });
+    reset();
+  }
+
   void tapCell(int index) {
-    if (cells[index] != XoCell.empty || winLine.isNotEmpty || botThinking) return;
+    if (cells[index] != XoCell.empty || winLine.isNotEmpty || botThinking || roundCounted) return;
     if (playVsBot && !xTurn) return;
 
     cells[index] = xTurn ? XoCell.x : XoCell.o;
@@ -42,11 +56,23 @@ class _XoGameScreenState extends State<XoGameScreen> {
   void afterMove() {
     final winner = findWinner();
     if (winner != null) {
+      if (!roundCounted) {
+        if (winner == XoCell.x) {
+          xWins++;
+        } else {
+          oWins++;
+        }
+        roundCounted = true;
+      }
       setState(() => message = winner == XoCell.x ? 'فاز X' : 'فاز O');
       return;
     }
 
     if (!cells.contains(XoCell.empty)) {
+      if (!roundCounted) {
+        draws++;
+        roundCounted = true;
+      }
       setState(() => message = 'تعادل');
       return;
     }
@@ -61,7 +87,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
   Future<void> runBot() async {
     setState(() => botThinking = true);
     await Future<void>.delayed(const Duration(milliseconds: 450));
-    if (!mounted) return;
+    if (!mounted || roundCounted) return;
     final move = chooseBotMove();
     if (move >= 0) {
       cells[move] = XoCell.o;
@@ -141,7 +167,10 @@ class _XoGameScreenState extends State<XoGameScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إكس أو'),
-        actions: [IconButton(onPressed: reset, icon: const Icon(Icons.refresh))],
+        actions: [
+          IconButton(onPressed: reset, tooltip: 'جولة جديدة', icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: resetScore, tooltip: 'تصفير النتائج', icon: const Icon(Icons.restart_alt)),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -173,6 +202,16 @@ class _XoGameScreenState extends State<XoGameScreen> {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _ScoreTile(label: 'X', value: xWins, color: AppColors.danger)),
+              const SizedBox(width: 8),
+              Expanded(child: _ScoreTile(label: 'تعادل', value: draws, color: AppColors.muted)),
+              const SizedBox(width: 8),
+              Expanded(child: _ScoreTile(label: 'O', value: oWins, color: AppColors.primaryDark)),
+            ],
           ),
           const SizedBox(height: 22),
           AspectRatio(
@@ -209,6 +248,35 @@ class _XoGameScreenState extends State<XoGameScreen> {
               },
             ),
           ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: reset,
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('جولة جديدة'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScoreTile extends StatelessWidget {
+  const _ScoreTile({required this.label, required this.value, required this.color});
+
+  final String label;
+  final int value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+          const SizedBox(height: 4),
+          Text('$value', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.ink)),
         ],
       ),
     );
