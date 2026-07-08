@@ -27,29 +27,51 @@ jobs:
         with:
           channel: stable
 
-      - name: Create Android project
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Create Android Flutter project
         run: flutter create --platforms=android --org com.explapp --no-pub .
 
       - name: Remove default test
         run: rm -rf test
 
-      - name: Get dependencies
+      - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Analyze
+      - name: Analyze Flutter
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build APK
+      - name: Build Flutter APK
         run: flutter build apk --release
 
-      - name: Copy APK
+      - name: Build KitKat Java APK
+        working-directory: android_kitkat_java
+        run: gradle assembleDebug --no-daemon
+
+      - name: Copy APK files
         run: |
           mkdir -p apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/gameslocal.apk
-          echo "https://github.com/aljwaal1/gameslocal/raw/main/apk/gameslocal.apk" > DOWNLOAD_APK.md
+          cp build/app/outputs/flutter-apk/app-release.apk apk/gameslocal-flutter.apk
+          cp android_kitkat_java/app/build/outputs/apk/debug/app-debug.apk apk/gameslocal-kitkat.apk
+          cat > DOWNLOAD_APK.md <<'EOF'
+          # تحميل تطبيق ألعاب محلية
 
-      - name: Commit APK
+          يوجد ملفان APK:
+
+          ## 1) نسخة الأجهزة الحديثة - Flutter
+          تعمل للأجهزة الأحدث والأفضل أداءً:
+          https://github.com/aljwaal1/gameslocal/raw/main/apk/gameslocal-flutter.apk
+
+          ## 2) نسخة الأجهزة القديمة - Android 4.4 KitKat
+          نسخة Java خفيفة مخصصة لـ Android 4.4:
+          https://github.com/aljwaal1/gameslocal/raw/main/apk/gameslocal-kitkat.apk
+          EOF
+
+      - name: Commit APK files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Build gameslocal APK
-          file_pattern: apk/gameslocal.apk DOWNLOAD_APK.md
+          commit_message: Build Flutter and KitKat APK files
+          file_pattern: apk/gameslocal-flutter.apk apk/gameslocal-kitkat.apk DOWNLOAD_APK.md
