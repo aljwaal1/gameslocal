@@ -45,6 +45,11 @@ public class MainActivity extends Activity {
         note.setPadding(0, 18, 0, 18);
         root.addView(note, new LinearLayout.LayoutParams(-1, -2));
 
+        Button xo = new Button(this);
+        xo.setText("إكس أو ضد الكمبيوتر");
+        xo.setOnClickListener(v -> showXo());
+        root.addView(xo, new LinearLayout.LayoutParams(-1, -2));
+
         Button checkers = new Button(this);
         checkers.setText("الضامة ضد الكمبيوتر");
         checkers.setOnClickListener(v -> showCheckers());
@@ -63,6 +68,35 @@ public class MainActivity extends Activity {
         root.addView(cards, new LinearLayout.LayoutParams(-1, -2));
 
         setContentView(root);
+    }
+
+    private void showXo() {
+        LinearLayout screen = new LinearLayout(this);
+        screen.setOrientation(LinearLayout.VERTICAL);
+        screen.setPadding(12, 12, 12, 12);
+        screen.setBackgroundColor(Color.rgb(244, 247, 246));
+
+        Button back = new Button(this);
+        back.setText("رجوع");
+        back.setOnClickListener(v -> showHome());
+        screen.addView(back, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView status = new TextView(this);
+        status.setText("أنت X - دورك");
+        status.setTextSize(18);
+        status.setGravity(Gravity.CENTER);
+        status.setPadding(0, 10, 0, 10);
+        screen.addView(status, new LinearLayout.LayoutParams(-1, -2));
+
+        XoView view = new XoView(this, status);
+        screen.addView(view, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        Button reset = new Button(this);
+        reset.setText("إعادة اللعبة");
+        reset.setOnClickListener(v -> view.reset());
+        screen.addView(reset, new LinearLayout.LayoutParams(-1, -2));
+
+        setContentView(screen);
     }
 
     private void showCheckers() {
@@ -92,6 +126,164 @@ public class MainActivity extends Activity {
         screen.addView(reset, new LinearLayout.LayoutParams(-1, -2));
 
         setContentView(screen);
+    }
+
+    public static class XoView extends View {
+        private static final int EMPTY = 0;
+        private static final int X = 1;
+        private static final int O = 2;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final int[] cells = new int[9];
+        private final TextView status;
+        private boolean finished = false;
+        private boolean botThinking = false;
+        private final Handler handler = new Handler();
+
+        public XoView(Activity activity, TextView status) {
+            super(activity);
+            this.status = status;
+            reset();
+        }
+
+        public void reset() {
+            for (int i = 0; i < 9; i++) cells[i] = EMPTY;
+            finished = false;
+            botThinking = false;
+            status.setText("أنت X - دورك");
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            int size = Math.min(getWidth(), getHeight()) - 24;
+            int left = (getWidth() - size) / 2;
+            int top = (getHeight() - size) / 2;
+            int cell = size / 3;
+
+            paint.setStrokeWidth(8);
+            paint.setColor(Color.rgb(31, 111, 99));
+            for (int i = 1; i < 3; i++) {
+                canvas.drawLine(left + i * cell, top, left + i * cell, top + size, paint);
+                canvas.drawLine(left, top + i * cell, left + size, top + i * cell, paint);
+            }
+
+            paint.setStrokeWidth(10);
+            paint.setTextAlign(Paint.Align.CENTER);
+            paint.setTextSize(cell * 0.55f);
+            for (int i = 0; i < 9; i++) {
+                int r = i / 3;
+                int c = i % 3;
+                float cx = left + c * cell + cell / 2f;
+                float cy = top + r * cell + cell * 0.68f;
+                if (cells[i] == X) {
+                    paint.setColor(Color.rgb(200, 76, 76));
+                    canvas.drawText("X", cx, cy, paint);
+                } else if (cells[i] == O) {
+                    paint.setColor(Color.rgb(18, 70, 63));
+                    canvas.drawText("O", cx, cy, paint);
+                }
+            }
+        }
+
+        @Override
+        public boolean performClick() {
+            super.performClick();
+            return true;
+        }
+
+        @Override
+        public boolean onTouchEvent(android.view.MotionEvent event) {
+            if (event.getAction() != android.view.MotionEvent.ACTION_DOWN) return true;
+            performClick();
+            if (finished || botThinking) return true;
+
+            int size = Math.min(getWidth(), getHeight()) - 24;
+            int left = (getWidth() - size) / 2;
+            int top = (getHeight() - size) / 2;
+            int cell = size / 3;
+            int c = (int) ((event.getX() - left) / cell);
+            int r = (int) ((event.getY() - top) / cell);
+            if (r < 0 || r >= 3 || c < 0 || c >= 3) return true;
+            int index = r * 3 + c;
+            if (cells[index] != EMPTY) return true;
+
+            cells[index] = X;
+            if (checkEnd()) return true;
+            botThinking = true;
+            status.setText("الكمبيوتر يفكر...");
+            invalidate();
+            handler.postDelayed(() -> {
+                int move = chooseBotMove();
+                if (move >= 0) cells[move] = O;
+                botThinking = false;
+                if (!checkEnd()) status.setText("أنت X - دورك");
+                invalidate();
+            }, 400);
+            return true;
+        }
+
+        private boolean checkEnd() {
+            int winner = winner(cells);
+            if (winner == X) {
+                finished = true;
+                status.setText("فزت أنت X");
+                invalidate();
+                return true;
+            }
+            if (winner == O) {
+                finished = true;
+                status.setText("فاز الكمبيوتر O");
+                invalidate();
+                return true;
+            }
+            boolean full = true;
+            for (int c : cells) if (c == EMPTY) full = false;
+            if (full) {
+                finished = true;
+                status.setText("تعادل");
+                invalidate();
+                return true;
+            }
+            return false;
+        }
+
+        private int chooseBotMove() {
+            int win = bestFor(O);
+            if (win >= 0) return win;
+            int block = bestFor(X);
+            if (block >= 0) return block;
+            if (cells[4] == EMPTY) return 4;
+            int[] corners = {0, 2, 6, 8};
+            for (int i : corners) if (cells[i] == EMPTY) return i;
+            for (int i = 0; i < 9; i++) if (cells[i] == EMPTY) return i;
+            return -1;
+        }
+
+        private int bestFor(int player) {
+            for (int i = 0; i < 9; i++) {
+                if (cells[i] != EMPTY) continue;
+                int old = cells[i];
+                cells[i] = player;
+                int winner = winner(cells);
+                cells[i] = old;
+                if (winner == player) return i;
+            }
+            return -1;
+        }
+
+        private int winner(int[] b) {
+            int[][] lines = {
+                    {0, 1, 2}, {3, 4, 5}, {6, 7, 8},
+                    {0, 3, 6}, {1, 4, 7}, {2, 5, 8},
+                    {0, 4, 8}, {2, 4, 6}
+            };
+            for (int[] line : lines) {
+                int a = b[line[0]];
+                if (a != EMPTY && a == b[line[1]] && a == b[line[2]]) return a;
+            }
+            return EMPTY;
+        }
     }
 
     public static class CheckersView extends View {
