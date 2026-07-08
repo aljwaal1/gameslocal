@@ -1,6 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 enum Piece { empty, red, black, redKing, blackKing }
+
+class CheckersMove {
+  const CheckersMove({
+    required this.fromRow,
+    required this.fromCol,
+    required this.toRow,
+    required this.toCol,
+    this.captureRow,
+    this.captureCol,
+  });
+
+  final int fromRow;
+  final int fromCol;
+  final int toRow;
+  final int toCol;
+  final int? captureRow;
+  final int? captureCol;
+
+  bool get isCapture => captureRow != null && captureCol != null;
+}
 
 class CheckersGameScreen extends StatefulWidget {
   const CheckersGameScreen({super.key});
@@ -14,6 +36,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   int? selectedRow;
   int? selectedCol;
   bool redTurn = true;
+  bool playVsBot = true;
+  bool botThinking = false;
   String message = 'دور الأحمر';
 
   @override
@@ -37,21 +61,37 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     selectedRow = null;
     selectedCol = null;
     redTurn = true;
-    message = 'دور الأحمر';
-    setState(() {});
+    botThinking = false;
+    message = playVsBot ? 'أنت الأحمر - دورك' : 'دور الأحمر';
+    if (mounted) setState(() {});
   }
 
+  bool isRedPiece(Piece p) => p == Piece.red || p == Piece.redKing;
+  bool isBlackPiece(Piece p) => p == Piece.black || p == Piece.blackKing;
+  bool isKing(Piece p) => p == Piece.redKing || p == Piece.blackKing;
+
   bool isCurrentPlayerPiece(Piece p) {
-    if (redTurn) return p == Piece.red || p == Piece.redKing;
-    return p == Piece.black || p == Piece.blackKing;
+    if (redTurn) return isRedPiece(p);
+    return isBlackPiece(p);
   }
 
   bool isOpponentPiece(Piece p) {
-    if (redTurn) return p == Piece.black || p == Piece.blackKing;
-    return p == Piece.red || p == Piece.redKing;
+    if (redTurn) return isBlackPiece(p);
+    return isRedPiece(p);
+  }
+
+  bool pieceBelongsToTurn(Piece p, bool forRed) {
+    return forRed ? isRedPiece(p) : isBlackPiece(p);
+  }
+
+  bool opponentForTurn(Piece p, bool forRed) {
+    return forRed ? isBlackPiece(p) : isRedPiece(p);
   }
 
   void tapCell(int r, int c) {
+    if (botThinking) return;
+    if (playVsBot && !redTurn) return;
+
     final piece = board[r][c];
     if (selectedRow == null) {
       if (isCurrentPlayerPiece(piece)) {
@@ -71,7 +111,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       setState(() {
         selectedRow = null;
         selectedCol = null;
-        message = redTurn ? 'دور الأحمر' : 'دور الأسود';
+        message = currentTurnMessage();
       });
       return;
     }
@@ -86,37 +126,146 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       return;
     }
 
-    final moving = board[sr][sc];
-    final dr = r - sr;
-    final dc = c - sc;
-    final absDr = dr.abs();
-    final absDc = dc.abs();
-    final isKing = moving == Piece.redKing || moving == Piece.blackKing;
-    final forwardOk = isKing || (redTurn ? dr == -1 || dr == -2 : dr == 1 || dr == 2);
-
-    if (!forwardOk || absDr != absDc || (absDr != 1 && absDr != 2)) {
+    final move = buildMoveIfValid(sr, sc, r, c, redTurn);
+    if (move == null) {
       setState(() => message = 'حركة غير صحيحة');
       return;
     }
 
+    applyMove(move);
+    finishTurn();
+  }
+
+  CheckersMove? buildMoveIfValid(int sr, int sc, int r, int c, bool forRed) {
+    final moving = board[sr][sc];
+    if (!pieceBelongsToTurn(moving, forRed)) return null;
+    if (board[r][c] != Piece.empty) return null;
+
+    final dr = r - sr;
+    final dc = c - sc;
+    final absDr = dr.abs();
+    final absDc = dc.abs();
+    final movingIsKing = isKing(moving);
+    final forwardOk = movingIsKing || (forRed ? dr == -1 || dr == -2 : dr == 1 || dr == 2);
+
+    if (!forwardOk || absDr != absDc || (absDr != 1 && absDr != 2)) return null;
+
     if (absDr == 2) {
       final midR = (sr + r) ~/ 2;
       final midC = (sc + c) ~/ 2;
-      if (!isOpponentPiece(board[midR][midC])) {
-        setState(() => message = 'لا يوجد حجر للخصم للقفز عنه');
-        return;
-      }
-      board[midR][midC] = Piece.empty;
+      if (!opponentForTurn(board[midR][midC], forRed)) return null;
+      return CheckersMove(fromRow: sr, fromCol: sc, toRow: r, toCol: c, captureRow: midR, captureCol: midC);
     }
 
-    board[r][c] = promoteIfNeeded(moving, r);
-    board[sr][sc] = Piece.empty;
+    return CheckersMove(fromRow: sr, fromCol: sc, toRow: r, toCol: c);
+  }
+
+  void applyMove(CheckersMove move) {
+    final moving = board[move.fromRow][move.fromCol];
+    board[move.toRow][move.toCol] = promoteIfNeeded(moving, move.toRow);
+    board[move.fromRow][move.fromCol] = Piece.empty;
+    if (move.isCapture) {
+      board[move.captureRow!][move.captureCol!] = Piece.empty;
+    }
+  }
+
+  void finishTurn() {
     redTurn = !redTurn;
     selectedRow = null;
     selectedCol = null;
-    message = redTurn ? 'دور الأحمر' : 'دور الأسود';
+    message = currentTurnMessage();
+    setState(() {});
+
+    if (playVsBot && !redTurn) {
+      runBotMove();
+    }
+  }
+
+  String currentTurnMessage() {
+    if (playVsBot) return redTurn ? 'أنت الأحمر - دورك' : 'الكمبيوتر يفكر...';
+    return redTurn ? 'دور الأحمر' : 'دور الأسود';
+  }
+
+  Future<void> runBotMove() async {
+    setState(() {
+      botThinking = true;
+      message = 'الكمبيوتر يفكر...';
+    });
+
+    await Future<void>.delayed(const Duration(milliseconds: 550));
+    if (!mounted) return;
+
+    final move = chooseBotMove();
+    if (move == null) {
+      setState(() {
+        botThinking = false;
+        message = 'فزت! لا توجد حركة للكمبيوتر';
+      });
+      return;
+    }
+
+    applyMove(move);
+    redTurn = true;
+    botThinking = false;
+    message = 'أنت الأحمر - دورك';
     setState(() {});
   }
+
+  CheckersMove? chooseBotMove() {
+    final moves = allLegalMoves(forRed: false);
+    if (moves.isEmpty) return null;
+
+    final captures = moves.where((m) => m.isCapture).toList();
+    if (captures.isNotEmpty) return captures.first;
+
+    moves.sort((a, b) => b.toRow.compareTo(a.toRow));
+    return moves.first;
+  }
+
+  List<CheckersMove> allLegalMoves({required bool forRed}) {
+    final moves = <CheckersMove>[];
+    for (int r = 0; r < 8; r++) {
+      for (int c = 0; c < 8; c++) {
+        final piece = board[r][c];
+        if (!pieceBelongsToTurn(piece, forRed)) continue;
+        final directions = isKing(piece)
+            ? const [
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1],
+              ]
+            : forRed
+                ? const [
+                    [-1, -1],
+                    [-1, 1],
+                  ]
+                : const [
+                    [1, -1],
+                    [1, 1],
+                  ];
+
+        for (final d in directions) {
+          final oneR = r + d[0];
+          final oneC = c + d[1];
+          if (inside(oneR, oneC)) {
+            final move = buildMoveIfValid(r, c, oneR, oneC, forRed);
+            if (move != null) moves.add(move);
+          }
+
+          final twoR = r + d[0] * 2;
+          final twoC = c + d[1] * 2;
+          if (inside(twoR, twoC)) {
+            final move = buildMoveIfValid(r, c, twoR, twoC, forRed);
+            if (move != null) moves.add(move);
+          }
+        }
+      }
+    }
+    return moves;
+  }
+
+  bool inside(int r, int c) => r >= 0 && r < 8 && c >= 0 && c < 8;
 
   Piece promoteIfNeeded(Piece piece, int row) {
     if (piece == Piece.red && row == 0) return Piece.redKing;
@@ -134,17 +283,33 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Card(
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               child: Padding(
                 padding: const EdgeInsets.all(14),
-                child: Row(
+                child: Column(
                   children: [
-                    Icon(redTurn ? Icons.circle : Icons.circle_outlined),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                    Row(
+                      children: [
+                        Icon(redTurn ? Icons.circle : Icons.smart_toy_outlined),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
+                        ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
+                      ],
+                      selected: {playVsBot},
+                      onSelectionChanged: (value) {
+                        setState(() => playVsBot = value.first);
+                        resetBoard();
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -176,9 +341,14 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
               ),
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
-            child: Text('هذه نسخة محلية أولى. لاحقًا نفس الحركات سيتم إرسالها عبر الشبكة بين جهازين.'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+            child: Text(
+              playVsBot
+                  ? 'أنت تلعب بالأحمر، والكمبيوتر يلعب بالأسود. الروبوت الآن بسيط وسيتم تقويته لاحقًا.'
+                  : 'وضع لاعبين على نفس الجهاز. لاحقًا نفس الحركات سيتم إرسالها عبر الشبكة بين جهازين.',
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -229,7 +399,7 @@ class _PieceView extends StatelessWidget {
   Widget build(BuildContext context) {
     if (piece == Piece.empty) return const SizedBox.shrink();
     final isRed = piece == Piece.red || piece == Piece.redKing;
-    final isKing = piece == Piece.redKing || piece == Piece.blackKing;
+    final king = piece == Piece.redKing || piece == Piece.blackKing;
     return Container(
       width: 34,
       height: 34,
@@ -238,7 +408,7 @@ class _PieceView extends StatelessWidget {
         color: isRed ? const Color(0xFFC84C4C) : const Color(0xFF222831),
         boxShadow: const [BoxShadow(blurRadius: 4, offset: Offset(1, 2), color: Colors.black26)],
       ),
-      child: isKing ? const Icon(Icons.star, color: Colors.white, size: 18) : null,
+      child: king ? const Icon(Icons.star, color: Colors.white, size: 18) : null,
     );
   }
 }
