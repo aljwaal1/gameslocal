@@ -32,15 +32,19 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   List<DominoTile> bot = [];
   List<DominoTile> board = [];
   bool playerTurn = true;
+  bool roundFinished = false;
+  int playerScore = 0;
+  int botScore = 0;
+  int roundNumber = 1;
   String message = 'دورك: اختر قطعة مناسبة';
 
   @override
   void initState() {
     super.initState();
-    newGame();
+    startRound(resetScore: true);
   }
 
-  void newGame() {
+  void startRound({bool resetScore = false}) {
     final tiles = <DominoTile>[];
     for (int a = 0; a <= 6; a++) {
       for (int b = a; b <= 6; b++) {
@@ -53,27 +57,44 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     stock = tiles.skip(14).toList();
     board = [];
     playerTurn = true;
-    message = 'دورك: اختر قطعة مناسبة';
+    roundFinished = false;
+    if (resetScore) {
+      playerScore = 0;
+      botScore = 0;
+      roundNumber = 1;
+    }
+    message = 'الجولة $roundNumber: دورك، اختر قطعة مناسبة';
     setState(() {});
   }
 
   int? get leftEnd => board.isEmpty ? null : board.first.left;
   int? get rightEnd => board.isEmpty ? null : board.last.right;
 
+  int pipsOf(List<DominoTile> hand) => hand.fold(0, (sum, tile) => sum + tile.total);
+
   bool canPlay(DominoTile tile) {
     if (board.isEmpty) return true;
     return tile.matches(leftEnd!) || tile.matches(rightEnd!);
   }
 
+  bool get isBlocked {
+    if (board.isEmpty || stock.isNotEmpty) return false;
+    return !player.any(canPlay) && !bot.any(canPlay);
+  }
+
   void playPlayerTile(DominoTile tile) {
-    if (!playerTurn) return;
+    if (!playerTurn || roundFinished) return;
     if (!canPlay(tile)) {
       setState(() => message = 'هذه القطعة لا تناسب طرفي الدومينو');
       return;
     }
     placeTile(tile, player);
     if (player.isEmpty) {
-      setState(() => message = 'فزت في الدومينو!');
+      finishRound(playerWon: true, reason: 'أنهيت كل قطعك');
+      return;
+    }
+    if (isBlocked) {
+      finishBlockedRound();
       return;
     }
     playerTurn = false;
@@ -83,16 +104,24 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   void drawTile() {
-    if (!playerTurn || stock.isEmpty) return;
+    if (!playerTurn || roundFinished) return;
+    if (stock.isEmpty) {
+      setState(() => message = 'لا توجد قطع للسحب. مرر إذا لا تملك حركة');
+      return;
+    }
     player.add(stock.removeLast());
-    message = 'سحبت قطعة جديدة';
+    message = player.any(canPlay) ? 'سحبت قطعة. يمكنك اللعب الآن' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
     setState(() {});
   }
 
   void passTurn() {
-    if (!playerTurn) return;
+    if (!playerTurn || roundFinished) return;
     if (player.any(canPlay)) {
       setState(() => message = 'لديك قطعة مناسبة، لا يمكنك التمرير الآن');
+      return;
+    }
+    if (isBlocked) {
+      finishBlockedRound();
       return;
     }
     playerTurn = false;
@@ -102,11 +131,15 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   void botMove() {
+    if (roundFinished) return;
     final playable = bot.where(canPlay).toList();
     if (playable.isEmpty) {
       if (stock.isNotEmpty) {
         bot.add(stock.removeLast());
         message = 'الكمبيوتر سحب قطعة. دورك';
+      } else if (isBlocked) {
+        finishBlockedRound();
+        return;
       } else {
         message = 'الكمبيوتر مرر الدور. دورك';
       }
@@ -119,12 +152,52 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     final chosen = playable.first;
     placeTile(chosen, bot);
     if (bot.isEmpty) {
-      setState(() => message = 'فاز الكمبيوتر في الدومينو');
+      finishRound(playerWon: false, reason: 'الكمبيوتر أنهى كل قطعه');
+      return;
+    }
+    if (isBlocked) {
+      finishBlockedRound();
       return;
     }
     playerTurn = true;
     message = 'دورك: اختر قطعة مناسبة';
     setState(() {});
+  }
+
+  void finishRound({required bool playerWon, required String reason}) {
+    final points = playerWon ? pipsOf(bot) : pipsOf(player);
+    if (playerWon) {
+      playerScore += points;
+      message = '$reason. فزت بالجولة وربحت $points نقطة';
+    } else {
+      botScore += points;
+      message = '$reason. الكمبيوتر ربح $points نقطة';
+    }
+    roundFinished = true;
+    setState(() {});
+  }
+
+  void finishBlockedRound() {
+    final playerPips = pipsOf(player);
+    final botPips = pipsOf(bot);
+    roundFinished = true;
+    if (playerPips < botPips) {
+      final points = botPips - playerPips;
+      playerScore += points;
+      message = 'اللعبة مغلقة. قطعك أقل، فزت بـ $points نقطة';
+    } else if (botPips < playerPips) {
+      final points = playerPips - botPips;
+      botScore += points;
+      message = 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
+    } else {
+      message = 'اللعبة مغلقة وتعادل بالنقاط';
+    }
+    setState(() {});
+  }
+
+  void nextRound() {
+    roundNumber++;
+    startRound();
   }
 
   void placeTile(DominoTile tile, List<DominoTile> hand) {
@@ -150,7 +223,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('الدومينو'),
-        actions: [IconButton(onPressed: newGame, icon: const Icon(Icons.refresh))],
+        actions: [IconButton(onPressed: () => startRound(resetScore: true), icon: const Icon(Icons.refresh))],
       ),
       body: Column(
         children: [
@@ -172,8 +245,17 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
+                        Text('نقاطك: $playerScore'),
+                        Text('الكمبيوتر: $botScore'),
+                        Text('الجولة: $roundNumber'),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         Text('قطعك: ${player.length}'),
-                        Text('الكمبيوتر: ${bot.length}'),
+                        Text('قطع الكمبيوتر: ${bot.length}'),
                         Text('السحب: ${stock.length}'),
                       ],
                     ),
@@ -206,7 +288,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: drawTile,
+                    onPressed: roundFinished ? null : drawTile,
                     icon: const Icon(Icons.add),
                     label: const Text('اسحب'),
                   ),
@@ -214,9 +296,9 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: passTurn,
-                    icon: const Icon(Icons.skip_next),
-                    label: const Text('تمرير'),
+                    onPressed: roundFinished ? nextRound : passTurn,
+                    icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next),
+                    label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'),
                   ),
                 ),
               ],
@@ -231,12 +313,12 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (_, i) {
                 final tile = player[i];
-                final enabled = playerTurn && canPlay(tile);
+                final enabled = playerTurn && !roundFinished && canPlay(tile);
                 return Opacity(
                   opacity: enabled ? 1 : 0.45,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
-                    onTap: () => playPlayerTile(tile),
+                    onTap: enabled ? () => playPlayerTile(tile) : null,
                     child: DominoTileView(tile: tile),
                   ),
                 );
