@@ -7,6 +7,7 @@ import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_placeholder.dart';
 import 'games/domino/domino_placeholder.dart';
 import 'games/cards/cards_placeholder.dart';
+import 'games/xo/xo_game.dart';
 
 void main() {
   runApp(const GamesLocalApp());
@@ -33,6 +34,13 @@ class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
   final List<GameDefinition> games = [
+    GameDefinition(
+      id: 'xo',
+      name: 'إكس أو',
+      playersText: 'لاعبان',
+      status: 'ضد لاعب أو ضد الكمبيوتر',
+      builder: (_) => const XoGameScreen(),
+    ),
     GameDefinition(
       id: 'checkers',
       name: 'الضامة',
@@ -176,6 +184,8 @@ class _GameCard extends StatelessWidget {
 
   IconData get icon {
     switch (game.id) {
+      case 'xo':
+        return Icons.close;
       case 'checkers':
         return Icons.grid_4x4;
       case 'chess':
