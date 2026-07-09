@@ -31,10 +31,12 @@ class DominoGameScreen extends StatefulWidget {
 class _DominoGameScreenState extends State<DominoGameScreen> {
   final AppSettingsController settings = AppSettingsController.instance;
   final Random random = Random();
+
   List<DominoTile> stock = [];
   List<DominoTile> player = [];
   List<DominoTile> bot = [];
   List<DominoTile> board = [];
+  DominoTile? lastPlayedTile;
   bool playerTurn = true;
   bool roundFinished = false;
   int playerScore = 0;
@@ -60,6 +62,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     bot = tiles.skip(7).take(7).toList();
     stock = tiles.skip(14).toList();
     board = [];
+    lastPlayedTile = null;
     playerTurn = true;
     roundFinished = false;
     if (resetScore) {
@@ -107,7 +110,6 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     GameFeedback.move();
     placeTile(tile, player);
     if (player.isEmpty) {
-      GameFeedback.win();
       finishRound(playerWon: true, reason: 'أنهيت كل قطعك');
       return;
     }
@@ -200,10 +202,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   int scoreHardMove(DominoTile tile) {
-    if (board.isEmpty) {
-      return tile.total + (tile.isDouble ? 5 : 0);
-    }
-
+    if (board.isEmpty) return tile.total + (tile.isDouble ? 5 : 0);
     final scores = <int>[];
     if (tile.matches(leftEnd!)) {
       final newLeft = tile.right == leftEnd ? tile.left : tile.right;
@@ -268,18 +267,25 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     hand.remove(tile);
     if (board.isEmpty) {
       board.add(tile);
+      lastPlayedTile = tile;
       return;
     }
 
+    DominoTile placed = tile;
     if (tile.right == leftEnd) {
-      board.insert(0, tile);
+      placed = tile;
+      board.insert(0, placed);
     } else if (tile.left == leftEnd) {
-      board.insert(0, tile.flipped());
+      placed = tile.flipped();
+      board.insert(0, placed);
     } else if (tile.left == rightEnd) {
-      board.add(tile);
+      placed = tile;
+      board.add(placed);
     } else if (tile.right == rightEnd) {
-      board.add(tile.flipped());
+      placed = tile.flipped();
+      board.add(placed);
     }
+    lastPlayedTile = placed;
   }
 
   List<Color> tableGradientColors() {
@@ -300,7 +306,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     return AnimatedBuilder(
       animation: settings,
       builder: (context, _) {
-        final visibleBoard = board.length > 14 ? board.sublist(max(0, board.length - 14)) : board;
+        final visibleBoard = board.length > 16 ? board.sublist(max(0, board.length - 16)) : board;
         final playableCount = player.where(canPlay).length;
 
         return Scaffold(
@@ -332,27 +338,30 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                          colors: tableGradientColors(),
-                        ),
+                        gradient: LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: tableGradientColors()),
                         borderRadius: BorderRadius.circular(22),
+                        border: Border.all(color: Colors.white.withOpacity(0.10)),
                       ),
                       child: board.isEmpty
                           ? const Center(child: Text('ابدأ بأي قطعة من يدك', style: TextStyle(color: Colors.white, fontSize: 18)))
                           : Column(
                               children: [
-                                const Text('مسار الدومينو من اليسار إلى اليمين', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                const Text('مسار الدومينو', style: TextStyle(color: Colors.white70, fontSize: 12)),
                                 const SizedBox(height: 6),
                                 Expanded(
                                   child: Wrap(
                                     alignment: WrapAlignment.center,
                                     runAlignment: WrapAlignment.center,
-                                    spacing: 5,
-                                    runSpacing: 5,
+                                    spacing: 6,
+                                    runSpacing: 6,
                                     children: [
-                                      for (int i = 0; i < visibleBoard.length; i++) DominoTileView(tile: visibleBoard[i], compact: true, order: board.length - visibleBoard.length + i + 1),
+                                      for (int i = 0; i < visibleBoard.length; i++)
+                                        DominoTileView(
+                                          tile: visibleBoard[i],
+                                          compact: true,
+                                          order: board.length - visibleBoard.length + i + 1,
+                                          lastPlayed: visibleBoard[i].toString() == lastPlayedTile?.toString(),
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -363,47 +372,61 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: roundFinished ? null : drawTile,
-                          icon: const Icon(Icons.add),
-                          label: const Text('اسحب'),
-                        ),
-                      ),
+                      Expanded(child: OutlinedButton.icon(onPressed: roundFinished ? null : drawTile, icon: const Icon(Icons.add), label: const Text('اسحب'))),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: roundFinished ? nextRound : passTurn,
-                          icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next),
-                          label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'),
-                        ),
-                      ),
+                      Expanded(child: OutlinedButton.icon(onPressed: roundFinished ? nextRound : passTurn, icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next), label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'))),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  SizedBox(
-                    height: 150,
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      runAlignment: WrapAlignment.center,
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final tile in sortedPlayerHand)
-                          Opacity(
-                            opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.38,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(12),
-                              onTap: playerTurn && !roundFinished && canPlay(tile) ? () => playPlayerTile(tile) : null,
-                              child: DominoTileView(tile: tile, compact: true, playable: playerTurn && !roundFinished && canPlay(tile)),
-                            ),
-                          ),
-                      ],
-                    ),
+                  _PlayerHand(
+                    tiles: sortedPlayerHand,
+                    playerTurn: playerTurn,
+                    roundFinished: roundFinished,
+                    canPlay: canPlay,
+                    onPlay: playPlayerTile,
                   ),
                 ],
               ),
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PlayerHand extends StatelessWidget {
+  const _PlayerHand({required this.tiles, required this.playerTurn, required this.roundFinished, required this.canPlay, required this.onPlay});
+
+  final List<DominoTile> tiles;
+  final bool playerTurn;
+  final bool roundFinished;
+  final bool Function(DominoTile tile) canPlay;
+  final void Function(DominoTile tile) onPlay;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = tiles.length > 8 || constraints.maxWidth < 360;
+        return SizedBox(
+          height: compact ? 138 : 152,
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
+            spacing: compact ? 4 : 6,
+            runSpacing: compact ? 4 : 6,
+            children: [
+              for (final tile in tiles)
+                Opacity(
+                  opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.38,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: playerTurn && !roundFinished && canPlay(tile) ? () => onPlay(tile) : null,
+                    child: DominoTileView(tile: tile, compact: compact, playable: playerTurn && !roundFinished && canPlay(tile)),
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -418,9 +441,7 @@ class _EndsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (leftEnd == null || rightEnd == null) {
-      return const SizedBox.shrink();
-    }
+    if (leftEnd == null || rightEnd == null) return const SizedBox.shrink();
     return Row(
       children: [
         Expanded(child: _EndBox(label: 'طرف اليسار', value: leftEnd!)),
@@ -456,17 +477,7 @@ class _EndBox extends StatelessWidget {
 }
 
 class _InfoPanel extends StatelessWidget {
-  const _InfoPanel({
-    required this.message,
-    required this.playerScore,
-    required this.botScore,
-    required this.roundNumber,
-    required this.playerCount,
-    required this.botCount,
-    required this.stockCount,
-    required this.playableCount,
-    required this.botDifficultyText,
-  });
+  const _InfoPanel({required this.message, required this.playerScore, required this.botScore, required this.roundNumber, required this.playerCount, required this.botCount, required this.stockCount, required this.playableCount, required this.botDifficultyText});
 
   final String message;
   final int playerScore;
@@ -485,34 +496,13 @@ class _InfoPanel extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Row(
-              children: [
-                const Icon(Icons.dashboard_customize, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold))),
-              ],
-            ),
+            Row(children: [const Icon(Icons.dashboard_customize, color: AppColors.primary), const SizedBox(width: 8), Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)))]),
             const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text('مستوى الكمبيوتر من الإعدادات: $botDifficultyText', style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold, fontSize: 12)),
-            ),
+            Align(alignment: Alignment.centerRight, child: Text('مستوى الكمبيوتر من الإعدادات: $botDifficultyText', style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold, fontSize: 12))),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                _MiniStat(label: 'نقاطك', value: '$playerScore'),
-                _MiniStat(label: 'خصمك', value: '$botScore'),
-                _MiniStat(label: 'جولة', value: '$roundNumber'),
-              ],
-            ),
+            Row(children: [_MiniStat(label: 'نقاطك', value: '$playerScore'), _MiniStat(label: 'خصمك', value: '$botScore'), _MiniStat(label: 'جولة', value: '$roundNumber')]),
             const SizedBox(height: 6),
-            Row(
-              children: [
-                _MiniStat(label: 'قطعك', value: '$playerCount'),
-                _MiniStat(label: 'مناسبة', value: '$playableCount'),
-                _MiniStat(label: 'السحب', value: '$stockCount'),
-              ],
-            ),
+            Row(children: [_MiniStat(label: 'قطعك', value: '$playerCount'), _MiniStat(label: 'مناسبة', value: '$playableCount'), _MiniStat(label: 'السحب', value: '$stockCount')]),
           ],
         ),
       ),
@@ -532,49 +522,48 @@ class _MiniStat extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 3),
         padding: const EdgeInsets.symmetric(vertical: 5),
         decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
-          ],
-        ),
+        child: Column(children: [Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryDark)), Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted))]),
       ),
     );
   }
 }
 
 class DominoTileView extends StatelessWidget {
-  const DominoTileView({super.key, required this.tile, this.compact = false, this.playable = false, this.order});
+  const DominoTileView({super.key, required this.tile, this.compact = false, this.playable = false, this.order, this.lastPlayed = false});
 
   final DominoTile tile;
   final bool compact;
   final bool playable;
   final int? order;
+  final bool lastPlayed;
 
   @override
   Widget build(BuildContext context) {
-    final width = compact ? 42.0 : 54.0;
-    final height = compact ? 66.0 : 92.0;
-    final fontSize = compact ? 18.0 : 24.0;
+    final width = compact ? 40.0 : 54.0;
+    final height = compact ? 62.0 : 92.0;
+    final pipSize = compact ? 4.0 : 5.2;
+
+    final borderColor = lastPlayed ? const Color(0xFF7B2CBF) : playable ? AppColors.accent : AppColors.primary.withOpacity(0.18);
+    final borderWidth = lastPlayed ? 3.2 : playable ? 3.0 : 1.0;
 
     return Stack(
       clipBehavior: Clip.none,
       children: [
         AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: const Duration(milliseconds: 180),
           width: width,
           height: height,
           decoration: BoxDecoration(
-            color: Colors.white,
+            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.white, Color(0xFFF2F2F2)]),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: playable ? AppColors.accent : AppColors.primary.withOpacity(0.18), width: playable ? 3 : 1),
-            boxShadow: [BoxShadow(color: playable ? AppColors.accent.withOpacity(0.45) : Colors.black26, blurRadius: playable ? 10 : 6, offset: const Offset(0, 3))],
+            border: Border.all(color: borderColor, width: borderWidth),
+            boxShadow: [BoxShadow(color: (lastPlayed ? const Color(0xFF7B2CBF) : playable ? AppColors.accent : Colors.black).withOpacity(0.32), blurRadius: lastPlayed || playable ? 11 : 6, offset: const Offset(0, 3))],
           ),
           child: Column(
             children: [
-              Expanded(child: Center(child: Text('${tile.left}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
-              Container(height: 1.2, color: AppColors.muted.withOpacity(0.5)),
-              Expanded(child: Center(child: Text('${tile.right}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
+              Expanded(child: _PipFace(value: tile.left, pipSize: pipSize)),
+              Container(height: 1.3, margin: const EdgeInsets.symmetric(horizontal: 5), color: AppColors.muted.withOpacity(0.55)),
+              Expanded(child: _PipFace(value: tile.right, pipSize: pipSize)),
             ],
           ),
         ),
@@ -582,13 +571,69 @@ class DominoTileView extends StatelessWidget {
           Positioned(
             top: -5,
             right: -5,
-            child: CircleAvatar(
-              radius: 9,
-              backgroundColor: AppColors.accent,
-              child: Text('$order', style: const TextStyle(fontSize: 9, color: AppColors.ink, fontWeight: FontWeight.bold)),
-            ),
+            child: CircleAvatar(radius: 9, backgroundColor: lastPlayed ? const Color(0xFF7B2CBF) : AppColors.accent, child: Text('$order', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold))),
           ),
       ],
     );
   }
+}
+
+class _PipFace extends StatelessWidget {
+  const _PipFace({required this.value, required this.pipSize});
+  final int value;
+  final double pipSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _PipPainter(value: value, pipSize: pipSize),
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+class _PipPainter extends CustomPainter {
+  const _PipPainter({required this.value, required this.pipSize});
+  final int value;
+  final double pipSize;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = AppColors.ink;
+    final points = <Offset>[];
+    final left = size.width * 0.28;
+    final right = size.width * 0.72;
+    final top = size.height * 0.28;
+    final centerY = size.height * 0.50;
+    final bottom = size.height * 0.72;
+    final centerX = size.width * 0.50;
+
+    switch (value) {
+      case 1:
+        points.add(Offset(centerX, centerY));
+        break;
+      case 2:
+        points.addAll([Offset(left, top), Offset(right, bottom)]);
+        break;
+      case 3:
+        points.addAll([Offset(left, top), Offset(centerX, centerY), Offset(right, bottom)]);
+        break;
+      case 4:
+        points.addAll([Offset(left, top), Offset(right, top), Offset(left, bottom), Offset(right, bottom)]);
+        break;
+      case 5:
+        points.addAll([Offset(left, top), Offset(right, top), Offset(centerX, centerY), Offset(left, bottom), Offset(right, bottom)]);
+        break;
+      case 6:
+        points.addAll([Offset(left, top), Offset(right, top), Offset(left, centerY), Offset(right, centerY), Offset(left, bottom), Offset(right, bottom)]);
+        break;
+    }
+
+    for (final point in points) {
+      canvas.drawCircle(point, pipSize, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _PipPainter oldDelegate) => oldDelegate.value != value || oldDelegate.pipSize != pipSize;
 }
