@@ -115,6 +115,16 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (mounted) setState(() {});
   }
 
+  void requestBoardReset() {
+    if (networkMode) {
+      GameFeedback.error();
+      setState(() => message = 'إعادة الضبط متوقفة أثناء اللعب عبر Wi‑Fi حتى لا تختلف اللوحة بين الجهازين');
+      return;
+    }
+
+    resetBoard();
+  }
+
   bool isRedPiece(Piece p) => p == Piece.red || p == Piece.redKing;
   bool isBlackPiece(Piece p) => p == Piece.black || p == Piece.blackKing;
   bool isKing(Piece p) => p == Piece.redKing || p == Piece.blackKing;
@@ -384,7 +394,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('الضامة'),
-            actions: [IconButton(onPressed: resetBoard, icon: const Icon(Icons.refresh))],
+            actions: [IconButton(onPressed: requestBoardReset, icon: const Icon(Icons.refresh))],
           ),
           body: Column(
             children: [
