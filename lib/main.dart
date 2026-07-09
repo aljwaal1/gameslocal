@@ -10,6 +10,7 @@ import 'games/domino/domino_game.dart';
 import 'games/cards/cards_placeholder.dart';
 import 'games/chicken/chicken_game.dart';
 import 'games/xo/xo_game.dart';
+import 'lan/screens/lan_home_screen.dart';
 import 'network/wifi_lobby_screen.dart';
 import 'settings/settings_screen.dart';
 
@@ -148,7 +149,7 @@ class _HeroCard extends StatelessWidget {
                 children: [
                   Text('GamesLocal', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                   SizedBox(height: 4),
-                  Text('ألعاب محلية • روبوت • Wi‑Fi', style: TextStyle(fontSize: 14, color: Colors.white)),
+                  Text('ألعاب محلية • روبوت • شبكة محلية', style: TextStyle(fontSize: 14, color: Colors.white)),
                 ],
               ),
             ),
@@ -179,12 +180,27 @@ class _ModeStrip extends StatelessWidget {
       children: [
         Expanded(child: _ModeChip(icon: Icons.smart_toy, text: 'روبوت', color: const Color(0xFF7B2CBF), onTap: () => GameFeedback.tap())),
         const SizedBox(width: 8),
-        Expanded(child: _ModeChip(icon: Icons.people, text: 'محلي', color: const Color(0xFF00A896), onTap: () => GameFeedback.tap())),
+        Expanded(
+          child: _ModeChip(
+            icon: Icons.wifi_tethering,
+            text: 'LAN',
+            color: const Color(0xFF00A896),
+            onTap: () {
+              GameFeedback.tap();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: LanHomeScreen()),
+                ),
+              );
+            },
+          ),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: _ModeChip(
             icon: Icons.wifi,
-            text: 'Wi‑Fi',
+            text: 'Wi‑Fi قديم',
             color: const Color(0xFFFF9F1C),
             onTap: () {
               GameFeedback.tap();
