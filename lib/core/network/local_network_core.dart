@@ -105,7 +105,7 @@ class LocalNetworkCore {
       mode: LocalNetworkMode.host,
       status: LocalNetworkStatus.preparing,
       players: const <LocalPlayer>[],
-      message: 'جاري تشغيل Host على Wi-Fi / Hotspot...',
+      message: 'جاري تشغيل المضيف على Wi-Fi / Hotspot...',
     ));
 
     try {
@@ -128,7 +128,7 @@ class LocalNetworkCore {
         hostAddress: hostAddress,
         port: port,
         players: <LocalPlayer>[host],
-        message: 'الغرفة تعمل الآن على Wi-Fi / Hotspot. أدخل IP في جهاز اللاعب الثاني للانضمام.',
+        message: 'الغرفة تعمل الآن. أدخل IP في جهاز اللاعب الثاني للانضمام.',
       ));
 
       _publish(NetworkMessage(
@@ -140,7 +140,7 @@ class LocalNetworkCore {
     } catch (error) {
       _emit(_state.copyWith(
         status: LocalNetworkStatus.error,
-        message: 'تعذر تشغيل Host. تأكد أن الجهاز على Wi-Fi أو Hotspot ثم جرّب مرة أخرى.',
+        message: 'تعذر تشغيل الغرفة. تأكد أن الجهاز على Wi-Fi أو Hotspot ثم جرّب مرة أخرى.',
       ));
     }
   }
@@ -176,7 +176,7 @@ class LocalNetworkCore {
         hostAddress: cleanedHost,
         port: port,
         players: <LocalPlayer>[guest],
-        message: 'تم الاتصال بالغرفة عبر Wi-Fi / Hotspot.',
+        message: 'تم الاتصال بالغرفة. انتظر اللاعب الأول لبدء اللعبة.',
       ));
 
       _transport.send(NetworkMessage(
@@ -207,6 +207,16 @@ class LocalNetworkCore {
     ));
   }
 
+  void startGame() {
+    final String senderId = _state.players.isEmpty ? 'system' : _state.players.first.id;
+    _sendAndPublish(NetworkMessage(
+      type: NetworkMessageType.startGame,
+      gameId: gameId,
+      senderId: senderId,
+      payload: <String, dynamic>{'roomCode': _state.roomCode},
+    ));
+  }
+
   void sendMove(Map<String, dynamic> movePayload, {required String senderId}) {
     _sendAndPublish(NetworkMessage(
       type: NetworkMessageType.move,
@@ -227,6 +237,7 @@ class LocalNetworkCore {
   }
 
   void _handleIncomingMessage(NetworkMessage message) {
+    if (message.gameId != gameId) return;
     _publish(message);
 
     if (message.type == NetworkMessageType.playerJoined && _state.mode == LocalNetworkMode.host) {
@@ -238,7 +249,7 @@ class LocalNetworkCore {
             ..._state.players,
             LocalPlayer(id: message.senderId, name: 'اللاعب 2', isHost: false, isReady: true),
           ],
-          message: 'تم انضمام اللاعب الثاني عبر Wi-Fi / Hotspot.',
+          message: 'تم انضمام اللاعب الثاني. يمكن للاعب الأول بدء اللعبة الآن.',
         ));
       }
     }
