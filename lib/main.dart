@@ -8,6 +8,7 @@ import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_placeholder.dart';
 import 'games/domino/domino_game.dart';
 import 'games/cards/cards_placeholder.dart';
+import 'games/chicken/chicken_game.dart';
 import 'games/xo/xo_game.dart';
 import 'network/wifi_lobby_screen.dart';
 import 'settings/settings_screen.dart';
@@ -57,6 +58,13 @@ class HomeScreen extends StatelessWidget {
       playersText: 'لاعبان الآن / 4 لاحقًا',
       status: 'نسخة أولى ضد الكمبيوتر',
       builder: (_, __) => const DominoGameScreen(),
+    ),
+    GameDefinition(
+      id: 'chicken',
+      name: 'لعبة الدجاجة',
+      playersText: 'لاعب واحد',
+      status: 'نسخة أركيد أولى',
+      builder: (_, __) => const ChickenGameScreen(),
     ),
     GameDefinition(
       id: 'chess',
@@ -241,6 +249,8 @@ class _GameCard extends StatelessWidget {
         return Icons.account_tree;
       case 'domino':
         return Icons.dashboard_customize;
+      case 'chicken':
+        return Icons.egg_alt;
       default:
         return Icons.style;
     }
@@ -256,6 +266,8 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFF4A261);
       case 'chess':
         return const Color(0xFF264653);
+      case 'chicken':
+        return const Color(0xFFFF9F1C);
       default:
         return const Color(0xFF7B2CBF);
     }
