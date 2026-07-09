@@ -1,23 +1,43 @@
 import 'package:flutter/services.dart';
 
+import 'app_settings.dart';
+
 class GameFeedback {
+  static final AppSettingsController _settings = AppSettingsController.instance;
+
   static Future<void> tap() async {
-    await SystemSound.play(SystemSoundType.click);
-    await HapticFeedback.selectionClick();
+    if (_settings.soundEnabled) {
+      await SystemSound.play(SystemSoundType.click);
+    }
+    if (_settings.vibrationEnabled) {
+      await HapticFeedback.selectionClick();
+    }
   }
 
   static Future<void> move() async {
-    await SystemSound.play(SystemSoundType.click);
-    await HapticFeedback.lightImpact();
+    if (_settings.soundEnabled) {
+      await SystemSound.play(SystemSoundType.click);
+    }
+    if (_settings.vibrationEnabled) {
+      await HapticFeedback.lightImpact();
+    }
   }
 
   static Future<void> win() async {
-    await SystemSound.play(SystemSoundType.alert);
-    await HapticFeedback.mediumImpact();
+    if (_settings.soundEnabled) {
+      await SystemSound.play(SystemSoundType.alert);
+    }
+    if (_settings.vibrationEnabled) {
+      await HapticFeedback.mediumImpact();
+    }
   }
 
   static Future<void> error() async {
-    await SystemSound.play(SystemSoundType.alert);
-    await HapticFeedback.heavyImpact();
+    if (_settings.soundEnabled) {
+      await SystemSound.play(SystemSoundType.alert);
+    }
+    if (_settings.vibrationEnabled) {
+      await HapticFeedback.heavyImpact();
+    }
   }
 }
