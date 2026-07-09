@@ -2,7 +2,33 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/audio_feedback.dart';
 import '../../design/app_theme.dart';
+
+class PlayingCardModel {
+  const PlayingCardModel({required this.rank, required this.suit});
+
+  final String rank;
+  final String suit;
+
+  int get value {
+    switch (rank) {
+      case 'A':
+        return 1;
+      case 'J':
+        return 11;
+      case 'Q':
+        return 12;
+      case 'K':
+        return 13;
+      default:
+        return int.tryParse(rank) ?? 0;
+    }
+  }
+
+  String get label => '$rank$suit';
+  bool get red => suit == '♥' || suit == '♦';
+}
 
 class CardsPlaceholderScreen extends StatefulWidget {
   const CardsPlaceholderScreen({super.key});
@@ -11,199 +37,353 @@ class CardsPlaceholderScreen extends StatefulWidget {
   State<CardsPlaceholderScreen> createState() => _CardsPlaceholderScreenState();
 }
 
-class _MemoryCard {
-  const _MemoryCard({required this.id, required this.symbol});
-
-  final int id;
-  final String symbol;
-}
-
 class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
-  final Random _random = Random();
-  late List<_MemoryCard> cards;
-  final Set<int> opened = <int>{};
-  final Set<int> matched = <int>{};
-  int? firstIndex;
-  bool locked = false;
-  int moves = 0;
-  int wins = 0;
-  int? bestMoves;
+  final Random random = Random();
+  List<PlayingCardModel> deck = [];
+  List<PlayingCardModel> table = [];
+  List<PlayingCardModel> playerHand = [];
+  List<PlayingCardModel> botHand = [];
+  List<PlayingCardModel> playerPile = [];
+  List<PlayingCardModel> botPile = [];
+  bool playerTurn = true;
+  bool roundFinished = false;
+  int playerScore = 0;
+  int botScore = 0;
+  String message = 'دورك: العب ورقة أو التقط بطاقة مطابقة';
 
   @override
   void initState() {
     super.initState();
-    _newRound(resetScore: true);
+    newRound(resetScore: true);
   }
 
-  void _newRound({bool resetScore = false}) {
-    const symbols = ['A', 'K', 'Q', 'J', '10', '9', '8', '7'];
-    final deck = <_MemoryCard>[];
-    var id = 0;
-    for (final symbol in symbols) {
-      deck.add(_MemoryCard(id: id++, symbol: symbol));
-      deck.add(_MemoryCard(id: id++, symbol: symbol));
-    }
-    deck.shuffle(_random);
-
-    setState(() {
-      cards = deck;
-      opened.clear();
-      matched.clear();
-      firstIndex = null;
-      locked = false;
-      moves = 0;
-      if (resetScore) {
-        wins = 0;
-        bestMoves = null;
+  void newRound({bool resetScore = false}) {
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const suits = ['♥', '♦', '♣', '♠'];
+    final cards = <PlayingCardModel>[];
+    for (final suit in suits) {
+      for (final rank in ranks) {
+        cards.add(PlayingCardModel(rank: rank, suit: suit));
       }
-    });
+    }
+    cards.shuffle(random);
+
+    deck = cards;
+    table = deck.take(4).toList();
+    deck = deck.skip(4).toList();
+    playerHand = [];
+    botHand = [];
+    playerPile = [];
+    botPile = [];
+    playerTurn = true;
+    roundFinished = false;
+    if (resetScore) {
+      playerScore = 0;
+      botScore = 0;
+    }
+    dealHands();
+    message = 'دورك: اختر ورقة من يدك';
+    setState(() {});
   }
 
-  Future<void> _tapCard(int index) async {
-    if (locked || opened.contains(index) || matched.contains(index)) return;
+  void dealHands() {
+    while (playerHand.length < 4 && deck.isNotEmpty) {
+      playerHand.add(deck.removeLast());
+    }
+    while (botHand.length < 4 && deck.isNotEmpty) {
+      botHand.add(deck.removeLast());
+    }
+  }
 
-    setState(() {
-      opened.add(index);
-    });
+  void playPlayerCard(PlayingCardModel card) {
+    if (!playerTurn || roundFinished) return;
+    GameFeedback.move();
+    playCard(card, playerHand, playerPile, isPlayer: true);
+    if (checkRoundEnd()) return;
+    playerTurn = false;
+    message = 'الكمبيوتر يفكر...';
+    setState(() {});
+    Future<void>.delayed(const Duration(milliseconds: 550), botMove);
+  }
 
-    if (firstIndex == null) {
-      firstIndex = index;
-      return;
+  void botMove() {
+    if (roundFinished) return;
+    PlayingCardModel? chosen;
+    for (final card in botHand) {
+      if (table.any((t) => t.value == card.value)) {
+        chosen = card;
+        break;
+      }
+    }
+    chosen ??= botHand.isNotEmpty ? botHand[random.nextInt(botHand.length)] : null;
+    if (chosen != null) {
+      playCard(chosen, botHand, botPile, isPlayer: false);
+    }
+    if (checkRoundEnd()) return;
+    playerTurn = true;
+    message = 'دورك: اختر ورقة من يدك';
+    setState(() {});
+  }
+
+  void playCard(PlayingCardModel card, List<PlayingCardModel> hand, List<PlayingCardModel> pile, {required bool isPlayer}) {
+    hand.remove(card);
+    final matches = table.where((t) => t.value == card.value).toList();
+    if (matches.isNotEmpty) {
+      pile.add(card);
+      pile.addAll(matches);
+      table.removeWhere((t) => t.value == card.value);
+      if (isPlayer) {
+        playerScore += matches.length + 1;
+        message = 'التقطت ${matches.length} بطاقة مطابقة';
+      } else {
+        botScore += matches.length + 1;
+        message = 'الكمبيوتر التقط ${matches.length} بطاقة';
+      }
+      GameFeedback.win();
+    } else {
+      table.add(card);
+      if (isPlayer) {
+        message = 'وضعت الورقة على الأرض';
+      } else {
+        message = 'الكمبيوتر وضع ورقة على الأرض';
+      }
     }
 
-    moves++;
-    final previous = firstIndex!;
-    firstIndex = null;
+    if (playerHand.isEmpty && botHand.isEmpty && deck.isNotEmpty) {
+      dealHands();
+    }
+  }
 
-    if (cards[previous].symbol == cards[index].symbol) {
-      setState(() {
-        matched.add(previous);
-        matched.add(index);
-        if (matched.length == cards.length) {
-          wins++;
-          if (bestMoves == null || moves < bestMoves!) bestMoves = moves;
+  bool checkRoundEnd() {
+    if (deck.isEmpty && playerHand.isEmpty && botHand.isEmpty) {
+      roundFinished = true;
+      if (table.isNotEmpty) {
+        if (playerScore >= botScore) {
+          playerPile.addAll(table);
+          playerScore += table.length;
+        } else {
+          botPile.addAll(table);
+          botScore += table.length;
         }
-      });
-      return;
+        table.clear();
+      }
+      if (playerScore > botScore) {
+        message = 'انتهت الجولة: فزت $playerScore مقابل $botScore';
+        GameFeedback.win();
+      } else if (botScore > playerScore) {
+        message = 'انتهت الجولة: فاز الكمبيوتر $botScore مقابل $playerScore';
+        GameFeedback.error();
+      } else {
+        message = 'انتهت الجولة بتعادل $playerScore - $botScore';
+        GameFeedback.tap();
+      }
+      setState(() {});
+      return true;
     }
-
-    locked = true;
-    await Future<void>.delayed(const Duration(milliseconds: 650));
-    if (!mounted) return;
-    setState(() {
-      opened.remove(previous);
-      opened.remove(index);
-      locked = false;
-    });
+    setState(() {});
+    return false;
   }
-
-  bool _isVisible(int index) => opened.contains(index) || matched.contains(index);
-  bool get _finished => matched.length == cards.length;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('الشدة / ذاكرة البطاقات'),
-        actions: [
-          IconButton(
-            tooltip: 'تصفير',
-            onPressed: () => _newRound(resetScore: true),
-            icon: const Icon(Icons.refresh),
-          ),
-        ],
+        title: const Text('الشدة / السراقة'),
+        actions: [IconButton(onPressed: () => newRound(resetScore: true), icon: const Icon(Icons.refresh))],
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.style, color: AppColors.primary),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _finished ? 'ممتاز! أنهيت الجولة' : 'افتح بطاقتين متشابهتين',
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.ink),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('الحركات: $moves'),
-                          Text('الأزواج: ${matched.length ~/ 2} / ${cards.length ~/ 2}'),
-                          Text('الفوز: $wins'),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        bestMoves == null ? 'أفضل نتيجة: لم تسجل بعد' : 'أفضل نتيجة: $bestMoves حركة',
-                        style: const TextStyle(color: AppColors.muted),
-                      ),
-                      if (_finished) ...[
-                        const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          onPressed: () => _newRound(),
-                          icon: const Icon(Icons.play_arrow),
-                          label: const Text('جولة جديدة'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+          child: Column(
+            children: [
+              _StatusCard(
+                message: message,
+                playerScore: playerScore,
+                botScore: botScore,
+                deckCount: deck.length,
+                tableCount: table.length,
+              ),
+              const SizedBox(height: 8),
+              _OpponentPanel(count: botHand.length, pile: botPile.length),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDark,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: table.isEmpty
+                      ? const Center(child: Text('لا توجد أوراق على الأرض', style: TextStyle(color: Colors.white)))
+                      : Wrap(
+                          alignment: WrapAlignment.center,
+                          runAlignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [for (final card in table) PlayingCardView(card: card, compact: true)],
                         ),
-                      ],
-                    ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 116,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final card in playerHand)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(14),
+                        onTap: playerTurn && !roundFinished ? () => playPlayerCard(card) : null,
+                        child: Opacity(
+                          opacity: playerTurn && !roundFinished ? 1 : 0.5,
+                          child: PlayingCardView(card: card),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (roundFinished)
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => newRound(),
+                    icon: const Icon(Icons.play_arrow),
+                    label: const Text('جولة جديدة'),
                   ),
                 ),
-              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.message,
+    required this.playerScore,
+    required this.botScore,
+    required this.deckCount,
+    required this.tableCount,
+  });
+
+  final String message;
+  final int playerScore;
+  final int botScore;
+  final int deckCount;
+  final int tableCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.style, color: Color(0xFF7B2CBF)),
+                const SizedBox(width: 8),
+                Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold))),
+              ],
             ),
-            Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 0.72,
-                ),
-                itemCount: cards.length,
-                itemBuilder: (context, index) {
-                  final visible = _isVisible(index);
-                  final done = matched.contains(index);
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () => _tapCard(index),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      decoration: BoxDecoration(
-                        color: visible ? Colors.white : AppColors.primary,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: done ? AppColors.success : AppColors.primary.withOpacity(0.25), width: 2),
-                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
-                      ),
-                      child: Center(
-                        child: Text(
-                          visible ? cards[index].symbol : '★',
-                          style: TextStyle(
-                            fontSize: visible ? 28 : 26,
-                            fontWeight: FontWeight.bold,
-                            color: visible ? AppColors.ink : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _MiniStat(label: 'نقاطك', value: '$playerScore'),
+                _MiniStat(label: 'الكمبيوتر', value: '$botScore'),
+                _MiniStat(label: 'الرزمة', value: '$deckCount'),
+                _MiniStat(label: 'الأرض', value: '$tableCount'),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _OpponentPanel extends StatelessWidget {
+  const _OpponentPanel({required this.count, required this.pile});
+  final int count;
+  final int pile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+            child: Row(
+              children: [
+                const Icon(Icons.smart_toy, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Expanded(child: Text('يد الكمبيوتر: $count')),
+                Text('جمع: $pile'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          children: [
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class PlayingCardView extends StatelessWidget {
+  const PlayingCardView({super.key, required this.card, this.compact = false});
+
+  final PlayingCardModel card;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = compact ? 46.0 : 56.0;
+    final height = compact ? 66.0 : 86.0;
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: card.red ? AppColors.danger.withOpacity(0.35) : AppColors.primary.withOpacity(0.35), width: 1.5),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 7, offset: Offset(0, 3))],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(card.rank, style: TextStyle(fontSize: compact ? 19 : 24, fontWeight: FontWeight.w900, color: card.red ? AppColors.danger : AppColors.ink)),
+          Text(card.suit, style: TextStyle(fontSize: compact ? 18 : 24, color: card.red ? AppColors.danger : AppColors.ink)),
+        ],
       ),
     );
   }
