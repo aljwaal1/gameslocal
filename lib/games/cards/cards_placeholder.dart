@@ -27,6 +27,7 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   bool locked = false;
   int moves = 0;
   int wins = 0;
+  int? bestMoves;
 
   @override
   void initState() {
@@ -35,7 +36,7 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   }
 
   void _newRound({bool resetScore = false}) {
-    const symbols = ['A', 'K', 'Q', 'J', '10', '9'];
+    const symbols = ['A', 'K', 'Q', 'J', '10', '9', '8', '7'];
     final deck = <_MemoryCard>[];
     var id = 0;
     for (final symbol in symbols) {
@@ -51,7 +52,10 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
       firstIndex = null;
       locked = false;
       moves = 0;
-      if (resetScore) wins = 0;
+      if (resetScore) {
+        wins = 0;
+        bestMoves = null;
+      }
     });
   }
 
@@ -75,7 +79,10 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
       setState(() {
         matched.add(previous);
         matched.add(index);
-        if (matched.length == cards.length) wins++;
+        if (matched.length == cards.length) {
+          wins++;
+          if (bestMoves == null || moves < bestMoves!) bestMoves = moves;
+        }
       });
       return;
     }
@@ -138,6 +145,11 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
                           Text('الفوز: $wins'),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        bestMoves == null ? 'أفضل نتيجة: لم تسجل بعد' : 'أفضل نتيجة: $bestMoves حركة',
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
                       if (_finished) ...[
                         const SizedBox(height: 12),
                         ElevatedButton.icon(
@@ -155,23 +167,23 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
               child: GridView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 0.78,
+                  crossAxisCount: 4,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 0.72,
                 ),
                 itemCount: cards.length,
                 itemBuilder: (context, index) {
                   final visible = _isVisible(index);
                   final done = matched.contains(index);
                   return InkWell(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius: BorderRadius.circular(20),
                     onTap: () => _tapCard(index),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       decoration: BoxDecoration(
                         color: visible ? Colors.white : AppColors.primary,
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: done ? AppColors.success : AppColors.primary.withOpacity(0.25), width: 2),
                         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
                       ),
@@ -179,7 +191,7 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
                         child: Text(
                           visible ? cards[index].symbol : '★',
                           style: TextStyle(
-                            fontSize: visible ? 34 : 30,
+                            fontSize: visible ? 28 : 26,
                             fontWeight: FontWeight.bold,
                             color: visible ? AppColors.ink : Colors.white,
                           ),
