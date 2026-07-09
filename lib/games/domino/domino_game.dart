@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/audio_feedback.dart';
 import '../../design/app_theme.dart';
 
 class DominoTile {
@@ -85,11 +86,14 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   void playPlayerTile(DominoTile tile) {
     if (!playerTurn || roundFinished) return;
     if (!canPlay(tile)) {
+      GameFeedback.error();
       setState(() => message = 'هذه القطعة لا تناسب طرفي الدومينو');
       return;
     }
+    GameFeedback.move();
     placeTile(tile, player);
     if (player.isEmpty) {
+      GameFeedback.win();
       finishRound(playerWon: true, reason: 'أنهيت كل قطعك');
       return;
     }
@@ -106,9 +110,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   void drawTile() {
     if (!playerTurn || roundFinished) return;
     if (stock.isEmpty) {
+      GameFeedback.error();
       setState(() => message = 'لا توجد قطع للسحب. مرر إذا لا تملك حركة');
       return;
     }
+    GameFeedback.tap();
     player.add(stock.removeLast());
     message = player.any(canPlay) ? 'سحبت قطعة. يمكنك اللعب الآن' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
     setState(() {});
@@ -117,9 +123,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   void passTurn() {
     if (!playerTurn || roundFinished) return;
     if (player.any(canPlay)) {
+      GameFeedback.error();
       setState(() => message = 'لديك قطعة مناسبة، لا يمكنك التمرير الآن');
       return;
     }
+    GameFeedback.tap();
     if (isBlocked) {
       finishBlockedRound();
       return;
@@ -151,6 +159,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     playable.sort((a, b) => b.total.compareTo(a.total));
     final chosen = playable.first;
     placeTile(chosen, bot);
+    GameFeedback.move();
     if (bot.isEmpty) {
       finishRound(playerWon: false, reason: 'الكمبيوتر أنهى كل قطعه');
       return;
@@ -185,17 +194,21 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       final points = botPips - playerPips;
       playerScore += points;
       message = 'اللعبة مغلقة. قطعك أقل، فزت بـ $points نقطة';
+      GameFeedback.win();
     } else if (botPips < playerPips) {
       final points = playerPips - botPips;
       botScore += points;
       message = 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
+      GameFeedback.error();
     } else {
       message = 'اللعبة مغلقة وتعادل بالنقاط';
+      GameFeedback.tap();
     }
     setState(() {});
   }
 
   void nextRound() {
+    GameFeedback.tap();
     roundNumber++;
     startRound();
   }
@@ -220,137 +233,203 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final visibleBoard = board.length > 12 ? board.sublist(max(0, board.length - 12)) : board;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('الدومينو'),
         actions: [IconButton(onPressed: () => startRound(resetScore: true), icon: const Icon(Icons.refresh))],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+          child: Column(
+            children: [
+              _InfoPanel(
+                message: message,
+                playerScore: playerScore,
+                botScore: botScore,
+                roundNumber: roundNumber,
+                playerCount: player.length,
+                botCount: bot.length,
+                stockCount: stock.length,
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryDark,
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: board.isEmpty
+                      ? const Center(child: Text('ابدأ بوضع أي قطعة', style: TextStyle(color: Colors.white, fontSize: 18)))
+                      : Wrap(
+                          alignment: WrapAlignment.center,
+                          runAlignment: WrapAlignment.center,
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [for (final tile in visibleBoard) DominoTileView(tile: tile, compact: true)],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: roundFinished ? null : drawTile,
+                      icon: const Icon(Icons.add),
+                      label: const Text('اسحب'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: roundFinished ? nextRound : passTurn,
+                      icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next),
+                      label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: 150,
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  runAlignment: WrapAlignment.center,
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.dashboard_customize, color: AppColors.primary),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('نقاطك: $playerScore'),
-                        Text('الكمبيوتر: $botScore'),
-                        Text('الجولة: $roundNumber'),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('قطعك: ${player.length}'),
-                        Text('قطع الكمبيوتر: ${bot.length}'),
-                        Text('السحب: ${stock.length}'),
-                      ],
-                    ),
+                    for (final tile in player)
+                      Opacity(
+                        opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.45,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: playerTurn && !roundFinished && canPlay(tile) ? () => playPlayerTile(tile) : null,
+                          child: DominoTileView(tile: tile, compact: true),
+                        ),
+                      ),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.primaryDark,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: board.isEmpty
-                  ? const Center(child: Text('ابدأ بوضع أي قطعة', style: TextStyle(color: Colors.white, fontSize: 18)))
-                  : ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: board.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (_, i) => Center(child: DominoTileView(tile: board[i])),
-                    ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
-            child: Row(
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoPanel extends StatelessWidget {
+  const _InfoPanel({
+    required this.message,
+    required this.playerScore,
+    required this.botScore,
+    required this.roundNumber,
+    required this.playerCount,
+    required this.botCount,
+    required this.stockCount,
+  });
+
+  final String message;
+  final int playerScore;
+  final int botScore;
+  final int roundNumber;
+  final int playerCount;
+  final int botCount;
+  final int stockCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: roundFinished ? null : drawTile,
-                    icon: const Icon(Icons.add),
-                    label: const Text('اسحب'),
-                  ),
-                ),
+                const Icon(Icons.dashboard_customize, color: AppColors.primary),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: roundFinished ? nextRound : passTurn,
-                    icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next),
-                    label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'),
-                  ),
-                ),
+                Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold))),
               ],
             ),
-          ),
-          SizedBox(
-            height: 122,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-              scrollDirection: Axis.horizontal,
-              itemCount: player.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (_, i) {
-                final tile = player[i];
-                final enabled = playerTurn && !roundFinished && canPlay(tile);
-                return Opacity(
-                  opacity: enabled ? 1 : 0.45,
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: enabled ? () => playPlayerTile(tile) : null,
-                    child: DominoTileView(tile: tile),
-                  ),
-                );
-              },
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _MiniStat(label: 'نقاطك', value: '$playerScore'),
+                _MiniStat(label: 'الكمبيوتر', value: '$botScore'),
+                _MiniStat(label: 'جولة', value: '$roundNumber'),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _MiniStat(label: 'قطعك', value: '$playerCount'),
+                _MiniStat(label: 'خصمك', value: '$botCount'),
+                _MiniStat(label: 'السحب', value: '$stockCount'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          children: [
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+          ],
+        ),
       ),
     );
   }
 }
 
 class DominoTileView extends StatelessWidget {
-  const DominoTileView({super.key, required this.tile});
+  const DominoTileView({super.key, required this.tile, this.compact = false});
 
   final DominoTile tile;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final width = compact ? 42.0 : 54.0;
+    final height = compact ? 66.0 : 92.0;
+    final fontSize = compact ? 18.0 : 24.0;
+
     return Container(
-      width: 54,
-      height: 92,
+      width: width,
+      height: height,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.18)),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3))],
       ),
       child: Column(
         children: [
-          Expanded(child: Center(child: Text('${tile.left}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)))),
-          Container(height: 1.5, color: AppColors.muted.withOpacity(0.5)),
-          Expanded(child: Center(child: Text('${tile.right}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)))),
+          Expanded(child: Center(child: Text('${tile.left}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
+          Container(height: 1.2, color: AppColors.muted.withOpacity(0.5)),
+          Expanded(child: Center(child: Text('${tile.right}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
         ],
       ),
     );
