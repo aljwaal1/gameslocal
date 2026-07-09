@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
+import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
 import '../../design/app_theme.dart';
 
 enum Piece { empty, red, black, redKing, blackKing }
@@ -27,10 +29,34 @@ class CheckersMove {
   final int? captureCol;
 
   bool get isCapture => captureRow != null && captureCol != null;
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'fromRow': fromRow,
+      'fromCol': fromCol,
+      'toRow': toRow,
+      'toCol': toCol,
+      'captureRow': captureRow,
+      'captureCol': captureCol,
+    };
+  }
+
+  factory CheckersMove.fromJson(Map<String, dynamic> json) {
+    return CheckersMove(
+      fromRow: (json['fromRow'] as num).toInt(),
+      fromCol: (json['fromCol'] as num).toInt(),
+      toRow: (json['toRow'] as num).toInt(),
+      toCol: (json['toCol'] as num).toInt(),
+      captureRow: (json['captureRow'] as num?)?.toInt(),
+      captureCol: (json['captureCol'] as num?)?.toInt(),
+    );
+  }
 }
 
 class CheckersGameScreen extends StatefulWidget {
-  const CheckersGameScreen({super.key});
+  const CheckersGameScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
 
   @override
   State<CheckersGameScreen> createState() => _CheckersGameScreenState();
@@ -41,6 +67,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   final random = Random();
 
   late List<List<Piece>> board;
+  StreamSubscription<NetworkMessage>? networkSubscription;
   int? selectedRow;
   int? selectedCol;
   bool redTurn = true;
@@ -48,10 +75,22 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool botThinking = false;
   String message = 'دور الأحمر';
 
+  bool get networkMode => widget.networkCore != null && widget.networkCore!.state.mode != LocalNetworkMode.idle;
+  bool get localPlayerIsRed => widget.networkCore?.state.mode != LocalNetworkMode.client;
+  bool get isMyNetworkTurn => !networkMode || redTurn == localPlayerIsRed;
+
   @override
   void initState() {
     super.initState();
+    playVsBot = !networkMode;
+    networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
     resetBoard();
+  }
+
+  @override
+  void dispose() {
+    networkSubscription?.cancel();
+    super.dispose();
   }
 
   void resetBoard() {
@@ -72,7 +111,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     selectedCol = null;
     redTurn = true;
     botThinking = false;
-    message = playVsBot ? 'أنت الأحمر - دورك' : 'دور الأحمر';
+    message = currentTurnMessage();
     if (mounted) setState(() {});
   }
 
@@ -108,6 +147,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   void tapCell(int r, int c) {
     if (botThinking) return;
     if (playVsBot && !redTurn) return;
+    if (networkMode && !isMyNetworkTurn) {
+      GameFeedback.error();
+      setState(() => message = 'انتظر حركة اللاعب الآخر');
+      return;
+    }
 
     final piece = board[r][c];
     if (selectedRow == null) {
@@ -155,6 +199,9 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     GameFeedback.move();
     applyMove(move);
+    if (networkMode) {
+      widget.networkCore!.sendMove(move.toJson(), senderId: _localPlayerId());
+    }
     finishTurn();
   }
 
@@ -202,6 +249,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   }
 
   String currentTurnMessage() {
+    if (networkMode) {
+      if (isMyNetworkTurn) return localPlayerIsRed ? 'أنت الأحمر - دورك' : 'أنت الأسود - دورك';
+      return 'انتظار اللاعب الآخر';
+    }
     if (playVsBot) return redTurn ? 'أنت الأحمر - دورك' : 'الكمبيوتر يفكر...';
     return redTurn ? 'دور الأحمر' : 'دور الأسود';
   }
@@ -302,6 +353,28 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     return piece;
   }
 
+  String _localPlayerId() {
+    final LocalNetworkState? state = widget.networkCore?.state;
+    if (state == null || state.players.isEmpty) return localPlayerIsRed ? 'host-checkers' : 'client-checkers';
+    return state.players.first.id;
+  }
+
+  void _handleNetworkMessage(NetworkMessage networkMessage) {
+    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == _localPlayerId()) return;
+
+    try {
+      final move = CheckersMove.fromJson(networkMessage.payload);
+      final validMove = buildMoveIfValid(move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
+      if (validMove == null) return;
+
+      GameFeedback.move();
+      applyMove(validMove);
+      finishTurn();
+    } catch (_) {
+      setState(() => message = 'وصلت حركة غير صالحة من اللاعب الآخر');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -326,7 +399,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                       children: [
                         Row(
                           children: [
-                            Icon(redTurn ? Icons.circle : Icons.smart_toy_outlined),
+                            Icon(redTurn ? Icons.circle : Icons.circle_outlined),
                             const SizedBox(width: 10),
                             Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
                           ],
@@ -334,23 +407,25 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Expanded(child: _InfoChip(label: 'المستوى', value: settings.botDifficultyText)),
+                            Expanded(child: _InfoChip(label: 'المستوى', value: networkMode ? 'Wi‑Fi' : settings.botDifficultyText)),
                             const SizedBox(width: 8),
-                            Expanded(child: _InfoChip(label: 'الوضع', value: playVsBot ? 'ضد الكمبيوتر' : 'لاعبان')),
+                            Expanded(child: _InfoChip(label: 'الوضع', value: networkMode ? 'جهازان' : playVsBot ? 'ضد الكمبيوتر' : 'لاعبان')),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
-                            ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
-                          ],
-                          selected: {playVsBot},
-                          onSelectionChanged: (value) {
-                            setState(() => playVsBot = value.first);
-                            resetBoard();
-                          },
-                        ),
+                        if (!networkMode) ...[
+                          const SizedBox(height: 10),
+                          SegmentedButton<bool>(
+                            segments: const [
+                              ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
+                              ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
+                            ],
+                            selected: {playVsBot},
+                            onSelectionChanged: (value) {
+                              setState(() => playVsBot = value.first);
+                              resetBoard();
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),
