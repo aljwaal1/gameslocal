@@ -20,6 +20,11 @@ class NetworkGameMove {
   final String action;
   final Map<String, dynamic> payload;
 
+  /// مفتاح ثابت للحركة، يستخدم لمنع تطبيق نفس الحركة مرتين.
+  ///
+  /// وجود playerId داخل المفتاح مهم لأن كل لاعب قد يبدأ التسلسل من 1.
+  String get uniqueKey => '$playerId:$sequence:$action';
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'sequence': sequence,
@@ -42,33 +47,44 @@ class NetworkGameMove {
 class NetworkGameSync {
   NetworkGameSync();
 
-  int _lastSequence = 0;
+  int _outgoingSequence = 0;
+  final Set<String> _acceptedMoveKeys = <String>{};
 
-  int get lastSequence => _lastSequence;
+  /// آخر رقم تسلسلي تم إنشاؤه محليًا لهذا الجهاز.
+  int get lastSequence => _outgoingSequence;
 
   NetworkGameMove buildMove({
     required String playerId,
     required String action,
     Map<String, dynamic> payload = const <String, dynamic>{},
   }) {
-    _lastSequence += 1;
-    return NetworkGameMove(
-      sequence: _lastSequence,
+    _outgoingSequence += 1;
+    final NetworkGameMove move = NetworkGameMove(
+      sequence: _outgoingSequence,
       playerId: playerId,
       action: action,
       payload: payload,
     );
+
+    // نسجل الحركة المحلية أيضًا حتى لا يتم تطبيقها مرة ثانية إذا رجعت من الشبكة.
+    _acceptedMoveKeys.add(move.uniqueKey);
+    return move;
   }
 
-  /// يقبل الحركة القادمة إذا كانت أحدث من آخر حركة معروفة.
-  /// هذا يمنع تكرار نفس الحركة عند إعادة إرسال الرسائل لاحقًا.
+  /// يقبل الحركة القادمة إذا لم يتم تطبيقها سابقًا.
+  ///
+  /// لا نقارن الرقم التسلسلي العام فقط، لأن كل جهاز يملك عدّادًا مستقلًا.
+  /// لذلك نعتمد على playerId + sequence + action كمفتاح تكرار آمن.
   bool acceptIncoming(NetworkGameMove move) {
-    if (move.sequence <= _lastSequence) return false;
-    _lastSequence = move.sequence;
-    return true;
+    if (move.playerId.trim().isEmpty || move.action.trim().isEmpty) {
+      return false;
+    }
+
+    return _acceptedMoveKeys.add(move.uniqueKey);
   }
 
   void reset() {
-    _lastSequence = 0;
+    _outgoingSequence = 0;
+    _acceptedMoveKeys.clear();
   }
 }
