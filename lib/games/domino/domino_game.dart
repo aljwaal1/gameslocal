@@ -71,6 +71,17 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   int? get leftEnd => board.isEmpty ? null : board.first.left;
   int? get rightEnd => board.isEmpty ? null : board.last.right;
 
+  List<DominoTile> get sortedPlayerHand {
+    final list = List<DominoTile>.from(player);
+    list.sort((a, b) {
+      final ap = canPlay(a) ? 0 : 1;
+      final bp = canPlay(b) ? 0 : 1;
+      if (ap != bp) return ap.compareTo(bp);
+      return b.total.compareTo(a.total);
+    });
+    return list;
+  }
+
   int pipsOf(List<DominoTile> hand) => hand.fold(0, (sum, tile) => sum + tile.total);
 
   bool canPlay(DominoTile tile) {
@@ -87,7 +98,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     if (!playerTurn || roundFinished) return;
     if (!canPlay(tile)) {
       GameFeedback.error();
-      setState(() => message = 'هذه القطعة لا تناسب طرفي الدومينو');
+      setState(() => message = 'هذه القطعة لا تناسب الطرفين: $leftEnd أو $rightEnd');
       return;
     }
     GameFeedback.move();
@@ -116,7 +127,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     }
     GameFeedback.tap();
     player.add(stock.removeLast());
-    message = player.any(canPlay) ? 'سحبت قطعة. يمكنك اللعب الآن' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
+    message = player.any(canPlay) ? 'سحبت قطعة. القطع المناسبة أصبحت في أول يدك' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
     setState(() {});
   }
 
@@ -124,7 +135,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     if (!playerTurn || roundFinished) return;
     if (player.any(canPlay)) {
       GameFeedback.error();
-      setState(() => message = 'لديك قطعة مناسبة، لا يمكنك التمرير الآن');
+      setState(() => message = 'لديك قطعة مناسبة بإطار ذهبي، لا يمكنك التمرير');
       return;
     }
     GameFeedback.tap();
@@ -169,7 +180,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       return;
     }
     playerTurn = true;
-    message = 'دورك: اختر قطعة مناسبة';
+    message = 'دورك: اختر قطعة بإطار ذهبي';
     setState(() {});
   }
 
@@ -233,7 +244,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleBoard = board.length > 12 ? board.sublist(max(0, board.length - 12)) : board;
+    final visibleBoard = board.length > 14 ? board.sublist(max(0, board.length - 14)) : board;
+    final playableCount = player.where(canPlay).length;
 
     return Scaffold(
       appBar: AppBar(
@@ -253,24 +265,41 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                 playerCount: player.length,
                 botCount: bot.length,
                 stockCount: stock.length,
+                playableCount: playableCount,
               ),
+              const SizedBox(height: 8),
+              _EndsBar(leftEnd: leftEnd, rightEnd: rightEnd),
               const SizedBox(height: 8),
               Expanded(
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryDark,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                      colors: [Color(0xFF063B35), Color(0xFF0E6F63)],
+                    ),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: board.isEmpty
-                      ? const Center(child: Text('ابدأ بوضع أي قطعة', style: TextStyle(color: Colors.white, fontSize: 18)))
-                      : Wrap(
-                          alignment: WrapAlignment.center,
-                          runAlignment: WrapAlignment.center,
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [for (final tile in visibleBoard) DominoTileView(tile: tile, compact: true)],
+                      ? const Center(child: Text('ابدأ بأي قطعة من يدك', style: TextStyle(color: Colors.white, fontSize: 18)))
+                      : Column(
+                          children: [
+                            const Text('مسار الدومينو من اليسار إلى اليمين', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            const SizedBox(height: 6),
+                            Expanded(
+                              child: Wrap(
+                                alignment: WrapAlignment.center,
+                                runAlignment: WrapAlignment.center,
+                                spacing: 5,
+                                runSpacing: 5,
+                                children: [
+                                  for (int i = 0; i < visibleBoard.length; i++) DominoTileView(tile: visibleBoard[i], compact: true, order: board.length - visibleBoard.length + i + 1),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                 ),
               ),
@@ -303,13 +332,13 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    for (final tile in player)
+                    for (final tile in sortedPlayerHand)
                       Opacity(
-                        opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.45,
+                        opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.38,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
                           onTap: playerTurn && !roundFinished && canPlay(tile) ? () => playPlayerTile(tile) : null,
-                          child: DominoTileView(tile: tile, compact: true),
+                          child: DominoTileView(tile: tile, compact: true, playable: playerTurn && !roundFinished && canPlay(tile)),
                         ),
                       ),
                   ],
@@ -318,6 +347,50 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EndsBar extends StatelessWidget {
+  const _EndsBar({required this.leftEnd, required this.rightEnd});
+  final int? leftEnd;
+  final int? rightEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    if (leftEnd == null || rightEnd == null) {
+      return const SizedBox.shrink();
+    }
+    return Row(
+      children: [
+        Expanded(child: _EndBox(label: 'طرف اليسار', value: leftEnd!)),
+        const SizedBox(width: 8),
+        const Icon(Icons.compare_arrows, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Expanded(child: _EndBox(label: 'طرف اليمين', value: rightEnd!)),
+      ],
+    );
+  }
+}
+
+class _EndBox extends StatelessWidget {
+  const _EndBox({required this.label, required this.value});
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.22), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.accent)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+          const SizedBox(width: 8),
+          CircleAvatar(radius: 14, backgroundColor: AppColors.accent, child: Text('$value', style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.bold))),
+        ],
       ),
     );
   }
@@ -332,6 +405,7 @@ class _InfoPanel extends StatelessWidget {
     required this.playerCount,
     required this.botCount,
     required this.stockCount,
+    required this.playableCount,
   });
 
   final String message;
@@ -341,6 +415,7 @@ class _InfoPanel extends StatelessWidget {
   final int playerCount;
   final int botCount;
   final int stockCount;
+  final int playableCount;
 
   @override
   Widget build(BuildContext context) {
@@ -358,19 +433,17 @@ class _InfoPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _MiniStat(label: 'نقاطك', value: '$playerScore'),
-                _MiniStat(label: 'الكمبيوتر', value: '$botScore'),
+                _MiniStat(label: 'خصمك', value: '$botScore'),
                 _MiniStat(label: 'جولة', value: '$roundNumber'),
               ],
             ),
             const SizedBox(height: 6),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _MiniStat(label: 'قطعك', value: '$playerCount'),
-                _MiniStat(label: 'خصمك', value: '$botCount'),
+                _MiniStat(label: 'مناسبة', value: '$playableCount'),
                 _MiniStat(label: 'السحب', value: '$stockCount'),
               ],
             ),
@@ -405,10 +478,12 @@ class _MiniStat extends StatelessWidget {
 }
 
 class DominoTileView extends StatelessWidget {
-  const DominoTileView({super.key, required this.tile, this.compact = false});
+  const DominoTileView({super.key, required this.tile, this.compact = false, this.playable = false, this.order});
 
   final DominoTile tile;
   final bool compact;
+  final bool playable;
+  final int? order;
 
   @override
   Widget build(BuildContext context) {
@@ -416,22 +491,38 @@ class DominoTileView extends StatelessWidget {
     final height = compact ? 66.0 : 92.0;
     final fontSize = compact ? 18.0 : 24.0;
 
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.18)),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3))],
-      ),
-      child: Column(
-        children: [
-          Expanded(child: Center(child: Text('${tile.left}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
-          Container(height: 1.2, color: AppColors.muted.withOpacity(0.5)),
-          Expanded(child: Center(child: Text('${tile.right}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
-        ],
-      ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: playable ? AppColors.accent : AppColors.primary.withOpacity(0.18), width: playable ? 3 : 1),
+            boxShadow: [BoxShadow(color: playable ? AppColors.accent.withOpacity(0.45) : Colors.black26, blurRadius: playable ? 10 : 6, offset: const Offset(0, 3))],
+          ),
+          child: Column(
+            children: [
+              Expanded(child: Center(child: Text('${tile.left}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
+              Container(height: 1.2, color: AppColors.muted.withOpacity(0.5)),
+              Expanded(child: Center(child: Text('${tile.right}', style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.bold, color: AppColors.ink)))),
+            ],
+          ),
+        ),
+        if (order != null)
+          Positioned(
+            top: -5,
+            right: -5,
+            child: CircleAvatar(
+              radius: 9,
+              backgroundColor: AppColors.accent,
+              child: Text('$order', style: const TextStyle(fontSize: 9, color: AppColors.ink, fontWeight: FontWeight.bold)),
+            ),
+          ),
+      ],
     );
   }
 }
