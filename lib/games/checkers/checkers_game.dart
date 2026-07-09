@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
+
+import '../../core/app_settings.dart';
 
 enum Piece { empty, red, black, redKing, blackKing }
 
@@ -32,6 +35,9 @@ class CheckersGameScreen extends StatefulWidget {
 }
 
 class _CheckersGameScreenState extends State<CheckersGameScreen> {
+  final settings = AppSettingsController.instance;
+  final random = Random();
+
   late List<List<Piece>> board;
   int? selectedRow;
   int? selectedCol;
@@ -217,10 +223,50 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (moves.isEmpty) return null;
 
     final captures = moves.where((m) => m.isCapture).toList();
-    if (captures.isNotEmpty) return captures.first;
 
-    moves.sort((a, b) => b.toRow.compareTo(a.toRow));
-    return moves.first;
+    switch (settings.botDifficulty) {
+      case BotDifficulty.easy:
+        return moves[random.nextInt(moves.length)];
+      case BotDifficulty.normal:
+        if (captures.isNotEmpty) return captures.first;
+        moves.sort((a, b) => b.toRow.compareTo(a.toRow));
+        return moves.first;
+      case BotDifficulty.hard:
+        moves.sort((a, b) => scoreBotMove(b).compareTo(scoreBotMove(a)));
+        return moves.first;
+    }
+  }
+
+  int scoreBotMove(CheckersMove move) {
+    final moving = board[move.fromRow][move.fromCol];
+    var score = 0;
+    if (move.isCapture) score += 100;
+    if (move.toRow == 7 && moving == Piece.black) score += 60;
+    if (move.toRow > move.fromRow) score += 8;
+    if (move.toCol == 0 || move.toCol == 7) score += 4;
+    if (isMoveExposed(move)) score -= 35;
+    return score;
+  }
+
+  bool isMoveExposed(CheckersMove move) {
+    final temp = board.map((row) => List<Piece>.from(row)).toList();
+    final moving = temp[move.fromRow][move.fromCol];
+    temp[move.toRow][move.toCol] = promoteIfNeeded(moving, move.toRow);
+    temp[move.fromRow][move.fromCol] = Piece.empty;
+    if (move.isCapture) temp[move.captureRow!][move.captureCol!] = Piece.empty;
+
+    for (final d in const [
+      [-1, -1],
+      [-1, 1],
+    ]) {
+      final attackerR = move.toRow + d[0];
+      final attackerC = move.toCol + d[1];
+      final landingR = move.toRow - d[0];
+      final landingC = move.toCol - d[1];
+      if (!inside(attackerR, attackerC) || !inside(landingR, landingC)) continue;
+      if (isRedPiece(temp[attackerR][attackerC]) && temp[landingR][landingC] == Piece.empty) return true;
+    }
+    return false;
   }
 
   List<CheckersMove> allLegalMoves({required bool forRed}) {
@@ -274,93 +320,145 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     return piece;
   }
 
+  Color get tableColor {
+    switch (settings.tableColorIndex) {
+      case 1:
+        return const Color(0xFF6B4F2A);
+      case 2:
+        return const Color(0xFF1E3A8A);
+      case 3:
+        return const Color(0xFF111827);
+      default:
+        return const Color(0xFF1F6F63);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الضامة'),
-        actions: [IconButton(onPressed: resetBoard, icon: const Icon(Icons.refresh))],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    Row(
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('الضامة'),
+            actions: [IconButton(onPressed: resetBoard, icon: const Icon(Icons.refresh))],
+          ),
+          body: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
                       children: [
-                        Icon(redTurn ? Icons.circle : Icons.smart_toy_outlined),
-                        const SizedBox(width: 10),
-                        Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                        Row(
+                          children: [
+                            Icon(redTurn ? Icons.circle : Icons.smart_toy_outlined),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(child: _InfoChip(label: 'اللعب', value: playVsBot ? 'ضد الكمبيوتر' : 'لاعب ضد لاعب')),
+                            const SizedBox(width: 8),
+                            Expanded(child: _InfoChip(label: 'مستوى الكمبيوتر', value: settings.botDifficultyText)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
+                            ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
+                          ],
+                          selected: {playVsBot},
+                          onSelectionChanged: (value) {
+                            setState(() => playVsBot = value.first);
+                            resetBoard();
+                          },
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
-                        ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
-                      ],
-                      selected: {playVsBot},
-                      onSelectionChanged: (value) {
-                        setState(() => playVsBot = value.first);
-                        resetBoard();
-                      },
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
-          Expanded(
-            child: Center(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3A2A1A),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFFFC857), width: 5),
-                      boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 14, offset: Offset(0, 6))],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: GridView.builder(
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
-                        itemCount: 64,
-                        itemBuilder: (context, index) {
-                          final r = index ~/ 8;
-                          final c = index % 8;
-                          return _BoardCell(
-                            row: r,
-                            col: c,
-                            piece: board[r][c],
-                            selected: selectedRow == r && selectedCol == c,
-                            onTap: () => tapCell(r, c),
-                          );
-                        },
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: tableColor,
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: const Color(0xFFFFC857), width: 5),
+                          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 14, offset: Offset(0, 6))],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: GridView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
+                            itemCount: 64,
+                            itemBuilder: (context, index) {
+                              final r = index ~/ 8;
+                              final c = index % 8;
+                              return _BoardCell(
+                                row: r,
+                                col: c,
+                                piece: board[r][c],
+                                selected: selectedRow == r && selectedCol == c,
+                                tableColor: tableColor,
+                                onTap: () => tapCell(r, c),
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
+                child: Text(
+                  'التوزيع المحلي: 16 حجر لكل لاعب، سطران ممتلئان لكل جهة مع سطر خلفي فارغ.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
           ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
-            child: Text(
-              'التوزيع المحلي: 16 حجر لكل لاعب، سطران ممتلئان لكل جهة مع سطر خلفي فارغ.',
-              textAlign: TextAlign.center,
-            ),
-          ),
+        );
+      },
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1F6F63).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 2),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
         ],
       ),
     );
@@ -373,6 +471,7 @@ class _BoardCell extends StatelessWidget {
     required this.col,
     required this.piece,
     required this.selected,
+    required this.tableColor,
     required this.onTap,
   });
 
@@ -380,6 +479,7 @@ class _BoardCell extends StatelessWidget {
   final int col;
   final Piece piece;
   final bool selected;
+  final Color tableColor;
   final VoidCallback onTap;
 
   @override
@@ -392,7 +492,7 @@ class _BoardCell extends StatelessWidget {
           color: selected
               ? const Color(0xFFFFD166)
               : dark
-                  ? const Color(0xFF6B4F2A)
+                  ? tableColor.withOpacity(0.78)
                   : const Color(0xFFF2D7A0),
           border: Border.all(color: Colors.black.withOpacity(0.22), width: 0.45),
         ),
