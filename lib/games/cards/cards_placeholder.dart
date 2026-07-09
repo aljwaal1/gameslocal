@@ -27,12 +27,11 @@ class PlayingCardModel {
   }
 
   int get scoreValue => rank == 'J' || rank == 'Q' || rank == 'K' ? 10 : 1;
-  String get label => '$rank$suit';
   bool get red => suit == '♥' || suit == '♦';
-  bool get face => rank == 'J' || rank == 'Q' || rank == 'K';
 }
 
 enum LastCollector { player, bot }
+enum BotLevel { easy, normal, hard }
 
 class CardsPlaceholderScreen extends StatefulWidget {
   const CardsPlaceholderScreen({super.key});
@@ -57,8 +56,9 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   int botBasra = 0;
   int playerSteals = 0;
   int botSteals = 0;
+  BotLevel botLevel = BotLevel.easy;
   LastCollector? lastCollector;
-  String message = 'السراقة الأردنية/الفلسطينية: الصور = 10، والباقي = 1';
+  String message = 'السراقة: الصور = 10، والباقي = 1';
 
   @override
   void initState() {
@@ -96,7 +96,7 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
       botSteals = 0;
     }
     dealHands();
-    message = 'دورك: اختر ورقة من يدك';
+    message = 'دورك: اختر ورقة متشابهة للالتقاط أو السرقة';
     setState(() {});
   }
 
@@ -124,28 +124,39 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
 
   void botMove() {
     if (roundFinished) return;
-    PlayingCardModel? chosen;
-
-    final tablePlayable = botHand.where((card) => table.any((t) => t.value == card.value)).toList();
-    final stealPlayable = botHand.where((card) => playerPile.any((p) => p.value == card.value)).toList();
-
-    if (tablePlayable.isNotEmpty) {
-      tablePlayable.sort((a, b) => scorePotential(b, table).compareTo(scorePotential(a, table)));
-      chosen = tablePlayable.first;
-    } else if (stealPlayable.isNotEmpty) {
-      stealPlayable.sort((a, b) => scorePotential(b, playerPile).compareTo(scorePotential(a, playerPile)));
-      chosen = stealPlayable.first;
-    } else if (botHand.isNotEmpty) {
-      chosen = botHand[random.nextInt(botHand.length)];
-    }
-
+    final chosen = chooseBotCard();
     if (chosen != null) {
       playCard(chosen, botHand, botPile, playerPile, isPlayer: false);
     }
     if (checkRoundEnd()) return;
     playerTurn = true;
-    message = 'دورك: اختر ورقة من يدك';
+    message = 'دورك: اختر ورقة متشابهة للالتقاط أو السرقة';
     setState(() {});
+  }
+
+  PlayingCardModel? chooseBotCard() {
+    if (botHand.isEmpty) return null;
+
+    final tablePlayable = botHand.where((card) => table.any((t) => t.value == card.value)).toList();
+    final stealPlayable = botHand.where((card) => playerPile.any((p) => p.value == card.value)).toList();
+
+    if (botLevel == BotLevel.easy) {
+      if (tablePlayable.isNotEmpty && random.nextBool()) return tablePlayable.first;
+      return botHand[random.nextInt(botHand.length)];
+    }
+
+    if (botLevel == BotLevel.normal) {
+      if (tablePlayable.isNotEmpty) return tablePlayable.first;
+      if (stealPlayable.isNotEmpty && random.nextBool()) return stealPlayable.first;
+      return botHand[random.nextInt(botHand.length)];
+    }
+
+    final allGood = [...tablePlayable, ...stealPlayable];
+    if (allGood.isNotEmpty) {
+      allGood.sort((a, b) => max(scorePotential(b, table), scorePotential(b, playerPile)).compareTo(max(scorePotential(a, table), scorePotential(a, playerPile))));
+      return allGood.first;
+    }
+    return botHand[random.nextInt(botHand.length)];
   }
 
   int scorePotential(PlayingCardModel card, List<PlayingCardModel> source) {
@@ -176,11 +187,11 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
       if (isPlayer) {
         playerScore += gained + basraBonus;
         if (madeBasra) playerBasra++;
-        message = madeBasra ? 'بسرا! التقطت كل الأرض +10' : 'التقطت من الأرض وربحت $gained نقطة';
+        message = madeBasra ? 'بسرا! التقطت كل الأرض +10' : 'التقطت أوراقًا متشابهة وربحت $gained نقطة';
       } else {
         botScore += gained + basraBonus;
         if (madeBasra) botBasra++;
-        message = madeBasra ? 'الكمبيوتر عمل بسرا +10' : 'الكمبيوتر التقط من الأرض وربح $gained نقطة';
+        message = madeBasra ? 'الكمبيوتر عمل بسرا +10' : 'الكمبيوتر التقط أوراقًا متشابهة وربح $gained نقطة';
       }
       GameFeedback.win();
     } else {
@@ -195,16 +206,16 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
         if (isPlayer) {
           playerScore += gained;
           playerSteals++;
-          message = 'سرقت من الكمبيوتر ${stolen.length} ورقة وربحت $gained نقطة';
+          message = 'سرقت متشابهات من الكمبيوتر وربحت $gained نقطة';
         } else {
           botScore += gained;
           botSteals++;
-          message = 'الكمبيوتر سرق منك ${stolen.length} ورقة وربح $gained نقطة';
+          message = 'الكمبيوتر سرق متشابهات منك وربح $gained نقطة';
         }
         GameFeedback.win();
       } else {
         table.add(card);
-        message = isPlayer ? 'وضعت الورقة على الأرض' : 'الكمبيوتر وضع ورقة على الأرض';
+        message = isPlayer ? 'لا يوجد متشابه، وضعت الورقة على الأرض' : 'الكمبيوتر وضع ورقة على الأرض';
       }
     }
 
@@ -248,6 +259,25 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     return table.any((t) => t.value == card.value) || botPile.any((p) => p.value == card.value);
   }
 
+  String get botLevelText {
+    switch (botLevel) {
+      case BotLevel.easy:
+        return 'سهل';
+      case BotLevel.normal:
+        return 'متوسط';
+      case BotLevel.hard:
+        return 'صعب';
+    }
+  }
+
+  void setBotLevel(BotLevel level) {
+    GameFeedback.tap();
+    setState(() {
+      botLevel = level;
+      message = 'تم تغيير مستوى الكمبيوتر إلى $botLevelText';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -271,6 +301,8 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
                 playerSteals: playerSteals,
                 botSteals: botSteals,
               ),
+              const SizedBox(height: 8),
+              _BotLevelSelector(level: botLevel, onChanged: setBotLevel),
               const SizedBox(height: 8),
               _OpponentPanel(count: botHand.length, pile: botPile.length),
               const SizedBox(height: 8),
@@ -327,6 +359,25 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _BotLevelSelector extends StatelessWidget {
+  const _BotLevelSelector({required this.level, required this.onChanged});
+  final BotLevel level;
+  final ValueChanged<BotLevel> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<BotLevel>(
+      segments: const [
+        ButtonSegment(value: BotLevel.easy, label: Text('سهل')),
+        ButtonSegment(value: BotLevel.normal, label: Text('متوسط')),
+        ButtonSegment(value: BotLevel.hard, label: Text('صعب')),
+      ],
+      selected: {level},
+      onSelectionChanged: (set) => onChanged(set.first),
     );
   }
 }
@@ -400,23 +451,17 @@ class _OpponentPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-            child: Row(
-              children: [
-                const Icon(Icons.smart_toy, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Expanded(child: Text('يد الكمبيوتر: $count')),
-                Text('رصيد قابل للسرقة: $pile'),
-              ],
-            ),
-          ),
-        ),
-      ],
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      child: Row(
+        children: [
+          const Icon(Icons.smart_toy, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(child: Text('يد الكمبيوتر: $count')),
+          Text('رصيد للسرقة: $pile'),
+        ],
+      ),
     );
   }
 }
@@ -453,9 +498,11 @@ class PlayingCardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = compact ? 46.0 : 58.0;
-    final height = compact ? 66.0 : 88.0;
+    final width = compact ? 48.0 : 60.0;
+    final height = compact ? 68.0 : 90.0;
     final mainColor = card.red ? AppColors.danger : AppColors.ink;
+    final rankSize = compact ? 24.0 : 30.0;
+    final suitSize = compact ? 24.0 : 32.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
@@ -467,46 +514,19 @@ class PlayingCardView extends StatelessWidget {
         border: Border.all(color: highlight ? AppColors.accent : mainColor.withOpacity(0.25), width: highlight ? 3 : 1.4),
         boxShadow: [BoxShadow(color: highlight ? AppColors.accent.withOpacity(0.45) : Colors.black26, blurRadius: highlight ? 10 : 7, offset: const Offset(0, 3))],
       ),
-      child: Stack(
-        children: [
-          Positioned(top: 5, left: 6, child: _Corner(card: card, small: compact)),
-          Positioned(bottom: 5, right: 6, child: RotatedBox(quarterTurns: 2, child: _Corner(card: card, small: compact))),
-          Center(
-            child: card.face
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(card.rank, style: TextStyle(fontSize: compact ? 22 : 28, fontWeight: FontWeight.w900, color: mainColor)),
-                      Text(card.suit, style: TextStyle(fontSize: compact ? 18 : 24, color: mainColor)),
-                    ],
-                  )
-                : Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 2,
-                    runSpacing: 0,
-                    children: List.generate(min(card.value, 10), (_) => Text(card.suit, style: TextStyle(fontSize: compact ? 12 : 14, color: mainColor))),
-                  ),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(card.rank, maxLines: 1, style: TextStyle(fontSize: rankSize, fontWeight: FontWeight.w900, color: mainColor, height: 0.9)),
+            const SizedBox(height: 5),
+            Text(card.suit, style: TextStyle(fontSize: suitSize, fontWeight: FontWeight.bold, color: mainColor, height: 0.9)),
+            const SizedBox(height: 3),
+            Text('${card.scoreValue}', style: TextStyle(fontSize: compact ? 10 : 11, fontWeight: FontWeight.bold, color: AppColors.muted)),
+          ],
+        ),
       ),
-    );
-  }
-}
-
-class _Corner extends StatelessWidget {
-  const _Corner({required this.card, required this.small});
-  final PlayingCardModel card;
-  final bool small;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = card.red ? AppColors.danger : AppColors.ink;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(card.rank, style: TextStyle(fontSize: small ? 9 : 11, fontWeight: FontWeight.w900, color: color, height: 0.9)),
-        Text(card.suit, style: TextStyle(fontSize: small ? 10 : 12, color: color, height: 0.9)),
-      ],
     );
   }
 }
