@@ -48,16 +48,22 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   void resetBoard() {
     board = List.generate(8, (_) => List.filled(8, Piece.empty));
-    for (int r = 0; r < 3; r++) {
+
+    // توزيع الضامة المحلي المطلوب:
+    // أول سطر من جهة الخصم فارغ، ثم 3 أسطر ممتلئة دون فراغات.
+    for (int r = 1; r <= 3; r++) {
       for (int c = 0; c < 8; c++) {
-        if ((r + c).isOdd) board[r][c] = Piece.black;
+        board[r][c] = Piece.black;
       }
     }
-    for (int r = 5; r < 8; r++) {
+
+    // آخر سطر من جهة اللاعب فارغ، والثلاثة أسطر التي قبله ممتلئة دون فراغات.
+    for (int r = 4; r <= 6; r++) {
       for (int c = 0; c < 8; c++) {
-        if ((r + c).isOdd) board[r][c] = Piece.red;
+        board[r][c] = Piece.red;
       }
     }
+
     selectedRow = null;
     selectedCol = null;
     redTurn = true;
@@ -73,11 +79,6 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool isCurrentPlayerPiece(Piece p) {
     if (redTurn) return isRedPiece(p);
     return isBlackPiece(p);
-  }
-
-  bool isOpponentPiece(Piece p) {
-    if (redTurn) return isBlackPiece(p);
-    return isRedPiece(p);
   }
 
   bool pieceBelongsToTurn(Piece p, bool forRed) {
@@ -321,32 +322,42 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                 aspectRatio: 1,
                 child: Padding(
                   padding: const EdgeInsets.all(10),
-                  child: GridView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
-                    itemCount: 64,
-                    itemBuilder: (context, index) {
-                      final r = index ~/ 8;
-                      final c = index % 8;
-                      return _BoardCell(
-                        row: r,
-                        col: c,
-                        piece: board[r][c],
-                        selected: selectedRow == r && selectedCol == c,
-                        onTap: () => tapCell(r, c),
-                      );
-                    },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3A2A1A),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFFFC857), width: 5),
+                      boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 14, offset: Offset(0, 6))],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: GridView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
+                        itemCount: 64,
+                        itemBuilder: (context, index) {
+                          final r = index ~/ 8;
+                          final c = index % 8;
+                          return _BoardCell(
+                            row: r,
+                            col: c,
+                            piece: board[r][c],
+                            selected: selectedRow == r && selectedCol == c,
+                            onTap: () => tapCell(r, c),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
             child: Text(
-              playVsBot
-                  ? 'أنت تلعب بالأحمر، والكمبيوتر يلعب بالأسود. الروبوت الآن بسيط وسيتم تقويته لاحقًا.'
-                  : 'وضع لاعبين على نفس الجهاز. لاحقًا نفس الحركات سيتم إرسالها عبر الشبكة بين جهازين.',
+              'التوزيع المحلي: آخر سطر فارغ، والثلاثة أسطر التي قبله ممتلئة. يوجد إطار خارجي واضح للرقعة.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -381,9 +392,9 @@ class _BoardCell extends StatelessWidget {
           color: selected
               ? const Color(0xFFFFD166)
               : dark
-                  ? const Color(0xFF56736D)
-                  : const Color(0xFFE8EFEA),
-          border: Border.all(color: Colors.white.withOpacity(0.7), width: 0.5),
+                  ? const Color(0xFF6B4F2A)
+                  : const Color(0xFFF2D7A0),
+          border: Border.all(color: Colors.black.withOpacity(0.22), width: 0.45),
         ),
         child: Center(child: _PieceView(piece: piece)),
       ),
@@ -406,6 +417,7 @@ class _PieceView extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: isRed ? const Color(0xFFC84C4C) : const Color(0xFF222831),
+        border: Border.all(color: Colors.white.withOpacity(0.75), width: 1.4),
         boxShadow: const [BoxShadow(blurRadius: 4, offset: Offset(1, 2), color: Colors.black26)],
       ),
       child: king ? const Icon(Icons.star, color: Colors.white, size: 18) : null,
