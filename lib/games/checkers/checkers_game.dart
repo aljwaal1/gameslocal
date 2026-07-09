@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../../core/app_settings.dart';
+import '../../core/audio_feedback.dart';
+import '../../design/app_theme.dart';
 
 enum Piece { empty, red, black, redKing, blackKing }
 
@@ -55,16 +57,12 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   void resetBoard() {
     board = List.generate(8, (_) => List.filled(8, Piece.empty));
 
-    // الضامة المحلية: 16 حجر لكل لاعب.
-    // أول سطر من جهة الخصم فارغ، وبعده سطران ممتلئان.
-    for (int r = 1; r <= 2; r++) {
+    for (int r = 1; r <= 3; r++) {
       for (int c = 0; c < 8; c++) {
         board[r][c] = Piece.black;
       }
     }
-
-    // آخر سطر من جهة اللاعب فارغ، وقبله سطران ممتلئان.
-    for (int r = 5; r <= 6; r++) {
+    for (int r = 4; r <= 6; r++) {
       for (int c = 0; c < 8; c++) {
         board[r][c] = Piece.red;
       }
@@ -81,18 +79,21 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool isRedPiece(Piece p) => p == Piece.red || p == Piece.redKing;
   bool isBlackPiece(Piece p) => p == Piece.black || p == Piece.blackKing;
   bool isKing(Piece p) => p == Piece.redKing || p == Piece.blackKing;
+  bool isCurrentPlayerPiece(Piece p) => redTurn ? isRedPiece(p) : isBlackPiece(p);
+  bool pieceBelongsToTurn(Piece p, bool forRed) => forRed ? isRedPiece(p) : isBlackPiece(p);
+  bool opponentForTurn(Piece p, bool forRed) => forRed ? isBlackPiece(p) : isRedPiece(p);
 
-  bool isCurrentPlayerPiece(Piece p) {
-    if (redTurn) return isRedPiece(p);
-    return isBlackPiece(p);
-  }
-
-  bool pieceBelongsToTurn(Piece p, bool forRed) {
-    return forRed ? isRedPiece(p) : isBlackPiece(p);
-  }
-
-  bool opponentForTurn(Piece p, bool forRed) {
-    return forRed ? isBlackPiece(p) : isRedPiece(p);
+  Color get tableColor {
+    switch (settings.tableColorIndex) {
+      case 1:
+        return const Color(0xFF6B4F2A);
+      case 2:
+        return const Color(0xFF1E3A8A);
+      case 3:
+        return const Color(0xFF111827);
+      default:
+        return AppColors.primaryDark;
+    }
   }
 
   void tapCell(int r, int c) {
@@ -102,6 +103,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final piece = board[r][c];
     if (selectedRow == null) {
       if (isCurrentPlayerPiece(piece)) {
+        GameFeedback.tap();
         setState(() {
           selectedRow = r;
           selectedCol = c;
@@ -115,6 +117,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final sc = selectedCol!;
 
     if (sr == r && sc == c) {
+      GameFeedback.tap();
       setState(() {
         selectedRow = null;
         selectedCol = null;
@@ -125,6 +128,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     if (board[r][c] != Piece.empty) {
       if (isCurrentPlayerPiece(board[r][c])) {
+        GameFeedback.tap();
         setState(() {
           selectedRow = r;
           selectedCol = c;
@@ -135,10 +139,12 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     final move = buildMoveIfValid(sr, sc, r, c, redTurn);
     if (move == null) {
+      GameFeedback.error();
       setState(() => message = 'حركة غير صحيحة');
       return;
     }
 
+    GameFeedback.move();
     applyMove(move);
     finishTurn();
   }
@@ -183,9 +189,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     message = currentTurnMessage();
     setState(() {});
 
-    if (playVsBot && !redTurn) {
-      runBotMove();
-    }
+    if (playVsBot && !redTurn) runBotMove();
   }
 
   String currentTurnMessage() {
@@ -204,6 +208,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     final move = chooseBotMove();
     if (move == null) {
+      GameFeedback.win();
       setState(() {
         botThinking = false;
         message = 'فزت! لا توجد حركة للكمبيوتر';
@@ -211,6 +216,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       return;
     }
 
+    GameFeedback.move();
     applyMove(move);
     redTurn = true;
     botThinking = false;
@@ -222,51 +228,29 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final moves = allLegalMoves(forRed: false);
     if (moves.isEmpty) return null;
 
-    final captures = moves.where((m) => m.isCapture).toList();
-
     switch (settings.botDifficulty) {
       case BotDifficulty.easy:
         return moves[random.nextInt(moves.length)];
       case BotDifficulty.normal:
+        final captures = moves.where((m) => m.isCapture).toList();
         if (captures.isNotEmpty) return captures.first;
         moves.sort((a, b) => b.toRow.compareTo(a.toRow));
         return moves.first;
       case BotDifficulty.hard:
-        moves.sort((a, b) => scoreBotMove(b).compareTo(scoreBotMove(a)));
+        moves.sort((a, b) => scoreMove(b).compareTo(scoreMove(a)));
         return moves.first;
     }
   }
 
-  int scoreBotMove(CheckersMove move) {
+  int scoreMove(CheckersMove move) {
+    int score = 0;
+    if (move.isCapture) score += 50;
     final moving = board[move.fromRow][move.fromCol];
-    var score = 0;
-    if (move.isCapture) score += 100;
-    if (move.toRow == 7 && moving == Piece.black) score += 60;
-    if (move.toRow > move.fromRow) score += 8;
-    if (move.toCol == 0 || move.toCol == 7) score += 4;
-    if (isMoveExposed(move)) score -= 35;
+    if (moving == Piece.black && move.toRow == 7) score += 40;
+    if (moving == Piece.blackKing) score += 10;
+    score += move.toRow * 2;
+    if (move.toCol > 0 && move.toCol < 7) score += 4;
     return score;
-  }
-
-  bool isMoveExposed(CheckersMove move) {
-    final temp = board.map((row) => List<Piece>.from(row)).toList();
-    final moving = temp[move.fromRow][move.fromCol];
-    temp[move.toRow][move.toCol] = promoteIfNeeded(moving, move.toRow);
-    temp[move.fromRow][move.fromCol] = Piece.empty;
-    if (move.isCapture) temp[move.captureRow!][move.captureCol!] = Piece.empty;
-
-    for (final d in const [
-      [-1, -1],
-      [-1, 1],
-    ]) {
-      final attackerR = move.toRow + d[0];
-      final attackerC = move.toCol + d[1];
-      final landingR = move.toRow - d[0];
-      final landingC = move.toCol - d[1];
-      if (!inside(attackerR, attackerC) || !inside(landingR, landingC)) continue;
-      if (isRedPiece(temp[attackerR][attackerC]) && temp[landingR][landingC] == Piece.empty) return true;
-    }
-    return false;
   }
 
   List<CheckersMove> allLegalMoves({required bool forRed}) {
@@ -276,21 +260,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         final piece = board[r][c];
         if (!pieceBelongsToTurn(piece, forRed)) continue;
         final directions = isKing(piece)
-            ? const [
-                [-1, -1],
-                [-1, 1],
-                [1, -1],
-                [1, 1],
-              ]
+            ? const [[-1, -1], [-1, 1], [1, -1], [1, 1]]
             : forRed
-                ? const [
-                    [-1, -1],
-                    [-1, 1],
-                  ]
-                : const [
-                    [1, -1],
-                    [1, 1],
-                  ];
+                ? const [[-1, -1], [-1, 1]]
+                : const [[1, -1], [1, 1]];
 
         for (final d in directions) {
           final oneR = r + d[0];
@@ -318,19 +291,6 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (piece == Piece.red && row == 0) return Piece.redKing;
     if (piece == Piece.black && row == 7) return Piece.blackKing;
     return piece;
-  }
-
-  Color get tableColor {
-    switch (settings.tableColorIndex) {
-      case 1:
-        return const Color(0xFF6B4F2A);
-      case 2:
-        return const Color(0xFF1E3A8A);
-      case 3:
-        return const Color(0xFF111827);
-      default:
-        return const Color(0xFF1F6F63);
-    }
   }
 
   @override
@@ -361,12 +321,12 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                             Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            Expanded(child: _InfoChip(label: 'اللعب', value: playVsBot ? 'ضد الكمبيوتر' : 'لاعب ضد لاعب')),
+                            Expanded(child: _InfoChip(label: 'المستوى', value: settings.botDifficultyText)),
                             const SizedBox(width: 8),
-                            Expanded(child: _InfoChip(label: 'مستوى الكمبيوتر', value: settings.botDifficultyText)),
+                            Expanded(child: _InfoChip(label: 'الوضع', value: playVsBot ? 'ضد الكمبيوتر' : 'لاعبان')),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -397,7 +357,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                         decoration: BoxDecoration(
                           color: tableColor,
                           borderRadius: BorderRadius.circular(22),
-                          border: Border.all(color: const Color(0xFFFFC857), width: 5),
+                          border: Border.all(color: AppColors.accent, width: 5),
                           boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 14, offset: Offset(0, 6))],
                         ),
                         child: ClipRRect(
@@ -414,7 +374,6 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                                 col: c,
                                 piece: board[r][c],
                                 selected: selectedRow == r && selectedCol == c,
-                                tableColor: tableColor,
                                 onTap: () => tapCell(r, c),
                               );
                             },
@@ -428,7 +387,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
                 child: Text(
-                  'التوزيع المحلي: 16 حجر لكل لاعب، سطران ممتلئان لكل جهة مع سطر خلفي فارغ.',
+                  'التوزيع المحلي: آخر سطر فارغ، والثلاثة أسطر التي قبله ممتلئة لكل جهة.',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -442,23 +401,18 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.label, required this.value});
-
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1F6F63).withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
+      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(14)),
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-          const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
         ],
       ),
     );
@@ -466,20 +420,11 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _BoardCell extends StatelessWidget {
-  const _BoardCell({
-    required this.row,
-    required this.col,
-    required this.piece,
-    required this.selected,
-    required this.tableColor,
-    required this.onTap,
-  });
-
+  const _BoardCell({required this.row, required this.col, required this.piece, required this.selected, required this.onTap});
   final int row;
   final int col;
   final Piece piece;
   final bool selected;
-  final Color tableColor;
   final VoidCallback onTap;
 
   @override
@@ -489,11 +434,7 @@ class _BoardCell extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFFFFD166)
-              : dark
-                  ? tableColor.withOpacity(0.78)
-                  : const Color(0xFFF2D7A0),
+          color: selected ? const Color(0xFFFFD166) : dark ? const Color(0xFF6B4F2A) : const Color(0xFFF2D7A0),
           border: Border.all(color: Colors.black.withOpacity(0.22), width: 0.45),
         ),
         child: Center(child: _PieceView(piece: piece)),
