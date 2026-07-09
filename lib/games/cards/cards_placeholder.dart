@@ -26,8 +26,10 @@ class PlayingCardModel {
     }
   }
 
+  int get scoreValue => rank == 'J' || rank == 'Q' || rank == 'K' ? 10 : 1;
   String get label => '$rank$suit';
   bool get red => suit == '♥' || suit == '♦';
+  bool get face => rank == 'J' || rank == 'Q' || rank == 'K';
 }
 
 enum LastCollector { player, bot }
@@ -53,8 +55,10 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   int botScore = 0;
   int playerBasra = 0;
   int botBasra = 0;
+  int playerSteals = 0;
+  int botSteals = 0;
   LastCollector? lastCollector;
-  String message = 'دورك: العب ورقة أو التقط بطاقة مطابقة';
+  String message = 'السراقة الأردنية/الفلسطينية: الصور = 10، والباقي = 1';
 
   @override
   void initState() {
@@ -88,6 +92,8 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
       botScore = 0;
       playerBasra = 0;
       botBasra = 0;
+      playerSteals = 0;
+      botSteals = 0;
     }
     dealHands();
     message = 'دورك: اختر ورقة من يدك';
@@ -103,10 +109,12 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     }
   }
 
+  int scoreOfCards(List<PlayingCardModel> cards) => cards.fold(0, (sum, card) => sum + card.scoreValue);
+
   void playPlayerCard(PlayingCardModel card) {
     if (!playerTurn || roundFinished) return;
     GameFeedback.move();
-    playCard(card, playerHand, playerPile, isPlayer: true);
+    playCard(card, playerHand, playerPile, botPile, isPlayer: true);
     if (checkRoundEnd()) return;
     playerTurn = false;
     message = 'الكمبيوتر يفكر...';
@@ -117,20 +125,22 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   void botMove() {
     if (roundFinished) return;
     PlayingCardModel? chosen;
-    final playable = botHand.where((card) => table.any((t) => t.value == card.value)).toList();
-    if (playable.isNotEmpty) {
-      playable.sort((a, b) {
-        final aMatches = table.where((t) => t.value == a.value).length;
-        final bMatches = table.where((t) => t.value == b.value).length;
-        return bMatches.compareTo(aMatches);
-      });
-      chosen = playable.first;
+
+    final tablePlayable = botHand.where((card) => table.any((t) => t.value == card.value)).toList();
+    final stealPlayable = botHand.where((card) => playerPile.any((p) => p.value == card.value)).toList();
+
+    if (tablePlayable.isNotEmpty) {
+      tablePlayable.sort((a, b) => scorePotential(b, table).compareTo(scorePotential(a, table)));
+      chosen = tablePlayable.first;
+    } else if (stealPlayable.isNotEmpty) {
+      stealPlayable.sort((a, b) => scorePotential(b, playerPile).compareTo(scorePotential(a, playerPile)));
+      chosen = stealPlayable.first;
     } else if (botHand.isNotEmpty) {
       chosen = botHand[random.nextInt(botHand.length)];
     }
 
     if (chosen != null) {
-      playCard(chosen, botHand, botPile, isPlayer: false);
+      playCard(chosen, botHand, botPile, playerPile, isPlayer: false);
     }
     if (checkRoundEnd()) return;
     playerTurn = true;
@@ -138,31 +148,64 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     setState(() {});
   }
 
-  void playCard(PlayingCardModel card, List<PlayingCardModel> hand, List<PlayingCardModel> pile, {required bool isPlayer}) {
+  int scorePotential(PlayingCardModel card, List<PlayingCardModel> source) {
+    final matches = source.where((x) => x.value == card.value).toList();
+    return card.scoreValue + scoreOfCards(matches);
+  }
+
+  void playCard(
+    PlayingCardModel card,
+    List<PlayingCardModel> hand,
+    List<PlayingCardModel> ownPile,
+    List<PlayingCardModel> opponentPile, {
+    required bool isPlayer,
+  }) {
     hand.remove(card);
-    final matches = table.where((t) => t.value == card.value).toList();
-    if (matches.isNotEmpty) {
-      pile.add(card);
-      pile.addAll(matches);
+
+    final tableMatches = table.where((t) => t.value == card.value).toList();
+    if (tableMatches.isNotEmpty) {
+      ownPile.add(card);
+      ownPile.addAll(tableMatches);
       table.removeWhere((t) => t.value == card.value);
       lastCollector = isPlayer ? LastCollector.player : LastCollector.bot;
-      final capturedPoints = matches.length + 1;
+
+      final gained = card.scoreValue + scoreOfCards(tableMatches);
       final madeBasra = table.isEmpty;
       final basraBonus = madeBasra ? 10 : 0;
 
       if (isPlayer) {
-        playerScore += capturedPoints + basraBonus;
+        playerScore += gained + basraBonus;
         if (madeBasra) playerBasra++;
-        message = madeBasra ? 'بسرا! التقطت كل الأرض وربحت مكافأة' : 'التقطت ${matches.length} بطاقة مطابقة';
+        message = madeBasra ? 'بسرا! التقطت كل الأرض +10' : 'التقطت من الأرض وربحت $gained نقطة';
       } else {
-        botScore += capturedPoints + basraBonus;
+        botScore += gained + basraBonus;
         if (madeBasra) botBasra++;
-        message = madeBasra ? 'الكمبيوتر عمل بسرا' : 'الكمبيوتر التقط ${matches.length} بطاقة';
+        message = madeBasra ? 'الكمبيوتر عمل بسرا +10' : 'الكمبيوتر التقط من الأرض وربح $gained نقطة';
       }
       GameFeedback.win();
     } else {
-      table.add(card);
-      message = isPlayer ? 'وضعت الورقة على الأرض' : 'الكمبيوتر وضع ورقة على الأرض';
+      final stolen = opponentPile.where((p) => p.value == card.value).toList();
+      if (stolen.isNotEmpty) {
+        opponentPile.removeWhere((p) => p.value == card.value);
+        ownPile.add(card);
+        ownPile.addAll(stolen);
+        lastCollector = isPlayer ? LastCollector.player : LastCollector.bot;
+        final gained = card.scoreValue + scoreOfCards(stolen);
+
+        if (isPlayer) {
+          playerScore += gained;
+          playerSteals++;
+          message = 'سرقت من الكمبيوتر ${stolen.length} ورقة وربحت $gained نقطة';
+        } else {
+          botScore += gained;
+          botSteals++;
+          message = 'الكمبيوتر سرق منك ${stolen.length} ورقة وربح $gained نقطة';
+        }
+        GameFeedback.win();
+      } else {
+        table.add(card);
+        message = isPlayer ? 'وضعت الورقة على الأرض' : 'الكمبيوتر وضع ورقة على الأرض';
+      }
     }
 
     if (playerHand.isEmpty && botHand.isEmpty && deck.isNotEmpty) {
@@ -174,12 +217,13 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     if (deck.isEmpty && playerHand.isEmpty && botHand.isEmpty) {
       roundFinished = true;
       if (table.isNotEmpty && lastCollector != null) {
+        final remainingScore = scoreOfCards(table);
         if (lastCollector == LastCollector.player) {
           playerPile.addAll(table);
-          playerScore += table.length;
+          playerScore += remainingScore;
         } else {
           botPile.addAll(table);
-          botScore += table.length;
+          botScore += remainingScore;
         }
         table.clear();
       }
@@ -198,6 +242,10 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     }
     setState(() {});
     return false;
+  }
+
+  bool canCaptureOrSteal(PlayingCardModel card) {
+    return table.any((t) => t.value == card.value) || botPile.any((p) => p.value == card.value);
   }
 
   @override
@@ -220,6 +268,8 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
                 tableCount: table.length,
                 playerBasra: playerBasra,
                 botBasra: botBasra,
+                playerSteals: playerSteals,
+                botSteals: botSteals,
               ),
               const SizedBox(height: 8),
               _OpponentPanel(count: botHand.length, pile: botPile.length),
@@ -229,7 +279,7 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primaryDark,
+                    gradient: const LinearGradient(colors: [Color(0xFF063B35), Color(0xFF0E6F63)]),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: table.isEmpty
@@ -258,7 +308,7 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
                         onTap: playerTurn && !roundFinished ? () => playPlayerCard(card) : null,
                         child: Opacity(
                           opacity: playerTurn && !roundFinished ? 1 : 0.5,
-                          child: PlayingCardView(card: card),
+                          child: PlayingCardView(card: card, highlight: canCaptureOrSteal(card)),
                         ),
                       ),
                   ],
@@ -290,6 +340,8 @@ class _StatusCard extends StatelessWidget {
     required this.tableCount,
     required this.playerBasra,
     required this.botBasra,
+    required this.playerSteals,
+    required this.botSteals,
   });
 
   final String message;
@@ -299,6 +351,8 @@ class _StatusCard extends StatelessWidget {
   final int tableCount;
   final int playerBasra;
   final int botBasra;
+  final int playerSteals;
+  final int botSteals;
 
   @override
   Widget build(BuildContext context) {
@@ -328,6 +382,8 @@ class _StatusCard extends StatelessWidget {
               children: [
                 _MiniStat(label: 'بسرا لك', value: '$playerBasra'),
                 _MiniStat(label: 'بسرا كمبيوتر', value: '$botBasra'),
+                _MiniStat(label: 'سرقاتك', value: '$playerSteals'),
+                _MiniStat(label: 'سرقاته', value: '$botSteals'),
               ],
             ),
           ],
@@ -355,7 +411,7 @@ class _OpponentPanel extends StatelessWidget {
                 const Icon(Icons.smart_toy, color: AppColors.primary),
                 const SizedBox(width: 8),
                 Expanded(child: Text('يد الكمبيوتر: $count')),
-                Text('جمع: $pile'),
+                Text('رصيد قابل للسرقة: $pile'),
               ],
             ),
           ),
@@ -389,31 +445,68 @@ class _MiniStat extends StatelessWidget {
 }
 
 class PlayingCardView extends StatelessWidget {
-  const PlayingCardView({super.key, required this.card, this.compact = false});
+  const PlayingCardView({super.key, required this.card, this.compact = false, this.highlight = false});
 
   final PlayingCardModel card;
   final bool compact;
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
-    final width = compact ? 46.0 : 56.0;
-    final height = compact ? 66.0 : 86.0;
-    return Container(
+    final width = compact ? 46.0 : 58.0;
+    final height = compact ? 66.0 : 88.0;
+    final mainColor = card.red ? AppColors.danger : AppColors.ink;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
       width: width,
       height: height,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: card.red ? AppColors.danger.withOpacity(0.35) : AppColors.primary.withOpacity(0.35), width: 1.5),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 7, offset: Offset(0, 3))],
+        border: Border.all(color: highlight ? AppColors.accent : mainColor.withOpacity(0.25), width: highlight ? 3 : 1.4),
+        boxShadow: [BoxShadow(color: highlight ? AppColors.accent.withOpacity(0.45) : Colors.black26, blurRadius: highlight ? 10 : 7, offset: const Offset(0, 3))],
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
         children: [
-          Text(card.rank, style: TextStyle(fontSize: compact ? 19 : 24, fontWeight: FontWeight.w900, color: card.red ? AppColors.danger : AppColors.ink)),
-          Text(card.suit, style: TextStyle(fontSize: compact ? 18 : 24, color: card.red ? AppColors.danger : AppColors.ink)),
+          Positioned(top: 5, left: 6, child: _Corner(card: card, small: compact)),
+          Positioned(bottom: 5, right: 6, child: RotatedBox(quarterTurns: 2, child: _Corner(card: card, small: compact))),
+          Center(
+            child: card.face
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(card.rank, style: TextStyle(fontSize: compact ? 22 : 28, fontWeight: FontWeight.w900, color: mainColor)),
+                      Text(card.suit, style: TextStyle(fontSize: compact ? 18 : 24, color: mainColor)),
+                    ],
+                  )
+                : Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 2,
+                    runSpacing: 0,
+                    children: List.generate(min(card.value, 10), (_) => Text(card.suit, style: TextStyle(fontSize: compact ? 12 : 14, color: mainColor))),
+                  ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _Corner extends StatelessWidget {
+  const _Corner({required this.card, required this.small});
+  final PlayingCardModel card;
+  final bool small;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = card.red ? AppColors.danger : AppColors.ink;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(card.rank, style: TextStyle(fontSize: small ? 9 : 11, fontWeight: FontWeight.w900, color: color, height: 0.9)),
+        Text(card.suit, style: TextStyle(fontSize: small ? 10 : 12, color: color, height: 0.9)),
+      ],
     );
   }
 }
