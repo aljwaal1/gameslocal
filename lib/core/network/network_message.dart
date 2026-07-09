@@ -11,7 +11,7 @@ enum NetworkMessageType {
 }
 
 class NetworkMessage {
-  const NetworkMessage({
+  NetworkMessage({
     required this.type,
     required this.gameId,
     required this.senderId,
