@@ -111,7 +111,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               ),
               const SizedBox(height: 12),
               _PlayersCard(state: state, onStart: () {
-                Navigator.push(context, MaterialPageRoute(builder: widget.game.builder));
+                Navigator.push(context, MaterialPageRoute(builder: (context) => widget.game.builder(context, networkCore)));
               }),
               const SizedBox(height: 12),
               const _ConnectionPlanCard(),
