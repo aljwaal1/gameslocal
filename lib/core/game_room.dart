@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'game_definition.dart';
 import 'network/local_network_core.dart';
 import 'network/local_wifi_transport.dart';
+import 'network/network_message.dart';
 
 class GameRoomScreen extends StatefulWidget {
   const GameRoomScreen({super.key, required this.game});
@@ -15,7 +18,9 @@ class GameRoomScreen extends StatefulWidget {
 
 class _GameRoomScreenState extends State<GameRoomScreen> {
   late final LocalNetworkCore networkCore;
+  StreamSubscription<NetworkMessage>? networkSubscription;
   bool isHost = true;
+  bool gameOpened = false;
   final TextEditingController hostAddressController = TextEditingController();
   final TextEditingController roomCodeController = TextEditingController();
 
@@ -23,14 +28,40 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   void initState() {
     super.initState();
     networkCore = LocalNetworkCore(gameId: widget.game.id);
+    networkSubscription = networkCore.messages.listen(_handleRoomMessage);
   }
 
   @override
   void dispose() {
+    networkSubscription?.cancel();
     hostAddressController.dispose();
     roomCodeController.dispose();
     networkCore.dispose();
     super.dispose();
+  }
+
+  void _handleRoomMessage(NetworkMessage message) {
+    if (!mounted || message.type != NetworkMessageType.startGame || gameOpened) return;
+    _openGame();
+  }
+
+  void _startGame() {
+    if (networkCore.state.mode == LocalNetworkMode.host) {
+      networkCore.startGame();
+      return;
+    }
+
+    if (networkCore.state.mode == LocalNetworkMode.idle) {
+      _openGame();
+    }
+  }
+
+  void _openGame() {
+    if (gameOpened) return;
+    gameOpened = true;
+    Navigator.push(context, MaterialPageRoute(builder: (context) => widget.game.builder(context, networkCore))).then((_) {
+      gameOpened = false;
+    });
   }
 
   @override
@@ -110,9 +141,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              _PlayersCard(state: state, onStart: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => widget.game.builder(context, networkCore)));
-              }),
+              _PlayersCard(state: state, onStart: _startGame),
               const SizedBox(height: 12),
               const _ConnectionPlanCard(),
             ],
@@ -178,6 +207,7 @@ class _PlayersCard extends StatelessWidget {
             LocalPlayer(id: 'local-2', name: 'اللاعب 2', isHost: false),
           ]
         : state.players;
+    final bool waitingForHost = state.mode == LocalNetworkMode.client;
 
     return Card(
       elevation: 0,
@@ -198,8 +228,8 @@ class _PlayersCard extends StatelessWidget {
             const SizedBox(height: 8),
             FilledButton.icon(
               icon: const Icon(Icons.play_arrow),
-              label: const Text('ابدأ اللعب'),
-              onPressed: onStart,
+              label: Text(waitingForHost ? 'بانتظار بدء اللاعب الأول' : 'ابدأ اللعب'),
+              onPressed: waitingForHost ? null : onStart,
             ),
           ],
         ),
