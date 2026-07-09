@@ -30,6 +30,8 @@ class PlayingCardModel {
   bool get red => suit == '♥' || suit == '♦';
 }
 
+enum LastCollector { player, bot }
+
 class CardsPlaceholderScreen extends StatefulWidget {
   const CardsPlaceholderScreen({super.key});
 
@@ -49,6 +51,9 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   bool roundFinished = false;
   int playerScore = 0;
   int botScore = 0;
+  int playerBasra = 0;
+  int botBasra = 0;
+  LastCollector? lastCollector;
   String message = 'دورك: العب ورقة أو التقط بطاقة مطابقة';
 
   @override
@@ -77,9 +82,12 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     botPile = [];
     playerTurn = true;
     roundFinished = false;
+    lastCollector = null;
     if (resetScore) {
       playerScore = 0;
       botScore = 0;
+      playerBasra = 0;
+      botBasra = 0;
     }
     dealHands();
     message = 'دورك: اختر ورقة من يدك';
@@ -109,13 +117,18 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   void botMove() {
     if (roundFinished) return;
     PlayingCardModel? chosen;
-    for (final card in botHand) {
-      if (table.any((t) => t.value == card.value)) {
-        chosen = card;
-        break;
-      }
+    final playable = botHand.where((card) => table.any((t) => t.value == card.value)).toList();
+    if (playable.isNotEmpty) {
+      playable.sort((a, b) {
+        final aMatches = table.where((t) => t.value == a.value).length;
+        final bMatches = table.where((t) => t.value == b.value).length;
+        return bMatches.compareTo(aMatches);
+      });
+      chosen = playable.first;
+    } else if (botHand.isNotEmpty) {
+      chosen = botHand[random.nextInt(botHand.length)];
     }
-    chosen ??= botHand.isNotEmpty ? botHand[random.nextInt(botHand.length)] : null;
+
     if (chosen != null) {
       playCard(chosen, botHand, botPile, isPlayer: false);
     }
@@ -132,21 +145,24 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
       pile.add(card);
       pile.addAll(matches);
       table.removeWhere((t) => t.value == card.value);
+      lastCollector = isPlayer ? LastCollector.player : LastCollector.bot;
+      final capturedPoints = matches.length + 1;
+      final madeBasra = table.isEmpty;
+      final basraBonus = madeBasra ? 10 : 0;
+
       if (isPlayer) {
-        playerScore += matches.length + 1;
-        message = 'التقطت ${matches.length} بطاقة مطابقة';
+        playerScore += capturedPoints + basraBonus;
+        if (madeBasra) playerBasra++;
+        message = madeBasra ? 'بسرا! التقطت كل الأرض وربحت مكافأة' : 'التقطت ${matches.length} بطاقة مطابقة';
       } else {
-        botScore += matches.length + 1;
-        message = 'الكمبيوتر التقط ${matches.length} بطاقة';
+        botScore += capturedPoints + basraBonus;
+        if (madeBasra) botBasra++;
+        message = madeBasra ? 'الكمبيوتر عمل بسرا' : 'الكمبيوتر التقط ${matches.length} بطاقة';
       }
       GameFeedback.win();
     } else {
       table.add(card);
-      if (isPlayer) {
-        message = 'وضعت الورقة على الأرض';
-      } else {
-        message = 'الكمبيوتر وضع ورقة على الأرض';
-      }
+      message = isPlayer ? 'وضعت الورقة على الأرض' : 'الكمبيوتر وضع ورقة على الأرض';
     }
 
     if (playerHand.isEmpty && botHand.isEmpty && deck.isNotEmpty) {
@@ -157,8 +173,8 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   bool checkRoundEnd() {
     if (deck.isEmpty && playerHand.isEmpty && botHand.isEmpty) {
       roundFinished = true;
-      if (table.isNotEmpty) {
-        if (playerScore >= botScore) {
+      if (table.isNotEmpty && lastCollector != null) {
+        if (lastCollector == LastCollector.player) {
           playerPile.addAll(table);
           playerScore += table.length;
         } else {
@@ -202,6 +218,8 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
                 botScore: botScore,
                 deckCount: deck.length,
                 tableCount: table.length,
+                playerBasra: playerBasra,
+                botBasra: botBasra,
               ),
               const SizedBox(height: 8),
               _OpponentPanel(count: botHand.length, pile: botPile.length),
@@ -270,6 +288,8 @@ class _StatusCard extends StatelessWidget {
     required this.botScore,
     required this.deckCount,
     required this.tableCount,
+    required this.playerBasra,
+    required this.botBasra,
   });
 
   final String message;
@@ -277,6 +297,8 @@ class _StatusCard extends StatelessWidget {
   final int botScore;
   final int deckCount;
   final int tableCount;
+  final int playerBasra;
+  final int botBasra;
 
   @override
   Widget build(BuildContext context) {
@@ -299,6 +321,13 @@ class _StatusCard extends StatelessWidget {
                 _MiniStat(label: 'الكمبيوتر', value: '$botScore'),
                 _MiniStat(label: 'الرزمة', value: '$deckCount'),
                 _MiniStat(label: 'الأرض', value: '$tableCount'),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                _MiniStat(label: 'بسرا لك', value: '$playerBasra'),
+                _MiniStat(label: 'بسرا كمبيوتر', value: '$botBasra'),
               ],
             ),
           ],
@@ -351,7 +380,7 @@ class _MiniStat extends StatelessWidget {
         child: Column(
           children: [
             Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+            Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
           ],
         ),
       ),
