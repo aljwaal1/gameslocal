@@ -96,6 +96,15 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     }
   }
 
+  Set<String> get possibleTargets {
+    if (selectedRow == null || selectedCol == null) return {};
+    final moves = allLegalMoves(forRed: redTurn)
+        .where((m) => m.fromRow == selectedRow && m.fromCol == selectedCol)
+        .map((m) => '${m.toRow},${m.toCol}')
+        .toSet();
+    return moves;
+  }
+
   void tapCell(int r, int c) {
     if (botThinking) return;
     if (playVsBot && !redTurn) return;
@@ -298,6 +307,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     return AnimatedBuilder(
       animation: settings,
       builder: (context, _) {
+        final targets = possibleTargets;
         return Scaffold(
           appBar: AppBar(
             title: const Text('الضامة'),
@@ -353,15 +363,19 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(10),
                       child: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: tableColor,
-                          borderRadius: BorderRadius.circular(22),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [tableColor.withOpacity(0.95), tableColor.withOpacity(0.65)],
+                          ),
+                          borderRadius: BorderRadius.circular(28),
                           border: Border.all(color: AppColors.accent, width: 5),
-                          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 14, offset: Offset(0, 6))],
+                          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 18, offset: Offset(0, 7))],
                         ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(18),
                           child: GridView.builder(
                             physics: const NeverScrollableScrollPhysics(),
                             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
@@ -374,6 +388,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                                 col: c,
                                 piece: board[r][c],
                                 selected: selectedRow == r && selectedCol == c,
+                                possibleMove: targets.contains('$r,$c'),
                                 onTap: () => tapCell(r, c),
                               );
                             },
@@ -420,24 +435,46 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _BoardCell extends StatelessWidget {
-  const _BoardCell({required this.row, required this.col, required this.piece, required this.selected, required this.onTap});
+  const _BoardCell({required this.row, required this.col, required this.piece, required this.selected, required this.possibleMove, required this.onTap});
   final int row;
   final int col;
   final Piece piece;
   final bool selected;
+  final bool possibleMove;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final dark = (row + col).isOdd;
+    final baseColor = dark ? const Color(0xFF7A542B) : const Color(0xFFF4DCA8);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFFFD166) : dark ? const Color(0xFF6B4F2A) : const Color(0xFFF2D7A0),
-          border: Border.all(color: Colors.black.withOpacity(0.22), width: 0.45),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: selected
+                ? const [Color(0xFFFFE08A), Color(0xFFFFB703)]
+                : possibleMove
+                    ? const [Color(0xFFE9FBCF), Color(0xFF9BE564)]
+                    : [baseColor.withOpacity(0.92), baseColor],
+          ),
+          border: Border.all(color: Colors.black.withOpacity(0.25), width: 0.55),
         ),
-        child: Center(child: _PieceView(piece: piece)),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (possibleMove && piece == Piece.empty)
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.primary.withOpacity(0.38)),
+              ),
+            _PieceView(piece: piece),
+          ],
+        ),
       ),
     );
   }
@@ -452,16 +489,34 @@ class _PieceView extends StatelessWidget {
     if (piece == Piece.empty) return const SizedBox.shrink();
     final isRed = piece == Piece.red || piece == Piece.redKing;
     final king = piece == Piece.redKing || piece == Piece.blackKing;
+    final mainColor = isRed ? const Color(0xFFD94B4B) : const Color(0xFF222831);
+    final darkColor = isRed ? const Color(0xFF8E2525) : const Color(0xFF0B0F14);
     return Container(
-      width: 34,
-      height: 34,
+      width: 38,
+      height: 38,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isRed ? const Color(0xFFC84C4C) : const Color(0xFF222831),
-        border: Border.all(color: Colors.white.withOpacity(0.75), width: 1.4),
-        boxShadow: const [BoxShadow(blurRadius: 4, offset: Offset(1, 2), color: Colors.black26)],
+        gradient: RadialGradient(
+          center: const Alignment(-0.35, -0.45),
+          radius: 0.95,
+          colors: [Colors.white.withOpacity(0.35), mainColor, darkColor],
+          stops: const [0.05, 0.55, 1],
+        ),
+        border: Border.all(color: Colors.white.withOpacity(0.82), width: 1.5),
+        boxShadow: const [BoxShadow(blurRadius: 7, offset: Offset(1, 3), color: Colors.black38)],
       ),
-      child: king ? const Icon(Icons.star, color: Colors.white, size: 18) : null,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 27,
+            height: 27,
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.20), width: 1.1)),
+          ),
+          if (king)
+            const Icon(Icons.workspace_premium, color: Color(0xFFFFD166), size: 21),
+        ],
+      ),
     );
   }
 }
