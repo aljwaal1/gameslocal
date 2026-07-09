@@ -49,16 +49,16 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   void resetBoard() {
     board = List.generate(8, (_) => List.filled(8, Piece.empty));
 
-    // توزيع الضامة المحلي المطلوب:
-    // أول سطر من جهة الخصم فارغ، ثم 3 أسطر ممتلئة دون فراغات.
-    for (int r = 1; r <= 3; r++) {
+    // الضامة المحلية: 16 حجر لكل لاعب.
+    // أول سطر من جهة الخصم فارغ، وبعده سطران ممتلئان.
+    for (int r = 1; r <= 2; r++) {
       for (int c = 0; c < 8; c++) {
         board[r][c] = Piece.black;
       }
     }
 
-    // آخر سطر من جهة اللاعب فارغ، والثلاثة أسطر التي قبله ممتلئة دون فراغات.
-    for (int r = 4; r <= 6; r++) {
+    // آخر سطر من جهة اللاعب فارغ، وقبله سطران ممتلئان.
+    for (int r = 5; r <= 6; r++) {
       for (int c = 0; c < 8; c++) {
         board[r][c] = Piece.red;
       }
@@ -357,7 +357,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
             child: Text(
-              'التوزيع المحلي: آخر سطر فارغ، والثلاثة أسطر التي قبله ممتلئة. يوجد إطار خارجي واضح للرقعة.',
+              'التوزيع المحلي: 16 حجر لكل لاعب، سطران ممتلئان لكل جهة مع سطر خلفي فارغ.',
               textAlign: TextAlign.center,
             ),
           ),
