@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'game_definition.dart';
 import 'network/local_network_core.dart';
+import 'network/local_wifi_transport.dart';
 
 class GameRoomScreen extends StatefulWidget {
   const GameRoomScreen({super.key, required this.game});
@@ -15,6 +16,7 @@ class GameRoomScreen extends StatefulWidget {
 class _GameRoomScreenState extends State<GameRoomScreen> {
   late final LocalNetworkCore networkCore;
   bool isHost = true;
+  final TextEditingController hostAddressController = TextEditingController();
   final TextEditingController roomCodeController = TextEditingController();
 
   @override
@@ -25,6 +27,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
 
   @override
   void dispose() {
+    hostAddressController.dispose();
     roomCodeController.dispose();
     networkCore.dispose();
     super.dispose();
@@ -66,10 +69,20 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                       const SizedBox(height: 16),
                       if (!isHost) ...[
                         TextField(
+                          controller: hostAddressController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'IP جهاز اللاعب الأول',
+                            hintText: 'مثال: 192.168.1.8',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
                           controller: roomCodeController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                            labelText: 'رمز الغرفة',
+                            labelText: 'رمز الغرفة اختياري',
                             border: OutlineInputBorder(),
                           ),
                         ),
@@ -77,13 +90,16 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                       ],
                       FilledButton.icon(
                         icon: Icon(isHost ? Icons.add_link : Icons.link),
-                        label: Text(isHost ? 'تجهيز غرفة محلية' : 'تجهيز الانضمام'),
+                        label: Text(isHost ? 'تشغيل Host' : 'الاتصال بالغرفة'),
                         onPressed: () {
                           if (isHost) {
                             networkCore.createRoom();
                           } else {
-                            final String code = roomCodeController.text.trim().isEmpty ? '0000' : roomCodeController.text.trim();
-                            networkCore.joinRoom(roomCode: code);
+                            networkCore.joinRoom(
+                              hostAddress: hostAddressController.text,
+                              port: LocalWifiTransport.defaultPort,
+                              roomCode: roomCodeController.text.trim(),
+                            );
                           }
                         },
                       ),
@@ -133,6 +149,11 @@ class _NetworkStatusBox extends StatelessWidget {
           Text('حالة الاتصال: $modeText', style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           Text(state.message, style: const TextStyle(height: 1.4)),
+          if (state.hostAddress.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text('IP اللاعب الأول: ${state.hostAddress}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Port: ${state.port}'),
+          ],
           if (state.roomCode.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text('رمز الغرفة: ${state.roomCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -198,7 +219,7 @@ class _ConnectionPlanCard extends StatelessWidget {
       child: const Padding(
         padding: EdgeInsets.all(16),
         child: Text(
-          'خطة الاتصال الحالية: أولًا Wi-Fi/Hotspot، ثم اللعب عبر الإنترنت لاحقًا. تم إلغاء البلوتوث من المسار الحالي.',
+          'خطة الاتصال الحالية: أولًا Wi-Fi/Hotspot، ثم نقل حركة الضامة بين جهازين. اللعب عبر الإنترنت يأتي لاحقًا بعد استقرار Wi-Fi المحلي.',
           style: TextStyle(height: 1.5),
         ),
       ),
