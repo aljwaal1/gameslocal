@@ -10,6 +10,7 @@ import 'games/domino/domino_game.dart';
 import 'games/cards/cards_placeholder.dart';
 import 'games/xo/xo_game.dart';
 import 'network/wifi_lobby_screen.dart';
+import 'settings/settings_screen.dart';
 
 void main() {
   runApp(const GamesLocalApp());
@@ -68,7 +69,7 @@ class HomeScreen extends StatelessWidget {
       id: 'cards',
       name: 'الشدة / السراقة',
       playersText: '2 إلى 4 لاعبين',
-      status: 'قيد التطوير ضمن مجلد مستقل',
+      status: 'السراقة الأردنية/الفلسطينية',
       builder: (_) => const CardsPlaceholderScreen(),
     ),
   ];
@@ -125,14 +126,14 @@ class _HeroCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Row(
-          children: const [
-            CircleAvatar(
+          children: [
+            const CircleAvatar(
               radius: 32,
               backgroundColor: AppColors.accent,
               child: Icon(Icons.sports_esports, color: AppColors.primaryDark, size: 36),
             ),
-            SizedBox(width: 14),
-            Expanded(
+            const SizedBox(width: 14),
+            const Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -142,6 +143,17 @@ class _HeroCard extends StatelessWidget {
                   Text('ألعاب محلية • روبوت • Wi‑Fi', style: TextStyle(fontSize: 14, color: Colors.white)),
                 ],
               ),
+            ),
+            IconButton(
+              tooltip: 'الإعدادات',
+              onPressed: () {
+                GameFeedback.tap();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: SettingsScreen())),
+                );
+              },
+              icon: const Icon(Icons.settings, color: Colors.white),
             ),
           ],
         ),
