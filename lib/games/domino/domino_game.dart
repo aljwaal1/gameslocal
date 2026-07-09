@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
 import '../../design/app_theme.dart';
 
@@ -12,6 +13,7 @@ class DominoTile {
   final int right;
 
   int get total => left + right;
+  bool get isDouble => left == right;
   bool matches(int value) => left == value || right == value;
   DominoTile flipped() => DominoTile(right, left);
 
@@ -27,6 +29,7 @@ class DominoGameScreen extends StatefulWidget {
 }
 
 class _DominoGameScreenState extends State<DominoGameScreen> {
+  final AppSettingsController settings = AppSettingsController.instance;
   final Random random = Random();
   List<DominoTile> stock = [];
   List<DominoTile> player = [];
@@ -167,8 +170,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       return;
     }
 
-    playable.sort((a, b) => b.total.compareTo(a.total));
-    final chosen = playable.first;
+    final chosen = chooseBotTile(playable);
     placeTile(chosen, bot);
     GameFeedback.move();
     if (bot.isEmpty) {
@@ -184,14 +186,52 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     setState(() {});
   }
 
+  DominoTile chooseBotTile(List<DominoTile> playable) {
+    switch (settings.botDifficulty) {
+      case BotDifficulty.easy:
+        return playable[random.nextInt(playable.length)];
+      case BotDifficulty.normal:
+        playable.sort((a, b) => b.total.compareTo(a.total));
+        return playable.first;
+      case BotDifficulty.hard:
+        playable.sort((a, b) => scoreHardMove(b).compareTo(scoreHardMove(a)));
+        return playable.first;
+    }
+  }
+
+  int scoreHardMove(DominoTile tile) {
+    if (board.isEmpty) {
+      return tile.total + (tile.isDouble ? 5 : 0);
+    }
+
+    final scores = <int>[];
+    if (tile.matches(leftEnd!)) {
+      final newLeft = tile.right == leftEnd ? tile.left : tile.right;
+      scores.add(scoreEndsAfterMove(tile, newLeft, rightEnd!));
+    }
+    if (tile.matches(rightEnd!)) {
+      final newRight = tile.left == rightEnd ? tile.right : tile.left;
+      scores.add(scoreEndsAfterMove(tile, leftEnd!, newRight));
+    }
+    return scores.isEmpty ? tile.total : scores.reduce(max);
+  }
+
+  int scoreEndsAfterMove(DominoTile tile, int newLeft, int newRight) {
+    final botFutureOptions = bot.where((candidate) => candidate != tile && (candidate.matches(newLeft) || candidate.matches(newRight))).length;
+    final playerLikelyOptions = player.where((candidate) => candidate.matches(newLeft) || candidate.matches(newRight)).length;
+    return tile.total + (tile.isDouble ? 4 : 0) + (botFutureOptions * 3) - (playerLikelyOptions * 2);
+  }
+
   void finishRound({required bool playerWon, required String reason}) {
     final points = playerWon ? pipsOf(bot) : pipsOf(player);
     if (playerWon) {
       playerScore += points;
       message = '$reason. فزت بالجولة وربحت $points نقطة';
+      GameFeedback.win();
     } else {
       botScore += points;
       message = '$reason. الكمبيوتر ربح $points نقطة';
+      GameFeedback.error();
     }
     roundFinished = true;
     setState(() {});
@@ -242,112 +282,131 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     }
   }
 
+  List<Color> tableGradientColors() {
+    switch (settings.tableColorIndex) {
+      case 1:
+        return const [Color(0xFF4A341D), Color(0xFF8B5E34)];
+      case 2:
+        return const [Color(0xFF102A55), Color(0xFF1E5AA8)];
+      case 3:
+        return const [Color(0xFF111827), Color(0xFF374151)];
+      default:
+        return const [Color(0xFF063B35), Color(0xFF0E6F63)];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final visibleBoard = board.length > 14 ? board.sublist(max(0, board.length - 14)) : board;
-    final playableCount = player.where(canPlay).length;
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) {
+        final visibleBoard = board.length > 14 ? board.sublist(max(0, board.length - 14)) : board;
+        final playableCount = player.where(canPlay).length;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الدومينو'),
-        actions: [IconButton(onPressed: () => startRound(resetScore: true), icon: const Icon(Icons.refresh))],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-          child: Column(
-            children: [
-              _InfoPanel(
-                message: message,
-                playerScore: playerScore,
-                botScore: botScore,
-                roundNumber: roundNumber,
-                playerCount: player.length,
-                botCount: bot.length,
-                stockCount: stock.length,
-                playableCount: playableCount,
-              ),
-              const SizedBox(height: 8),
-              _EndsBar(leftEnd: leftEnd, rightEnd: rightEnd),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                      colors: [Color(0xFF063B35), Color(0xFF0E6F63)],
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: board.isEmpty
-                      ? const Center(child: Text('ابدأ بأي قطعة من يدك', style: TextStyle(color: Colors.white, fontSize: 18)))
-                      : Column(
-                          children: [
-                            const Text('مسار الدومينو من اليسار إلى اليمين', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            const SizedBox(height: 6),
-                            Expanded(
-                              child: Wrap(
-                                alignment: WrapAlignment.center,
-                                runAlignment: WrapAlignment.center,
-                                spacing: 5,
-                                runSpacing: 5,
-                                children: [
-                                  for (int i = 0; i < visibleBoard.length; i++) DominoTileView(tile: visibleBoard[i], compact: true, order: board.length - visibleBoard.length + i + 1),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('الدومينو'),
+            actions: [IconButton(onPressed: () => startRound(resetScore: true), icon: const Icon(Icons.refresh))],
+          ),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              child: Column(
                 children: [
+                  _InfoPanel(
+                    message: message,
+                    playerScore: playerScore,
+                    botScore: botScore,
+                    roundNumber: roundNumber,
+                    playerCount: player.length,
+                    botCount: bot.length,
+                    stockCount: stock.length,
+                    playableCount: playableCount,
+                    botDifficultyText: settings.botDifficultyText,
+                  ),
+                  const SizedBox(height: 8),
+                  _EndsBar(leftEnd: leftEnd, rightEnd: rightEnd),
+                  const SizedBox(height: 8),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: roundFinished ? null : drawTile,
-                      icon: const Icon(Icons.add),
-                      label: const Text('اسحب'),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: tableGradientColors(),
+                        ),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: board.isEmpty
+                          ? const Center(child: Text('ابدأ بأي قطعة من يدك', style: TextStyle(color: Colors.white, fontSize: 18)))
+                          : Column(
+                              children: [
+                                const Text('مسار الدومينو من اليسار إلى اليمين', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                const SizedBox(height: 6),
+                                Expanded(
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    runAlignment: WrapAlignment.center,
+                                    spacing: 5,
+                                    runSpacing: 5,
+                                    children: [
+                                      for (int i = 0; i < visibleBoard.length; i++) DominoTileView(tile: visibleBoard[i], compact: true, order: board.length - visibleBoard.length + i + 1),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: roundFinished ? nextRound : passTurn,
-                      icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next),
-                      label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: roundFinished ? null : drawTile,
+                          icon: const Icon(Icons.add),
+                          label: const Text('اسحب'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: roundFinished ? nextRound : passTurn,
+                          icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next),
+                          label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 150,
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      runAlignment: WrapAlignment.center,
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final tile in sortedPlayerHand)
+                          Opacity(
+                            opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.38,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: playerTurn && !roundFinished && canPlay(tile) ? () => playPlayerTile(tile) : null,
+                              child: DominoTileView(tile: tile, compact: true, playable: playerTurn && !roundFinished && canPlay(tile)),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              SizedBox(
-                height: 150,
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  runAlignment: WrapAlignment.center,
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    for (final tile in sortedPlayerHand)
-                      Opacity(
-                        opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.38,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
-                          onTap: playerTurn && !roundFinished && canPlay(tile) ? () => playPlayerTile(tile) : null,
-                          child: DominoTileView(tile: tile, compact: true, playable: playerTurn && !roundFinished && canPlay(tile)),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -406,6 +465,7 @@ class _InfoPanel extends StatelessWidget {
     required this.botCount,
     required this.stockCount,
     required this.playableCount,
+    required this.botDifficultyText,
   });
 
   final String message;
@@ -416,6 +476,7 @@ class _InfoPanel extends StatelessWidget {
   final int botCount;
   final int stockCount;
   final int playableCount;
+  final String botDifficultyText;
 
   @override
   Widget build(BuildContext context) {
@@ -430,6 +491,11 @@ class _InfoPanel extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold))),
               ],
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text('مستوى الكمبيوتر من الإعدادات: $botDifficultyText', style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
             const SizedBox(height: 8),
             Row(
