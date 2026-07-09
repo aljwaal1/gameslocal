@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
 import '../../design/app_theme.dart';
 
@@ -31,7 +32,6 @@ class PlayingCardModel {
 }
 
 enum LastCollector { player, bot }
-enum BotLevel { easy, normal, hard }
 
 class CardsPlaceholderScreen extends StatefulWidget {
   const CardsPlaceholderScreen({super.key});
@@ -42,6 +42,8 @@ class CardsPlaceholderScreen extends StatefulWidget {
 
 class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   final Random random = Random();
+  final settings = AppSettingsController.instance;
+
   List<PlayingCardModel> deck = [];
   List<PlayingCardModel> table = [];
   List<PlayingCardModel> playerHand = [];
@@ -56,7 +58,6 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
   int botBasra = 0;
   int playerSteals = 0;
   int botSteals = 0;
-  BotLevel botLevel = BotLevel.easy;
   LastCollector? lastCollector;
   String message = 'السراقة: الصور = 10، والباقي = 1';
 
@@ -140,23 +141,22 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     final tablePlayable = botHand.where((card) => table.any((t) => t.value == card.value)).toList();
     final stealPlayable = botHand.where((card) => playerPile.any((p) => p.value == card.value)).toList();
 
-    if (botLevel == BotLevel.easy) {
-      if (tablePlayable.isNotEmpty && random.nextBool()) return tablePlayable.first;
-      return botHand[random.nextInt(botHand.length)];
+    switch (settings.botDifficulty) {
+      case BotDifficulty.easy:
+        if (tablePlayable.isNotEmpty && random.nextBool()) return tablePlayable.first;
+        return botHand[random.nextInt(botHand.length)];
+      case BotDifficulty.normal:
+        if (tablePlayable.isNotEmpty) return tablePlayable.first;
+        if (stealPlayable.isNotEmpty && random.nextBool()) return stealPlayable.first;
+        return botHand[random.nextInt(botHand.length)];
+      case BotDifficulty.hard:
+        final allGood = [...tablePlayable, ...stealPlayable];
+        if (allGood.isNotEmpty) {
+          allGood.sort((a, b) => max(scorePotential(b, table), scorePotential(b, playerPile)).compareTo(max(scorePotential(a, table), scorePotential(a, playerPile))));
+          return allGood.first;
+        }
+        return botHand[random.nextInt(botHand.length)];
     }
-
-    if (botLevel == BotLevel.normal) {
-      if (tablePlayable.isNotEmpty) return tablePlayable.first;
-      if (stealPlayable.isNotEmpty && random.nextBool()) return stealPlayable.first;
-      return botHand[random.nextInt(botHand.length)];
-    }
-
-    final allGood = [...tablePlayable, ...stealPlayable];
-    if (allGood.isNotEmpty) {
-      allGood.sort((a, b) => max(scorePotential(b, table), scorePotential(b, playerPile)).compareTo(max(scorePotential(a, table), scorePotential(a, playerPile))));
-      return allGood.first;
-    }
-    return botHand[random.nextInt(botHand.length)];
   }
 
   int scorePotential(PlayingCardModel card, List<PlayingCardModel> source) {
@@ -259,125 +259,104 @@ class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
     return table.any((t) => t.value == card.value) || botPile.any((p) => p.value == card.value);
   }
 
-  String get botLevelText {
-    switch (botLevel) {
-      case BotLevel.easy:
-        return 'سهل';
-      case BotLevel.normal:
-        return 'متوسط';
-      case BotLevel.hard:
-        return 'صعب';
+  Color get tableColor {
+    switch (settings.tableColorIndex) {
+      case 1:
+        return const Color(0xFF6B4F2A);
+      case 2:
+        return const Color(0xFF1E3A8A);
+      case 3:
+        return const Color(0xFF111827);
+      default:
+        return AppColors.primaryDark;
     }
   }
 
-  void setBotLevel(BotLevel level) {
-    GameFeedback.tap();
-    setState(() {
-      botLevel = level;
-      message = 'تم تغيير مستوى الكمبيوتر إلى $botLevelText';
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('الشدة / السراقة'),
-        actions: [IconButton(onPressed: () => newRound(resetScore: true), icon: const Icon(Icons.refresh))],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
-          child: Column(
-            children: [
-              _StatusCard(
-                message: message,
-                playerScore: playerScore,
-                botScore: botScore,
-                deckCount: deck.length,
-                tableCount: table.length,
-                playerBasra: playerBasra,
-                botBasra: botBasra,
-                playerSteals: playerSteals,
-                botSteals: botSteals,
-              ),
-              const SizedBox(height: 8),
-              _BotLevelSelector(level: botLevel, onChanged: setBotLevel),
-              const SizedBox(height: 8),
-              _OpponentPanel(count: botHand.length, pile: botPile.length),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF063B35), Color(0xFF0E6F63)]),
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                  child: table.isEmpty
-                      ? const Center(child: Text('لا توجد أوراق على الأرض', style: TextStyle(color: Colors.white)))
-                      : Wrap(
-                          alignment: WrapAlignment.center,
-                          runAlignment: WrapAlignment.center,
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [for (final card in table) PlayingCardView(card: card, compact: true)],
-                        ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 116,
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  runAlignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final card in playerHand)
-                      InkWell(
-                        borderRadius: BorderRadius.circular(14),
-                        onTap: playerTurn && !roundFinished ? () => playPlayerCard(card) : null,
-                        child: Opacity(
-                          opacity: playerTurn && !roundFinished ? 1 : 0.5,
-                          child: PlayingCardView(card: card, highlight: canCaptureOrSteal(card)),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              if (roundFinished)
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => newRound(),
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('جولة جديدة'),
-                  ),
-                ),
-            ],
+    return AnimatedBuilder(
+      animation: settings,
+      builder: (context, _) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('الشدة / السراقة'),
+            actions: [IconButton(onPressed: () => newRound(resetScore: true), icon: const Icon(Icons.refresh))],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BotLevelSelector extends StatelessWidget {
-  const _BotLevelSelector({required this.level, required this.onChanged});
-  final BotLevel level;
-  final ValueChanged<BotLevel> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<BotLevel>(
-      segments: const [
-        ButtonSegment(value: BotLevel.easy, label: Text('سهل')),
-        ButtonSegment(value: BotLevel.normal, label: Text('متوسط')),
-        ButtonSegment(value: BotLevel.hard, label: Text('صعب')),
-      ],
-      selected: {level},
-      onSelectionChanged: (set) => onChanged(set.first),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              child: Column(
+                children: [
+                  _StatusCard(
+                    message: message,
+                    playerScore: playerScore,
+                    botScore: botScore,
+                    deckCount: deck.length,
+                    tableCount: table.length,
+                    playerBasra: playerBasra,
+                    botBasra: botBasra,
+                    playerSteals: playerSteals,
+                    botSteals: botSteals,
+                    botLevel: settings.botDifficultyText,
+                  ),
+                  const SizedBox(height: 8),
+                  _OpponentPanel(count: botHand.length, pile: botPile.length),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [tableColor, tableColor.withOpacity(0.72)]),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: table.isEmpty
+                          ? const Center(child: Text('لا توجد أوراق على الأرض', style: TextStyle(color: Colors.white)))
+                          : Wrap(
+                              alignment: WrapAlignment.center,
+                              runAlignment: WrapAlignment.center,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [for (final card in table) PlayingCardView(card: card, compact: true)],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 116,
+                    child: Wrap(
+                      alignment: WrapAlignment.center,
+                      runAlignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final card in playerHand)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: playerTurn && !roundFinished ? () => playPlayerCard(card) : null,
+                            child: Opacity(
+                              opacity: playerTurn && !roundFinished ? 1 : 0.5,
+                              child: PlayingCardView(card: card, highlight: canCaptureOrSteal(card)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (roundFinished)
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => newRound(),
+                        icon: const Icon(Icons.play_arrow),
+                        label: const Text('جولة جديدة'),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -393,6 +372,7 @@ class _StatusCard extends StatelessWidget {
     required this.botBasra,
     required this.playerSteals,
     required this.botSteals,
+    required this.botLevel,
   });
 
   final String message;
@@ -404,6 +384,7 @@ class _StatusCard extends StatelessWidget {
   final int botBasra;
   final int playerSteals;
   final int botSteals;
+  final String botLevel;
 
   @override
   Widget build(BuildContext context) {
@@ -424,8 +405,8 @@ class _StatusCard extends StatelessWidget {
               children: [
                 _MiniStat(label: 'نقاطك', value: '$playerScore'),
                 _MiniStat(label: 'الكمبيوتر', value: '$botScore'),
+                _MiniStat(label: 'المستوى', value: botLevel),
                 _MiniStat(label: 'الرزمة', value: '$deckCount'),
-                _MiniStat(label: 'الأرض', value: '$tableCount'),
               ],
             ),
             const SizedBox(height: 6),
