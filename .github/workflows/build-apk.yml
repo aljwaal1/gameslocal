@@ -3,6 +3,8 @@ name: Build APK Direct
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -68,6 +70,7 @@ jobs:
         run: gradle assembleDebug --no-daemon
 
       - name: Copy APK files
+        if: github.event_name != 'pull_request'
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/gameslocal-flutter.apk
@@ -87,6 +90,7 @@ jobs:
           EOF
 
       - name: Commit APK files
+        if: github.event_name != 'pull_request'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Build Flutter and KitKat APK files
