@@ -20,15 +20,16 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
   int character = 0;
 
   static const characters = [
-    ('برق', Icons.bolt, 'سريع', 'حركة أسرع داخل الساحة'),
-    ('صخر', Icons.shield, 'دفاعي', 'صحة أعلى وضرر أقل من الروبوت'),
-    ('لهب', Icons.local_fire_department, 'قوي', 'ضرر أكبر في كل ضربة'),
-    ('موج', Icons.water_drop, 'متوازن', 'مدى هجوم أبعد'),
+    ('برق', Icons.bolt, 'سريع', 'حركة أسرع داخل الساحة', 'اندفاع سريع نحو الروبوت مع ضربة عند الاقتراب'),
+    ('صخر', Icons.shield, 'دفاعي', 'صحة أعلى وضرر أقل من الروبوت', 'استعادة 20 نقطة صحة عند الحاجة'),
+    ('لهب', Icons.local_fire_department, 'قوي', 'ضرر أكبر في كل ضربة', 'ضربة لهب قوية عند الاقتراب'),
+    ('موج', Icons.water_drop, 'متوازن', 'مدى هجوم أبعد', 'موجة بعيدة تدفع الروبوت للخلف'),
   ];
 
   String get selectedCharacterName => characters[character].$1;
   String get selectedCharacterStyle => characters[character].$3;
   String get selectedCharacterAbility => characters[character].$4;
+  String get selectedCharacterSkill => characters[character].$5;
 
   String get botLevelDescription => switch (botLevel) {
         'سهل' => 'الروبوت أبطأ وأقل اندفاعًا نحو اللاعب.',
@@ -171,6 +172,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               characterName: selectedCharacterName,
               characterStyle: selectedCharacterStyle,
               characterAbility: selectedCharacterAbility,
+              characterSkill: selectedCharacterSkill,
               botLevel: botLevel,
             ),
             const SizedBox(height: 18),
@@ -233,12 +235,14 @@ class _MatchPreviewCard extends StatelessWidget {
     required this.characterName,
     required this.characterStyle,
     required this.characterAbility,
+    required this.characterSkill,
     required this.botLevel,
   });
 
   final String characterName;
   final String characterStyle;
   final String characterAbility;
+  final String characterSkill;
   final String botLevel;
 
   @override
@@ -268,7 +272,11 @@ class _MatchPreviewCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text('الشخصية: $characterName • الأسلوب: $characterStyle'),
           const SizedBox(height: 4),
-          Text('الميزة: $characterAbility'),
+          Text('الميزة الدائمة: $characterAbility'),
+          const SizedBox(height: 4),
+          Text('المهارة النشطة: $characterSkill'),
+          const SizedBox(height: 4),
+          const Text('فترة انتظار المهارة: 8 ثوانٍ بعد الاستخدام'),
           const SizedBox(height: 4),
           Text('النمط: فردي 1 ضد 1 • الروبوت: $botLevel'),
         ],
