@@ -22,10 +22,10 @@ class BattleArenaScreen extends StatefulWidget {
 }
 
 class _BattleArenaScreenState extends State<BattleArenaScreen> {
-  static const double _step = 0.13;
-  final math.Random _random = math.Random();
-  Timer? _timer;
-  Timer? _botTimer;
+  static const double step = 0.13;
+  final math.Random random = math.Random();
+  Timer? matchTimer;
+  Timer? botTimer;
 
   double playerX = -0.55;
   double playerY = 0.45;
@@ -36,90 +36,99 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   int secondsLeft = 60;
   bool finished = false;
 
+  Duration get botDelay => switch (widget.botLevel) {
+        'صعب' => const Duration(milliseconds: 450),
+        'سهل' => const Duration(milliseconds: 900),
+        _ => const Duration(milliseconds: 650),
+      };
+
+  double get distance => math.sqrt(
+        math.pow(playerX - botX, 2) + math.pow(playerY - botY, 2),
+      );
+
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-    _botTimer = Timer.periodic(_botDelay, (_) => _moveBot());
+    startTimers();
   }
 
-  Duration get _botDelay {
-    switch (widget.botLevel) {
-      case 'صعب':
-        return const Duration(milliseconds: 450);
-      case 'سهل':
-        return const Duration(milliseconds: 900);
-      default:
-        return const Duration(milliseconds: 650);
-    }
+  void startTimers() {
+    matchTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+    botTimer = Timer.periodic(botDelay, (_) => moveBot());
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _botTimer?.cancel();
+    matchTimer?.cancel();
+    botTimer?.cancel();
     super.dispose();
   }
 
-  void _tick() {
+  void tick() {
     if (!mounted || finished) return;
     setState(() {
       secondsLeft--;
-      if (secondsLeft <= 0) _finish();
+      if (secondsLeft <= 0) finish();
     });
   }
 
-  void _move(double dx, double dy) {
+  void move(double dx, double dy) {
     if (finished) return;
     setState(() {
-      playerX = (playerX + dx).clamp(-0.88, 0.88);
-      playerY = (playerY + dy).clamp(-0.82, 0.82);
+      playerX = (playerX + dx).clamp(-0.88, 0.88).toDouble();
+      playerY = (playerY + dy).clamp(-0.82, 0.82).toDouble();
     });
   }
 
-  void _moveBot() {
+  void moveBot() {
     if (!mounted || finished) return;
-    final chaseChance = widget.botLevel == 'صعب' ? 0.85 : widget.botLevel == 'سهل' ? 0.45 : 0.65;
+    final chaseChance = switch (widget.botLevel) {
+      'صعب' => 0.85,
+      'سهل' => 0.45,
+      _ => 0.65,
+    };
+
     setState(() {
-      if (_random.nextDouble() < chaseChance) {
-        botX += playerX > botX ? _step : -_step;
-        botY += playerY > botY ? _step : -_step;
+      if (random.nextDouble() < chaseChance) {
+        botX += playerX > botX ? step : -step;
+        botY += playerY > botY ? step : -step;
       } else {
-        botX += (_random.nextBool() ? 1 : -1) * _step;
-        botY += (_random.nextBool() ? 1 : -1) * _step;
+        botX += (random.nextBool() ? 1 : -1) * step;
+        botY += (random.nextBool() ? 1 : -1) * step;
       }
-      botX = botX.clamp(-0.88, 0.88);
-      botY = botY.clamp(-0.82, 0.82);
-      if (_distance < 0.34) {
-        playerHealth = math.max(0, playerHealth - 6);
-        if (playerHealth == 0) _finish();
+      botX = botX.clamp(-0.88, 0.88).toDouble();
+      botY = botY.clamp(-0.82, 0.82).toDouble();
+      if (distance < 0.34) {
+        playerHealth = math.max(0, playerHealth - 6).toInt();
+        if (playerHealth == 0) finish();
       }
     });
   }
 
-  double get _distance => math.sqrt(math.pow(playerX - botX, 2) + math.pow(playerY - botY, 2));
-
-  void _attack() {
+  void attack() {
     if (finished) return;
     setState(() {
-      if (_distance < 0.42) {
-        botHealth = math.max(0, botHealth - 18);
-        botX = (botX + (botX >= playerX ? 0.20 : -0.20)).clamp(-0.88, 0.88);
-        botY = (botY + (botY >= playerY ? 0.20 : -0.20)).clamp(-0.82, 0.82);
-        if (botHealth == 0) _finish();
-      }
+      if (distance >= 0.42) return;
+      botHealth = math.max(0, botHealth - 18).toInt();
+      botX = (botX + (botX >= playerX ? 0.20 : -0.20))
+          .clamp(-0.88, 0.88)
+          .toDouble();
+      botY = (botY + (botY >= playerY ? 0.20 : -0.20))
+          .clamp(-0.82, 0.82)
+          .toDouble();
+      if (botHealth == 0) finish();
     });
   }
 
-  void _finish() {
+  void finish() {
     finished = true;
-    _timer?.cancel();
-    _botTimer?.cancel();
+    matchTimer?.cancel();
+    botTimer?.cancel();
   }
 
-  void _restart() {
-    _timer?.cancel();
-    _botTimer?.cancel();
+  void restart() {
+    matchTimer?.cancel();
+    botTimer?.cancel();
     setState(() {
       playerX = -0.55;
       playerY = 0.45;
@@ -130,13 +139,14 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       secondsLeft = 60;
       finished = false;
     });
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-    _botTimer = Timer.periodic(_botDelay, (_) => _moveBot());
+    startTimers();
   }
 
-  String get _resultText {
+  String get resultText {
     if (playerHealth == botHealth) return 'تعادل';
-    return playerHealth > botHealth ? 'فوز ${widget.characterName}' : 'فوز الروبوت';
+    return playerHealth > botHealth
+        ? 'فوز ${widget.characterName}'
+        : 'فوز الروبوت';
   }
 
   @override
@@ -145,7 +155,12 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       appBar: AppBar(
         title: Text('الساحة الأولى • ${widget.characterName}'),
         actions: [
-          Center(child: Text('$secondsLeft ث', style: const TextStyle(fontWeight: FontWeight.bold))),
+          Center(
+            child: Text(
+              '$secondsLeft ث',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
           const SizedBox(width: 16),
         ],
       ),
@@ -156,9 +171,21 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
               child: Row(
                 children: [
-                  Expanded(child: _HealthBar(label: widget.characterName, value: playerHealth, icon: Icons.person)),
+                  Expanded(
+                    child: _HealthBar(
+                      label: widget.characterName,
+                      value: playerHealth,
+                      icon: Icons.person,
+                    ),
+                  ),
                   const SizedBox(width: 10),
-                  Expanded(child: _HealthBar(label: 'الروبوت', value: botHealth, icon: Icons.smart_toy)),
+                  Expanded(
+                    child: _HealthBar(
+                      label: 'الروبوت',
+                      value: botHealth,
+                      icon: Icons.smart_toy,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -173,11 +200,19 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                       const _ArenaBackground(),
                       Align(
                         alignment: Alignment(playerX, playerY),
-                        child: _Fighter(name: widget.characterName, icon: Icons.sports_martial_arts, color: Colors.blue),
+                        child: _Fighter(
+                          name: widget.characterName,
+                          icon: Icons.sports_martial_arts,
+                          color: Colors.blue,
+                        ),
                       ),
                       Align(
                         alignment: Alignment(botX, botY),
-                        child: const _Fighter(name: 'روبوت', icon: Icons.smart_toy, color: Colors.red),
+                        child: const _Fighter(
+                          name: 'روبوت',
+                          icon: Icons.smart_toy,
+                          color: Colors.red,
+                        ),
                       ),
                       if (finished)
                         Container(
@@ -189,12 +224,20 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Text(_resultText, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      resultText,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     const SizedBox(height: 8),
-                                    Text('النمط: ${widget.mode} • ${widget.players} لاعبين'),
+                                    Text(
+                                      'النمط: ${widget.mode} • ${widget.players} لاعبين',
+                                    ),
                                     const SizedBox(height: 14),
                                     FilledButton.icon(
-                                      onPressed: _restart,
+                                      onPressed: restart,
                                       icon: const Icon(Icons.replay),
                                       label: const Text('إعادة المباراة'),
                                     ),
@@ -209,16 +252,15 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.all(16),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _MovementPad(onMove: _move),
+                  _MovementPad(onMove: move),
                   const Spacer(),
                   FilledButton.tonalIcon(
-                    onPressed: _attack,
+                    onPressed: attack,
                     icon: const Icon(Icons.flash_on, size: 30),
                     label: const Padding(
                       padding: EdgeInsets.symmetric(vertical: 14),
@@ -260,8 +302,18 @@ class _ArenaPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.10)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
-    canvas.drawOval(Rect.fromCenter(center: size.center(Offset.zero), width: size.width * 0.55, height: size.height * 0.45), paint);
-    canvas.drawRect(Rect.fromLTWH(12, 12, size.width - 24, size.height - 24), paint);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: size.center(Offset.zero),
+        width: size.width * 0.55,
+        height: size.height * 0.45,
+      ),
+      paint,
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(12, 12, size.width - 24, size.height - 24),
+      paint,
+    );
   }
 
   @override
@@ -269,7 +321,11 @@ class _ArenaPainter extends CustomPainter {
 }
 
 class _Fighter extends StatelessWidget {
-  const _Fighter({required this.name, required this.icon, required this.color});
+  const _Fighter({
+    required this.name,
+    required this.icon,
+    required this.color,
+  });
 
   final String name;
   final IconData icon;
@@ -287,19 +343,36 @@ class _Fighter extends StatelessWidget {
             color: color,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
-            boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 4))],
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black38,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
           child: Icon(icon, color: Colors.white, size: 34),
         ),
         const SizedBox(height: 3),
-        Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black, blurRadius: 4)])),
+        Text(
+          name,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+          ),
+        ),
       ],
     );
   }
 }
 
 class _HealthBar extends StatelessWidget {
-  const _HealthBar({required this.label, required this.value, required this.icon});
+  const _HealthBar({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   final String label;
   final int value;
@@ -310,9 +383,21 @@ class _HealthBar extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(children: [Icon(icon, size: 17), const SizedBox(width: 5), Expanded(child: Text('$label • $value', overflow: TextOverflow.ellipsis))]),
+        Row(
+          children: [
+            Icon(icon, size: 17),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Text('$label • $value', overflow: TextOverflow.ellipsis),
+            ),
+          ],
+        ),
         const SizedBox(height: 4),
-        LinearProgressIndicator(value: value / 100, minHeight: 8, borderRadius: BorderRadius.circular(8)),
+        LinearProgressIndicator(
+          value: value / 100,
+          minHeight: 8,
+          borderRadius: BorderRadius.circular(8),
+        ),
       ],
     );
   }
@@ -330,10 +415,34 @@ class _MovementPad extends StatelessWidget {
       height: 132,
       child: Stack(
         children: [
-          Align(alignment: Alignment.topCenter, child: _MoveButton(icon: Icons.keyboard_arrow_up, onTap: () => onMove(0, -_BattleArenaScreenState._step))),
-          Align(alignment: Alignment.bottomCenter, child: _MoveButton(icon: Icons.keyboard_arrow_down, onTap: () => onMove(0, _BattleArenaScreenState._step))),
-          Align(alignment: Alignment.centerLeft, child: _MoveButton(icon: Icons.keyboard_arrow_left, onTap: () => onMove(-_BattleArenaScreenState._step, 0))),
-          Align(alignment: Alignment.centerRight, child: _MoveButton(icon: Icons.keyboard_arrow_right, onTap: () => onMove(_BattleArenaScreenState._step, 0))),
+          Align(
+            alignment: Alignment.topCenter,
+            child: _MoveButton(
+              icon: Icons.keyboard_arrow_up,
+              onTap: () => onMove(0, -_BattleArenaScreenState.step),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _MoveButton(
+              icon: Icons.keyboard_arrow_down,
+              onTap: () => onMove(0, _BattleArenaScreenState.step),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _MoveButton(
+              icon: Icons.keyboard_arrow_left,
+              onTap: () => onMove(-_BattleArenaScreenState.step, 0),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: _MoveButton(
+              icon: Icons.keyboard_arrow_right,
+              onTap: () => onMove(_BattleArenaScreenState.step, 0),
+            ),
+          ),
         ],
       ),
     );
@@ -348,6 +457,9 @@ class _MoveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton.filledTonal(onPressed: onTap, icon: Icon(icon, size: 30));
+    return IconButton.filledTonal(
+      onPressed: onTap,
+      icon: Icon(icon, size: 30),
+    );
   }
 }
