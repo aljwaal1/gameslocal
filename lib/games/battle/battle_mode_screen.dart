@@ -22,6 +22,9 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
     ('موج', Icons.water_drop, 'متوازن'),
   ];
 
+  String get selectedCharacterName => characters[character].$1;
+  String get selectedCharacterStyle => characters[character].$3;
+
   void _setPlayers(int value) {
     setState(() {
       players = value;
@@ -37,14 +40,13 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
   }
 
   void _startMatch() {
-    final selectedCharacter = characters[character].$1;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => Directionality(
           textDirection: TextDirection.rtl,
           child: BattleArenaScreen(
-            characterName: selectedCharacter,
+            characterName: selectedCharacterName,
             players: players,
             mode: mode,
             botLevel: botLevel,
@@ -160,6 +162,14 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
                 onChanged: (value) => setState(() => botLevel = value ?? botLevel),
               ),
             ),
+            const SizedBox(height: 12),
+            _MatchPreviewCard(
+              characterName: selectedCharacterName,
+              characterStyle: selectedCharacterStyle,
+              players: players,
+              mode: mode,
+              botLevel: botLevel,
+            ),
             const SizedBox(height: 18),
             FilledButton.icon(
               onPressed: _startMatch,
@@ -171,6 +181,59 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _MatchPreviewCard extends StatelessWidget {
+  const _MatchPreviewCard({
+    required this.characterName,
+    required this.characterStyle,
+    required this.players,
+    required this.mode,
+    required this.botLevel,
+  });
+
+  final String characterName;
+  final String characterStyle;
+  final int players;
+  final String mode;
+  final String botLevel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.secondaryContainer.withOpacity(0.55),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.secondary.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.fact_check, color: colorScheme.secondary),
+              const SizedBox(width: 8),
+              const Text('ملخص المباراة', style: TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text('الشخصية: $characterName • الأسلوب: $characterStyle'),
+          const SizedBox(height: 4),
+          Text('النمط: $mode • اللاعبون: $players • الروبوت: $botLevel'),
+          if (players > 2) ...[
+            const SizedBox(height: 8),
+            const Text(
+              'تنبيه: الساحة الحالية تجريبية وتبدأ بمواجهة مباشرة مع روبوت واحد، وسيُضاف باقي اللاعبين لاحقًا.',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ],
       ),
     );
   }
