@@ -43,8 +43,8 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'battle',
       name: 'Battle Mode',
-      playersText: '2 إلى 4 لاعبين',
-      status: 'إعداد مباراة ضد الكمبيوتر',
+      playersText: '1 ضد 1',
+      status: 'مواجهة فردية ضد الكمبيوتر',
       builder: (_, __) => const BattleModeScreen(),
     ),
     GameDefinition(
