@@ -9,6 +9,8 @@ import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import '../../design/app_theme.dart';
 
+import 'checkers_match_status.dart';
+
 enum Piece { empty, red, black, redKing, blackKing }
 
 class CheckersMove {
@@ -74,6 +76,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool playVsBot = true;
   bool botThinking = false;
   String message = 'دور الأحمر';
+  CheckersMatchStatus? matchStatus;
+
+  bool get gameFinished => matchStatus?.isFinished ?? false;
+  int get redPieceCount => board.expand((row) => row).where(isRedPiece).length;
+  int get blackPieceCount => board.expand((row) => row).where(isBlackPiece).length;
 
   bool get networkMode => widget.networkCore != null && widget.networkCore!.state.mode != LocalNetworkMode.idle;
   bool get localPlayerIsRed => widget.networkCore?.state.mode != LocalNetworkMode.client;
@@ -111,6 +118,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     selectedCol = null;
     redTurn = true;
     botThinking = false;
+    matchStatus = null;
     message = currentTurnMessage();
     if (mounted) setState(() {});
   }
@@ -155,7 +163,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   }
 
   void tapCell(int r, int c) {
-    if (botThinking) return;
+    if (gameFinished || botThinking) return;
     if (playVsBot && !redTurn) return;
     if (networkMode && !isMyNetworkTurn) {
       GameFeedback.error();
@@ -248,7 +256,30 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     }
   }
 
+  bool updateMatchStatus() {
+    final status = CheckersMatchEvaluator.evaluate(
+      redPieces: redPieceCount,
+      blackPieces: blackPieceCount,
+      redHasMove: allLegalMoves(forRed: true).isNotEmpty,
+      blackHasMove: allLegalMoves(forRed: false).isNotEmpty,
+    );
+    matchStatus = status;
+    if (!status.isFinished) return false;
+
+    selectedRow = null;
+    selectedCol = null;
+    botThinking = false;
+    message = status.resultText;
+    GameFeedback.win();
+    return true;
+  }
+
   void finishTurn() {
+    if (updateMatchStatus()) {
+      setState(() {});
+      return;
+    }
+
     redTurn = !redTurn;
     selectedRow = null;
     selectedCol = null;
@@ -278,16 +309,17 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     final move = chooseBotMove();
     if (move == null) {
-      GameFeedback.win();
-      setState(() {
-        botThinking = false;
-        message = 'فزت! لا توجد حركة للكمبيوتر';
-      });
+      updateMatchStatus();
+      setState(() {});
       return;
     }
 
     GameFeedback.move();
     applyMove(move);
+    if (updateMatchStatus()) {
+      setState(() {});
+      return;
+    }
     redTurn = true;
     botThinking = false;
     message = 'أنت الأحمر - دورك';
@@ -422,6 +454,22 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                             Expanded(child: _InfoChip(label: 'الوضع', value: networkMode ? 'جهازان' : playVsBot ? 'ضد الكمبيوتر' : 'لاعبان')),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(child: _InfoChip(label: 'أحجار الأحمر', value: '$redPieceCount')),
+                            const SizedBox(width: 8),
+                            Expanded(child: _InfoChip(label: 'أحجار الأسود', value: '$blackPieceCount')),
+                          ],
+                        ),
+                        if (gameFinished) ...[
+                          const SizedBox(height: 10),
+                          FilledButton.icon(
+                            onPressed: networkMode ? null : resetBoard,
+                            icon: const Icon(Icons.replay),
+                            label: Text(networkMode ? 'انتهت المباراة' : 'مباراة جديدة'),
+                          ),
+                        ],
                         if (!networkMode) ...[
                           const SizedBox(height: 10),
                           SegmentedButton<bool>(
