@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/audio_feedback.dart';
+import 'chicken_achievements.dart';
+import 'chicken_achievements_screen.dart';
 
 class ChickenGameScreen extends StatefulWidget {
   const ChickenGameScreen({super.key});
@@ -38,6 +40,8 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   bool isPlaying = false;
   bool isFinished = false;
   bool showFeathers = false;
+  List<ChickenAchievement> newAchievements = const [];
+  ChickenAchievementProgress? achievementProgress;
   _ChickenKind currentChicken = _ChickenKind.white;
 
   final List<Alignment> positions = const [
@@ -54,26 +58,15 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   ];
 
   int get level => isPlaying ? (elapsedSeconds ~/ 5) + 1 : 1;
-
   int get moveDurationMs => max(105, 310 - (level * 28));
-
-  int get accuracy {
-    if (attempts == 0) return 0;
-    return ((hits / attempts) * 100).round();
-  }
-
+  int get accuracy => attempts == 0 ? 0 : ((hits / attempts) * 100).round();
   int get starMultiplier => starSeconds > 0 ? 2 : 1;
-
-  int get comboMultiplier {
-    if (combo >= 6) return 3;
-    if (combo >= 3) return 2;
-    return 1;
-  }
+  int get comboMultiplier => combo >= 6 ? 3 : combo >= 3 ? 2 : 1;
 
   @override
   void initState() {
     super.initState();
-    _loadBestScore();
+    _loadSavedData();
   }
 
   @override
@@ -83,12 +76,14 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     super.dispose();
   }
 
-  Future<void> _loadBestScore() async {
+  Future<void> _loadSavedData() async {
     final prefs = await SharedPreferences.getInstance();
+    final progress = await ChickenAchievements.loadProgress();
     if (!mounted) return;
     setState(() {
       bestScore = prefs.getInt(_bestScoreKey) ?? 0;
       totalCoins = prefs.getInt(_totalCoinsKey) ?? 0;
+      achievementProgress = progress;
     });
   }
 
@@ -118,36 +113,65 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       starSeconds = 0;
       coins = 0;
       showFeathers = false;
+      newAchievements = const [];
       isPlaying = true;
       isFinished = false;
     });
-
     GameFeedback.tap();
-
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
         remainingSeconds--;
         elapsedSeconds++;
         if (starSeconds > 0) starSeconds--;
-        if (remainingSeconds <= 0) {
-          _finishGame(timer);
-        }
       });
+      if (remainingSeconds <= 0) _finishGame(timer);
     });
   }
 
-  void _finishGame(Timer timer) {
+  Future<void> _finishGame(Timer timer) async {
     timer.cancel();
-    isPlaying = false;
-    isFinished = true;
-    if (score > bestScore) {
-      bestScore = score;
-      _saveBestScore(bestScore);
-    }
-    combo = 0;
-    showFeathers = false;
+    if (!mounted) return;
+    setState(() {
+      isPlaying = false;
+      isFinished = true;
+      if (score > bestScore) {
+        bestScore = score;
+        _saveBestScore(bestScore);
+      }
+      combo = 0;
+      showFeathers = false;
+    });
     GameFeedback.win();
+
+    final unlocked = await ChickenAchievements.evaluateRound(
+      score: score,
+      hits: hits,
+      accuracy: accuracy,
+      bestCombo: bestCombo,
+      coins: coins,
+    );
+    final progress = await ChickenAchievements.loadProgress();
+    if (!mounted) return;
+    setState(() {
+      newAchievements = unlocked;
+      achievementProgress = progress;
+    });
+    if (unlocked.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('🏆 إنجاز جديد: ${unlocked.map((item) => item.title).join('، ')}'),
+          action: SnackBarAction(label: 'عرض', onPressed: _openAchievements),
+        ),
+      );
+    }
+  }
+
+  void _openAchievements() {
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const ChickenAchievementsScreen()))
+        .then((_) => _loadSavedData());
   }
 
   void _hitChicken() {
@@ -155,31 +179,19 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       _startGame();
       return;
     }
+    if (currentChicken.timeBonus > 0) return _collectTimeBonus();
+    if (currentChicken.scoreBoost > 1) return _collectStarBonus();
+    if (currentChicken.coinValue > 0) return _collectCoin();
 
-    if (currentChicken.timeBonus > 0) {
-      _collectTimeBonus();
-      return;
-    }
-    if (currentChicken.scoreBoost > 1) {
-      _collectStarBonus();
-      return;
-    }
-    if (currentChicken.coinValue > 0) {
-      _collectCoin();
-      return;
-    }
-
-    final bool isWrongChicken = currentChicken.isPenalty;
-    final int multiplier = comboMultiplier;
-    final int urgentBonus = remainingSeconds <= 10 ? 5 : 0;
-    final int earned = isWrongChicken
+    final isWrong = currentChicken.isPenalty;
+    final urgentBonus = remainingSeconds <= 10 ? 5 : 0;
+    final earned = isWrong
         ? currentChicken.points
-        : (currentChicken.points + urgentBonus) * multiplier * starMultiplier;
-
+        : (currentChicken.points + urgentBonus) * comboMultiplier * starMultiplier;
     _effectTimer?.cancel();
     setState(() {
       attempts++;
-      if (isWrongChicken) {
+      if (isWrong) {
         score = max(0, score + earned);
         combo = 0;
       } else {
@@ -189,73 +201,54 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
         score += earned;
       }
       showFeathers = true;
-      chickenIndex = _nextChickenIndex();
-      currentChicken = _randomChicken();
+      _moveTarget();
     });
-
-    if (isWrongChicken) {
-      GameFeedback.error();
-    } else {
-      GameFeedback.move();
-    }
-
-    _effectTimer = Timer(const Duration(milliseconds: 240), () {
-      if (!mounted) return;
-      setState(() => showFeathers = false);
-    });
+    isWrong ? GameFeedback.error() : GameFeedback.move();
+    _hideEffect();
   }
 
   void _collectTimeBonus() {
-    _effectTimer?.cancel();
     setState(() {
-      remainingSeconds = min(
-        _maxRemainingSeconds,
-        remainingSeconds + currentChicken.timeBonus,
-      );
+      remainingSeconds = min(_maxRemainingSeconds, remainingSeconds + currentChicken.timeBonus);
       showFeathers = true;
-      chickenIndex = _nextChickenIndex();
-      currentChicken = _randomChicken();
+      _moveTarget();
     });
     GameFeedback.move();
-
-    _effectTimer = Timer(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      setState(() => showFeathers = false);
-    });
+    _hideEffect();
   }
 
   void _collectStarBonus() {
-    _effectTimer?.cancel();
     setState(() {
       starSeconds = 5;
       showFeathers = true;
-      chickenIndex = _nextChickenIndex();
-      currentChicken = _randomChicken();
+      _moveTarget();
     });
     GameFeedback.win();
-
-    _effectTimer = Timer(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      setState(() => showFeathers = false);
-    });
+    _hideEffect();
   }
 
   void _collectCoin() {
-    _effectTimer?.cancel();
     setState(() {
       coins += currentChicken.coinValue;
       totalCoins += currentChicken.coinValue;
       showFeathers = true;
-      chickenIndex = _nextChickenIndex();
-      currentChicken = _randomChicken();
+      _moveTarget();
     });
     _saveTotalCoins(totalCoins);
     GameFeedback.move();
+    _hideEffect();
+  }
 
+  void _hideEffect() {
+    _effectTimer?.cancel();
     _effectTimer = Timer(const Duration(milliseconds: 300), () {
-      if (!mounted) return;
-      setState(() => showFeathers = false);
+      if (mounted) setState(() => showFeathers = false);
     });
+  }
+
+  void _moveTarget() {
+    chickenIndex = _nextChickenIndex();
+    currentChicken = _randomChicken();
   }
 
   void _missTap() {
@@ -268,8 +261,6 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   }
 
   int _nextChickenIndex() {
-    if (positions.length == 1) return 0;
-
     int next = _random.nextInt(positions.length);
     while (next == chickenIndex) {
       next = _random.nextInt(positions.length);
@@ -278,7 +269,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   }
 
   _ChickenKind _randomChicken() {
-    final int roll = _random.nextInt(100);
+    final roll = _random.nextInt(100);
     if (level >= 3 && roll < 12) return _ChickenKind.red;
     if (roll >= 94) return _ChickenKind.gold;
     if (level >= 2 && roll >= 88) return _ChickenKind.clock;
@@ -304,6 +295,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       bestCombo = 0;
       starSeconds = 0;
       coins = 0;
+      newAchievements = const [];
       showFeathers = false;
       isPlaying = false;
       isFinished = false;
@@ -313,14 +305,14 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   String get _message {
     if (isFinished) return 'انتهى الوقت! النتيجة $score والدقة $accuracy%';
     if (!isPlaying) return 'اضغط على الدجاجة أو زر البدء لبدء الجولة';
-    if (currentChicken.isPenalty) return 'انتبه! الدجاجة الحمراء تخصم نقاطًا — تجنبها';
-    if (currentChicken.timeBonus > 0) return 'مكافأة وقت! اضغط الساعة لتحصل على 5 ثوانٍ';
-    if (currentChicken.scoreBoost > 1) return 'نجمة نادرة! اضغطها لتضاعف النقاط 5 ثوانٍ';
-    if (currentChicken.coinValue > 0) return 'عملة نادرة! اجمعها ليبقى رصيدك محفوظًا';
+    if (currentChicken.isPenalty) return 'انتبه! الدجاجة الحمراء تخصم نقاطًا';
+    if (currentChicken.timeBonus > 0) return 'مكافأة وقت: +5 ثوانٍ';
+    if (currentChicken.scoreBoost > 1) return 'نجمة نادرة: مضاعفة النقاط 5 ثوانٍ';
+    if (currentChicken.coinValue > 0) return 'عملة نادرة: اجمعها ليبقى رصيدك محفوظًا';
     if (starSeconds > 0) return 'النجمة فعالة: النقاط ×2 لمدة $starSeconds ث';
     if (remainingSeconds <= 10) return 'الوقت قليل! كل إصابة تعطي نقاطًا إضافية';
-    if (combo >= 6) return 'كومبو قوي ×3 — استمر بسرعة';
-    if (combo >= 3) return 'كومبو ×2 — لا تضغط خارج الدجاجة';
+    if (combo >= 6) return 'كومبو قوي ×3';
+    if (combo >= 3) return 'كومبو ×2';
     return 'المستوى $level — اضغط على الدجاجة الصحيحة';
   }
 
@@ -344,38 +336,31 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
         title: const Text('لعبة الدجاجة'),
         centerTitle: true,
         actions: [
-          IconButton(
-            tooltip: 'إعادة',
-            onPressed: _resetGame,
-            icon: const Icon(Icons.refresh),
-          ),
+          IconButton(tooltip: 'الإنجازات', onPressed: _openAchievements, icon: const Icon(Icons.emoji_events_outlined)),
+          IconButton(tooltip: 'إعادة', onPressed: _resetGame, icon: const Icon(Icons.refresh)),
         ],
       ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
-            child: Row(
-              children: [
-                Expanded(child: _InfoBox(label: 'النقاط', value: '$score')),
-                const SizedBox(width: 8),
-                Expanded(child: _InfoBox(label: 'الوقت', value: '$remainingSeconds ث', valueColor: _timerColor)),
-                const SizedBox(width: 8),
-                Expanded(child: _InfoBox(label: 'الأفضل', value: '$bestScore')),
-              ],
-            ),
+            child: Row(children: [
+              Expanded(child: _InfoBox(label: 'النقاط', value: '$score')),
+              const SizedBox(width: 8),
+              Expanded(child: _InfoBox(label: 'الوقت', value: '$remainingSeconds ث', valueColor: _timerColor)),
+              const SizedBox(width: 8),
+              Expanded(child: _InfoBox(label: 'الأفضل', value: '$bestScore')),
+            ]),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-            child: Row(
-              children: [
-                Expanded(child: _InfoBox(label: 'المستوى', value: '$level')),
-                const SizedBox(width: 8),
-                Expanded(child: _InfoBox(label: 'كومبو', value: combo > 0 ? '×$comboMultiplier / $combo' : '0')),
-                const SizedBox(width: 8),
-                Expanded(child: _InfoBox(label: 'الدقة', value: '$accuracy%')),
-              ],
-            ),
+            child: Row(children: [
+              Expanded(child: _InfoBox(label: 'المستوى', value: '$level')),
+              const SizedBox(width: 8),
+              Expanded(child: _InfoBox(label: 'كومبو', value: combo > 0 ? '×$comboMultiplier / $combo' : '0')),
+              const SizedBox(width: 8),
+              Expanded(child: _InfoBox(label: 'الدقة', value: '$accuracy%')),
+            ]),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -387,121 +372,84 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(color: currentChicken.color.withOpacity(0.55)),
               ),
-              child: Text(
-                _message,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4D3B00)),
-              ),
+              child: Text(_message, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4D3B00))),
             ),
           ),
           const SizedBox(height: 10),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF8ED1FC), Color(0xFFB7E4A7), Color(0xFF6AB04C)],
-                  ),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _missTap,
-                    child: Stack(
-                      children: [
-                        const Positioned(left: 18, bottom: 20, child: Text('🌾', style: TextStyle(fontSize: 46))),
-                        const Positioned(right: 28, bottom: 34, child: Text('🌳', style: TextStyle(fontSize: 54))),
-                        const Positioned(left: 38, top: 25, child: Text('☁️', style: TextStyle(fontSize: 38))),
-                        const Positioned(right: 40, top: 54, child: Text('☀️', style: TextStyle(fontSize: 42))),
-                        const Positioned(left: 70, bottom: 72, child: Text('🌻', style: TextStyle(fontSize: 34))),
-                        const Positioned(right: 92, bottom: 92, child: Text('🪵', style: TextStyle(fontSize: 30))),
-                        AnimatedAlign(
-                          duration: Duration(milliseconds: moveDurationMs),
-                          curve: Curves.easeOutBack,
-                          alignment: positions[chickenIndex],
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: _hitChicken,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                if (showFeathers)
-                                  const SizedBox(
-                                    width: 128,
-                                    height: 128,
-                                    child: Stack(
-                                      children: [
-                                        Positioned(left: 12, top: 8, child: Text('🪶', style: TextStyle(fontSize: 24))),
-                                        Positioned(right: 8, top: 20, child: Text('🪶', style: TextStyle(fontSize: 22))),
-                                        Positioned(left: 24, bottom: 4, child: Text('✨', style: TextStyle(fontSize: 24))),
-                                      ],
-                                    ),
-                                  ),
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 160),
-                                  width: isPlaying ? currentChicken.size : 104,
-                                  height: isPlaying ? currentChicken.size : 104,
-                                  decoration: BoxDecoration(
-                                    color: isFinished ? Colors.white.withOpacity(0.94) : currentChicken.softColor,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: currentChicken.color, width: currentChicken == _ChickenKind.gold ? 5 : 3),
-                                    boxShadow: [
-                                      BoxShadow(color: currentChicken.color.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 6)),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      isFinished ? '🏁' : currentChicken.emoji,
-                                      style: TextStyle(fontSize: currentChicken == _ChickenKind.gold ? 54 : 58),
-                                    ),
-                                  ),
-                                ),
-                                if (isPlaying)
-                                  Positioned(
-                                    bottom: 2,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.45),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        _targetLabel,
-                                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (isFinished)
-                          _ResultPanel(
-                            score: score,
-                            bestScore: bestScore,
-                            hits: hits,
-                            accuracy: accuracy,
-                            bestCombo: bestCombo,
-                            coins: coins,
-                            totalCoins: totalCoins,
-                          ),
-                        Positioned(
-                          left: 16,
-                          right: 16,
-                          bottom: 12,
-                          child: ElevatedButton.icon(
-                            onPressed: _startGame,
-                            icon: Icon(isPlaying ? Icons.restart_alt : Icons.play_arrow),
-                            label: Text(isPlaying ? 'بدء جولة جديدة' : 'ابدأ اللعب'),
-                          ),
-                        ),
-                      ],
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _missTap,
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF8ED1FC), Color(0xFFB7E4A7), Color(0xFF6AB04C)]),
                     ),
+                    child: Stack(children: [
+                      const Positioned(left: 18, bottom: 20, child: Text('🌾', style: TextStyle(fontSize: 46))),
+                      const Positioned(right: 28, bottom: 34, child: Text('🌳', style: TextStyle(fontSize: 54))),
+                      const Positioned(left: 38, top: 25, child: Text('☁️', style: TextStyle(fontSize: 38))),
+                      const Positioned(right: 40, top: 54, child: Text('☀️', style: TextStyle(fontSize: 42))),
+                      AnimatedAlign(
+                        duration: Duration(milliseconds: moveDurationMs),
+                        curve: Curves.easeOutBack,
+                        alignment: positions[chickenIndex],
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _hitChicken,
+                          child: Stack(alignment: Alignment.center, children: [
+                            if (showFeathers) const Text('🪶✨🪶', style: TextStyle(fontSize: 28)),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 160),
+                              width: isPlaying ? currentChicken.size : 104,
+                              height: isPlaying ? currentChicken.size : 104,
+                              decoration: BoxDecoration(
+                                color: isFinished ? Colors.white.withOpacity(0.94) : currentChicken.softColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: currentChicken.color, width: currentChicken == _ChickenKind.gold ? 5 : 3),
+                                boxShadow: [BoxShadow(color: currentChicken.color.withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 6))],
+                              ),
+                              child: Center(child: Text(isFinished ? '🏁' : currentChicken.emoji, style: const TextStyle(fontSize: 56))),
+                            ),
+                            if (isPlaying)
+                              Positioned(
+                                bottom: 2,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(color: Colors.black.withOpacity(0.45), borderRadius: BorderRadius.circular(12)),
+                                  child: Text(_targetLabel, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ),
+                              ),
+                          ]),
+                        ),
+                      ),
+                      if (isFinished)
+                        _ResultPanel(
+                          score: score,
+                          bestScore: bestScore,
+                          hits: hits,
+                          accuracy: accuracy,
+                          bestCombo: bestCombo,
+                          coins: coins,
+                          totalCoins: totalCoins,
+                          newAchievements: newAchievements,
+                          progress: achievementProgress,
+                          onAchievements: _openAchievements,
+                        ),
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 12,
+                        child: ElevatedButton.icon(
+                          onPressed: _startGame,
+                          icon: Icon(isPlaying ? Icons.restart_alt : Icons.play_arrow),
+                          label: Text(isPlaying ? 'بدء جولة جديدة' : 'ابدأ اللعب'),
+                        ),
+                      ),
+                    ]),
                   ),
                 ),
               ),
@@ -515,7 +463,6 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
 
 class _ChickenKind {
   const _ChickenKind({
-    required this.name,
     required this.emoji,
     required this.points,
     required this.color,
@@ -527,7 +474,6 @@ class _ChickenKind {
     this.coinValue = 0,
   });
 
-  final String name;
   final String emoji;
   final int points;
   final Color color;
@@ -538,81 +484,14 @@ class _ChickenKind {
   final int scoreBoost;
   final int coinValue;
 
-  static const white = _ChickenKind(
-    name: 'أبيض',
-    emoji: '🐔',
-    points: 10,
-    color: Color(0xFFFFD166),
-    softColor: Color(0xFFFFF7D6),
-    size: 88,
-  );
-
-  static const brown = _ChickenKind(
-    name: 'بني',
-    emoji: '🐔',
-    points: 20,
-    color: Color(0xFFB5651D),
-    softColor: Color(0xFFFFE0B2),
-    size: 82,
-  );
-
-  static const black = _ChickenKind(
-    name: 'أسود',
-    emoji: '🐔',
-    points: 35,
-    color: Color(0xFF2D3436),
-    softColor: Color(0xFFDDE1E4),
-    size: 76,
-  );
-
-  static const gold = _ChickenKind(
-    name: 'ذهبي',
-    emoji: '🐥',
-    points: 100,
-    color: Color(0xFFFFB703),
-    softColor: Color(0xFFFFF0A3),
-    size: 72,
-  );
-
-  static const coin = _ChickenKind(
-    name: 'عملة',
-    emoji: '🪙',
-    points: 0,
-    color: Color(0xFFE09F00),
-    softColor: Color(0xFFFFF1B8),
-    size: 68,
-    coinValue: 1,
-  );
-
-  static const star = _ChickenKind(
-    name: 'نجمة المضاعفة',
-    emoji: '⭐',
-    points: 0,
-    color: Color(0xFF7B2CBF),
-    softColor: Color(0xFFF0DFFF),
-    size: 70,
-    scoreBoost: 2,
-  );
-
-  static const clock = _ChickenKind(
-    name: 'ساعة الوقت',
-    emoji: '⏱️',
-    points: 0,
-    color: Color(0xFF118AB2),
-    softColor: Color(0xFFD8F3FF),
-    size: 72,
-    timeBonus: 5,
-  );
-
-  static const red = _ChickenKind(
-    name: 'أحمر',
-    emoji: '🐔',
-    points: -30,
-    color: Color(0xFFE63946),
-    softColor: Color(0xFFFFD6D9),
-    size: 80,
-    isPenalty: true,
-  );
+  static const white = _ChickenKind(emoji: '🐔', points: 10, color: Color(0xFFFFD166), softColor: Color(0xFFFFF7D6), size: 88);
+  static const brown = _ChickenKind(emoji: '🐔', points: 20, color: Color(0xFFB5651D), softColor: Color(0xFFFFE0B2), size: 82);
+  static const black = _ChickenKind(emoji: '🐔', points: 35, color: Color(0xFF2D3436), softColor: Color(0xFFDDE1E4), size: 76);
+  static const gold = _ChickenKind(emoji: '🐥', points: 100, color: Color(0xFFFFB703), softColor: Color(0xFFFFF0A3), size: 72);
+  static const coin = _ChickenKind(emoji: '🪙', points: 0, color: Color(0xFFE09F00), softColor: Color(0xFFFFF1B8), size: 68, coinValue: 1);
+  static const star = _ChickenKind(emoji: '⭐', points: 0, color: Color(0xFF7B2CBF), softColor: Color(0xFFF0DFFF), size: 70, scoreBoost: 2);
+  static const clock = _ChickenKind(emoji: '⏱️', points: 0, color: Color(0xFF118AB2), softColor: Color(0xFFD8F3FF), size: 72, timeBonus: 5);
+  static const red = _ChickenKind(emoji: '🐔', points: -30, color: Color(0xFFE63946), softColor: Color(0xFFFFD6D9), size: 80, isPenalty: true);
 }
 
 class _ResultPanel extends StatelessWidget {
@@ -624,6 +503,9 @@ class _ResultPanel extends StatelessWidget {
     required this.bestCombo,
     required this.coins,
     required this.totalCoins,
+    required this.newAchievements,
+    required this.progress,
+    required this.onAchievements,
   });
 
   final int score;
@@ -633,6 +515,9 @@ class _ResultPanel extends StatelessWidget {
   final int bestCombo;
   final int coins;
   final int totalCoins;
+  final List<ChickenAchievement> newAchievements;
+  final ChickenAchievementProgress? progress;
+  final VoidCallback onAchievements;
 
   @override
   Widget build(BuildContext context) {
@@ -640,36 +525,34 @@ class _ResultPanel extends StatelessWidget {
       child: Container(
         color: Colors.black.withOpacity(0.30),
         child: Center(
-          child: Container(
-            margin: const EdgeInsets.all(24),
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 8))],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+          child: SingleChildScrollView(
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(24, 24, 24, 76),
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 18, offset: Offset(0, 8))]),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
                 const Text('نتيجة الجولة', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _MiniStat(label: 'النقاط', value: '$score'),
-                    _MiniStat(label: 'الأفضل المحفوظ', value: '$bestScore'),
-                    _MiniStat(label: 'الإصابات', value: '$hits'),
-                    _MiniStat(label: 'الدقة', value: '$accuracy%'),
-                    _MiniStat(label: 'أفضل كومبو', value: '$bestCombo'),
-                    _MiniStat(label: 'عملات الجولة', value: '$coins'),
-                    _MiniStat(label: 'إجمالي العملات', value: '$totalCoins'),
-                  ],
+                Wrap(alignment: WrapAlignment.center, spacing: 8, runSpacing: 8, children: [
+                  _MiniStat(label: 'النقاط', value: '$score'),
+                  _MiniStat(label: 'الأفضل', value: '$bestScore'),
+                  _MiniStat(label: 'الإصابات', value: '$hits'),
+                  _MiniStat(label: 'الدقة', value: '$accuracy%'),
+                  _MiniStat(label: 'أفضل كومبو', value: '$bestCombo'),
+                  _MiniStat(label: 'عملات الجولة', value: '$coins'),
+                  _MiniStat(label: 'إجمالي العملات', value: '$totalCoins'),
+                ]),
+                if (newAchievements.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text('🏆 إنجاز جديد: ${newAchievements.map((item) => item.title).join('، ')}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF9A6700))),
+                ],
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: onAchievements,
+                  icon: const Icon(Icons.emoji_events_outlined),
+                  label: Text(progress == null ? 'عرض الإنجازات' : 'الإنجازات ${progress!.label}'),
                 ),
-                const SizedBox(height: 10),
-                const Text('سيبقى أفضل رقم محفوظًا بعد إغلاق التطبيق', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.black54)),
-              ],
+              ]),
             ),
           ),
         ),
@@ -680,7 +563,6 @@ class _ResultPanel extends StatelessWidget {
 
 class _MiniStat extends StatelessWidget {
   const _MiniStat({required this.label, required this.value});
-
   final String label;
   final String value;
 
@@ -689,24 +571,18 @@ class _MiniStat extends StatelessWidget {
     return Container(
       width: 92,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF6F7FB),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.black54)),
-          const SizedBox(height: 3),
-          Text(value, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
-        ],
-      ),
+      decoration: BoxDecoration(color: const Color(0xFFF6F7FB), borderRadius: BorderRadius.circular(16)),
+      child: Column(children: [
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.black54)),
+        const SizedBox(height: 3),
+        Text(value, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+      ]),
     );
   }
 }
 
 class _InfoBox extends StatelessWidget {
   const _InfoBox({required this.label, required this.value, this.valueColor});
-
   final String label;
   final String value;
   final Color? valueColor;
@@ -715,24 +591,12 @@ class _InfoBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3))],
-      ),
-      child: Column(
-        children: [
-          Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54, fontSize: 11)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: valueColor),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3))]),
+      child: Column(children: [
+        Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54, fontSize: 11)),
+        const SizedBox(height: 4),
+        Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: valueColor)),
+      ]),
     );
   }
 }
