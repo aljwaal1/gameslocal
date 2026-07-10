@@ -7,12 +7,14 @@ class BattleArenaScreen extends StatefulWidget {
   const BattleArenaScreen({
     super.key,
     required this.characterName,
+    required this.characterStyle,
     required this.players,
     required this.mode,
     required this.botLevel,
   });
 
   final String characterName;
+  final String characterStyle;
   final int players;
   final String mode;
   final String botLevel;
@@ -22,7 +24,7 @@ class BattleArenaScreen extends StatefulWidget {
 }
 
 class _BattleArenaScreenState extends State<BattleArenaScreen> {
-  static const double step = 0.13;
+  static const double botStep = 0.13;
   final math.Random random = math.Random();
   Timer? matchTimer;
   Timer? botTimer;
@@ -31,10 +33,26 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   double playerY = 0.45;
   double botX = 0.55;
   double botY = -0.35;
-  int playerHealth = 100;
+  late int playerHealth;
   int botHealth = 100;
   int secondsLeft = 60;
   bool finished = false;
+
+  double get playerStep => switch (widget.characterStyle) {
+        'سريع' => 0.17,
+        'دفاعي' => 0.11,
+        'قوي' => 0.13,
+        _ => 0.14,
+      };
+
+  int get maxPlayerHealth => widget.characterStyle == 'دفاعي' ? 130 : 100;
+  int get attackDamage => switch (widget.characterStyle) {
+        'قوي' => 26,
+        'سريع' => 15,
+        'دفاعي' => 18,
+        _ => 21,
+      };
+  int get botDamage => widget.characterStyle == 'دفاعي' ? 4 : 6;
 
   Duration get botDelay => switch (widget.botLevel) {
         'صعب' => const Duration(milliseconds: 450),
@@ -49,6 +67,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   @override
   void initState() {
     super.initState();
+    playerHealth = maxPlayerHealth;
     startTimers();
   }
 
@@ -90,16 +109,16 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
 
     setState(() {
       if (random.nextDouble() < chaseChance) {
-        botX += playerX > botX ? step : -step;
-        botY += playerY > botY ? step : -step;
+        botX += playerX > botX ? botStep : -botStep;
+        botY += playerY > botY ? botStep : -botStep;
       } else {
-        botX += (random.nextBool() ? 1 : -1) * step;
-        botY += (random.nextBool() ? 1 : -1) * step;
+        botX += (random.nextBool() ? 1 : -1) * botStep;
+        botY += (random.nextBool() ? 1 : -1) * botStep;
       }
       botX = botX.clamp(-0.88, 0.88).toDouble();
       botY = botY.clamp(-0.82, 0.82).toDouble();
       if (distance < 0.34) {
-        playerHealth = math.max(0, playerHealth - 6).toInt();
+        playerHealth = math.max(0, playerHealth - botDamage).toInt();
         if (playerHealth == 0) finish();
       }
     });
@@ -109,7 +128,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     if (finished) return;
     setState(() {
       if (distance >= 0.42) return;
-      botHealth = math.max(0, botHealth - 18).toInt();
+      botHealth = math.max(0, botHealth - attackDamage).toInt();
       botX = (botX + (botX >= playerX ? 0.20 : -0.20))
           .clamp(-0.88, 0.88)
           .toDouble();
@@ -134,7 +153,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       playerY = 0.45;
       botX = 0.55;
       botY = -0.35;
-      playerHealth = 100;
+      playerHealth = maxPlayerHealth;
       botHealth = 100;
       secondsLeft = 60;
       finished = false;
@@ -175,6 +194,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                     child: _HealthBar(
                       label: widget.characterName,
                       value: playerHealth,
+                      maxValue: maxPlayerHealth,
                       icon: Icons.person,
                     ),
                   ),
@@ -183,6 +203,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                     child: _HealthBar(
                       label: 'الروبوت',
                       value: botHealth,
+                      maxValue: 100,
                       icon: Icons.smart_toy,
                     ),
                   ),
@@ -257,7 +278,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  _MovementPad(onMove: move),
+                  _MovementPad(onMove: move, step: playerStep),
                   const Spacer(),
                   FilledButton.tonalIcon(
                     onPressed: attack,
@@ -371,11 +392,13 @@ class _HealthBar extends StatelessWidget {
   const _HealthBar({
     required this.label,
     required this.value,
+    required this.maxValue,
     required this.icon,
   });
 
   final String label;
   final int value;
+  final int maxValue;
   final IconData icon;
 
   @override
@@ -394,7 +417,7 @@ class _HealthBar extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         LinearProgressIndicator(
-          value: value / 100,
+          value: value / maxValue,
           minHeight: 8,
           borderRadius: BorderRadius.circular(8),
         ),
@@ -404,9 +427,10 @@ class _HealthBar extends StatelessWidget {
 }
 
 class _MovementPad extends StatelessWidget {
-  const _MovementPad({required this.onMove});
+  const _MovementPad({required this.onMove, required this.step});
 
   final void Function(double dx, double dy) onMove;
+  final double step;
 
   @override
   Widget build(BuildContext context) {
@@ -419,28 +443,28 @@ class _MovementPad extends StatelessWidget {
             alignment: Alignment.topCenter,
             child: _MoveButton(
               icon: Icons.keyboard_arrow_up,
-              onTap: () => onMove(0, -_BattleArenaScreenState.step),
+              onTap: () => onMove(0, -step),
             ),
           ),
           Align(
             alignment: Alignment.bottomCenter,
             child: _MoveButton(
               icon: Icons.keyboard_arrow_down,
-              onTap: () => onMove(0, _BattleArenaScreenState.step),
+              onTap: () => onMove(0, step),
             ),
           ),
           Align(
             alignment: Alignment.centerLeft,
             child: _MoveButton(
               icon: Icons.keyboard_arrow_left,
-              onTap: () => onMove(-_BattleArenaScreenState.step, 0),
+              onTap: () => onMove(-step, 0),
             ),
           ),
           Align(
             alignment: Alignment.centerRight,
             child: _MoveButton(
               icon: Icons.keyboard_arrow_right,
-              onTap: () => onMove(_BattleArenaScreenState.step, 0),
+              onTap: () => onMove(step, 0),
             ),
           ),
         ],
