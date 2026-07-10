@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/audio_feedback.dart';
 
@@ -14,6 +15,7 @@ class ChickenGameScreen extends StatefulWidget {
 
 class _ChickenGameScreenState extends State<ChickenGameScreen> {
   static const int _roundSeconds = 30;
+  static const String _bestScoreKey = 'chicken_best_score';
 
   final Random _random = Random();
   Timer? _timer;
@@ -61,10 +63,29 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadBestScore();
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _effectTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadBestScore() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      bestScore = prefs.getInt(_bestScoreKey) ?? 0;
+    });
+  }
+
+  Future<void> _saveBestScore(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_bestScoreKey, value);
   }
 
   void _startGame() {
@@ -101,7 +122,10 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     timer.cancel();
     isPlaying = false;
     isFinished = true;
-    bestScore = max(bestScore, score);
+    if (score > bestScore) {
+      bestScore = score;
+      _saveBestScore(bestScore);
+    }
     combo = 0;
     showFeathers = false;
     GameFeedback.win();
@@ -445,12 +469,14 @@ class _ResultPanel extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     _MiniStat(label: 'النقاط', value: '$score'),
-                    _MiniStat(label: 'الأفضل', value: '$bestScore'),
+                    _MiniStat(label: 'الأفضل المحفوظ', value: '$bestScore'),
                     _MiniStat(label: 'الإصابات', value: '$hits'),
                     _MiniStat(label: 'الدقة', value: '$accuracy%'),
                     _MiniStat(label: 'أفضل كومبو', value: '$bestCombo'),
                   ],
                 ),
+                const SizedBox(height: 10),
+                const Text('سيبقى أفضل رقم محفوظًا بعد إغلاق التطبيق', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Colors.black54)),
               ],
             ),
           ),
