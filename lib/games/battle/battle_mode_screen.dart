@@ -14,8 +14,8 @@ class BattleModeScreen extends StatefulWidget {
 class _BattleModeScreenState extends State<BattleModeScreen> {
   final math.Random _random = math.Random();
 
-  int players = 2;
-  String mode = 'فردي';
+  static const int players = 2;
+  static const String mode = 'فردي';
   String botLevel = 'متوسط';
   int character = 0;
 
@@ -28,20 +28,6 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
 
   String get selectedCharacterName => characters[character].$1;
   String get selectedCharacterStyle => characters[character].$3;
-
-  void _setPlayers(int value) {
-    setState(() {
-      players = value;
-      if (mode == 'فرق' && players != 4) mode = 'فردي';
-    });
-  }
-
-  void _setMode(String value) {
-    setState(() {
-      mode = value;
-      if (mode == 'فرق') players = 4;
-    });
-  }
 
   void _openArena() {
     Navigator.push(
@@ -63,8 +49,6 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
   void _startQuickMatch() {
     setState(() {
       character = _random.nextInt(characters.length);
-      players = 2;
-      mode = 'فردي';
       botLevel = ['سهل', 'متوسط', 'صعب'][_random.nextInt(3)];
     });
     _openArena();
@@ -83,7 +67,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            const Text('اختر الشخصية والإعدادات، أو ابدأ مباراة سريعة مباشرة.'),
+            const Text('اختر الشخصية ومستوى الروبوت، أو ابدأ مباراة سريعة مباشرة.'),
             const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: _startQuickMatch,
@@ -151,30 +135,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               },
             ),
             const SizedBox(height: 18),
-            _OptionCard(
-              title: 'عدد اللاعبين',
-              child: SegmentedButton<int>(
-                segments: const [
-                  ButtonSegment(value: 2, label: Text('2')),
-                  ButtonSegment(value: 3, label: Text('3')),
-                  ButtonSegment(value: 4, label: Text('4')),
-                ],
-                selected: {players},
-                onSelectionChanged: (value) => _setPlayers(value.first),
-              ),
-            ),
-            const SizedBox(height: 10),
-            _OptionCard(
-              title: 'نمط اللعب',
-              child: SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'فردي', label: Text('فردي')),
-                  ButtonSegment(value: 'فرق', label: Text('فرق 2 ضد 2')),
-                ],
-                selected: {mode},
-                onSelectionChanged: (value) => _setMode(value.first),
-              ),
-            ),
+            const _SupportedModeCard(),
             const SizedBox(height: 10),
             _OptionCard(
               title: 'مستوى الروبوت',
@@ -192,8 +153,6 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
             _MatchPreviewCard(
               characterName: selectedCharacterName,
               characterStyle: selectedCharacterStyle,
-              players: players,
-              mode: mode,
               botLevel: botLevel,
             ),
             const SizedBox(height: 18),
@@ -202,7 +161,46 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               icon: const Icon(Icons.play_arrow),
               label: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('ابدأ المباراة'),
+                child: Text('ابدأ مباراة 1 ضد 1'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportedModeCard extends StatelessWidget {
+  const _SupportedModeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: colorScheme.primaryContainer,
+              child: Icon(Icons.sports_martial_arts, color: colorScheme.primary),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'النمط المتاح حاليًا: 1 ضد 1',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'لاعب واحد ضد روبوت. اللعب الجماعي ونمط الفرق سيظهران بعد اكتمال دعمهما داخل الساحة.',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
               ),
             ),
           ],
@@ -216,15 +214,11 @@ class _MatchPreviewCard extends StatelessWidget {
   const _MatchPreviewCard({
     required this.characterName,
     required this.characterStyle,
-    required this.players,
-    required this.mode,
     required this.botLevel,
   });
 
   final String characterName;
   final String characterStyle;
-  final int players;
-  final String mode;
   final String botLevel;
 
   @override
@@ -254,14 +248,7 @@ class _MatchPreviewCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text('الشخصية: $characterName • الأسلوب: $characterStyle'),
           const SizedBox(height: 4),
-          Text('النمط: $mode • اللاعبون: $players • الروبوت: $botLevel'),
-          if (players > 2) ...[
-            const SizedBox(height: 8),
-            const Text(
-              'تنبيه: الساحة الحالية تجريبية وتبدأ بمواجهة مباشرة مع روبوت واحد، وسيُضاف باقي اللاعبين لاحقًا.',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-          ],
+          Text('النمط: فردي 1 ضد 1 • الروبوت: $botLevel'),
         ],
       ),
     );
