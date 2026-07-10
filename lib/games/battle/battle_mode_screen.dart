@@ -51,7 +51,6 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
           textDirection: TextDirection.rtl,
           child: BattleArenaScreen(
             characterName: selectedCharacterName,
-            characterStyle: selectedCharacterStyle,
             players: players,
             mode: mode,
             botLevel: botLevel,
@@ -137,7 +136,10 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(item.$1, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                item.$1,
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
                               Text(item.$3, style: const TextStyle(fontSize: 12)),
                             ],
                           ),
@@ -243,7 +245,10 @@ class _MatchPreviewCard extends StatelessWidget {
             children: [
               Icon(Icons.fact_check, color: colorScheme.secondary),
               const SizedBox(width: 8),
-              const Text('ملخص المباراة', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'ملخص المباراة',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 10),
