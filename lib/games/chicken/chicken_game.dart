@@ -137,23 +137,33 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       return;
     }
 
+    final bool isWrongChicken = currentChicken.isPenalty;
     final int multiplier = comboMultiplier;
     final int urgentBonus = remainingSeconds <= 10 ? 5 : 0;
-    final int earned = (currentChicken.points + urgentBonus) * multiplier;
+    final int earned = isWrongChicken ? currentChicken.points : (currentChicken.points + urgentBonus) * multiplier;
 
     _effectTimer?.cancel();
     setState(() {
       attempts++;
-      hits++;
-      combo++;
-      bestCombo = max(bestCombo, combo);
-      score += earned;
+      if (isWrongChicken) {
+        score = max(0, score + earned);
+        combo = 0;
+      } else {
+        hits++;
+        combo++;
+        bestCombo = max(bestCombo, combo);
+        score += earned;
+      }
       showFeathers = true;
       chickenIndex = _nextChickenIndex();
       currentChicken = _randomChicken();
     });
 
-    GameFeedback.move();
+    if (isWrongChicken) {
+      GameFeedback.error();
+    } else {
+      GameFeedback.move();
+    }
 
     _effectTimer = Timer(const Duration(milliseconds: 240), () {
       if (!mounted) return;
@@ -182,6 +192,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
 
   _ChickenKind _randomChicken() {
     final int roll = _random.nextInt(100);
+    if (level >= 3 && roll < 12) return _ChickenKind.red;
     if (roll >= 94) return _ChickenKind.gold;
     if (level >= 4 && roll >= 74) return _ChickenKind.black;
     if (level >= 2 && roll >= 48) return _ChickenKind.brown;
@@ -209,6 +220,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   String get _message {
     if (isFinished) return 'انتهى الوقت! النتيجة $score والدقة $accuracy%';
     if (!isPlaying) return 'اضغط على الدجاجة أو زر البدء لبدء الجولة';
+    if (currentChicken.isPenalty) return 'انتبه! الدجاجة الحمراء تخصم نقاطًا — تجنبها';
     if (remainingSeconds <= 10) return 'الوقت قليل! كل إصابة تعطي نقاطًا إضافية';
     if (combo >= 6) return 'كومبو قوي ×3 — استمر بسرعة';
     if (combo >= 3) return 'كومبو ×2 — لا تضغط خارج الدجاجة';
@@ -355,7 +367,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       child: Text(
-                                        '+${currentChicken.points}',
+                                        '${currentChicken.points > 0 ? '+' : ''}${currentChicken.points}',
                                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                                       ),
                                     ),
@@ -389,7 +401,15 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
 }
 
 class _ChickenKind {
-  const _ChickenKind({required this.name, required this.emoji, required this.points, required this.color, required this.softColor, required this.size});
+  const _ChickenKind({
+    required this.name,
+    required this.emoji,
+    required this.points,
+    required this.color,
+    required this.softColor,
+    required this.size,
+    this.isPenalty = false,
+  });
 
   final String name;
   final String emoji;
@@ -397,6 +417,7 @@ class _ChickenKind {
   final Color color;
   final Color softColor;
   final double size;
+  final bool isPenalty;
 
   static const white = _ChickenKind(
     name: 'أبيض',
@@ -432,6 +453,16 @@ class _ChickenKind {
     color: Color(0xFFFFB703),
     softColor: Color(0xFFFFF0A3),
     size: 72,
+  );
+
+  static const red = _ChickenKind(
+    name: 'أحمر',
+    emoji: '🐔',
+    points: -30,
+    color: Color(0xFFE63946),
+    softColor: Color(0xFFFFD6D9),
+    size: 80,
+    isPenalty: true,
   );
 }
 
