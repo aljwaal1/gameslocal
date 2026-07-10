@@ -34,12 +34,19 @@ class CheckersMatchStatus {
 
   String get piecesText => 'الأحجار: الأحمر $redPieces • الأسود $blackPieces';
 
+  String get piecesAdvantageText {
+    final difference = (redPieces - blackPieces).abs();
+    if (difference == 0) return 'تعادل في عدد الأحجار';
+    final leader = redPieces > blackPieces ? 'الأحمر' : 'الأسود';
+    return 'أفضلية $leader بفارق $difference';
+  }
+
   String get resultText {
     if (!isFinished) return '';
     final result = reason == null || reason!.isEmpty
         ? winnerText
         : '$winnerText — $reason';
-    return '$result • $piecesText';
+    return '$result • $piecesText • $piecesAdvantageText';
   }
 }
 
