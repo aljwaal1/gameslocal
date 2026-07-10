@@ -23,6 +23,8 @@ class BattleArenaScreen extends StatefulWidget {
 
 class _BattleArenaScreenState extends State<BattleArenaScreen> {
   static const double baseStep = 0.13;
+  static const int skillCooldownSeconds = 8;
+
   final math.Random random = math.Random();
   Timer? matchTimer;
   Timer? botTimer;
@@ -34,6 +36,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   late int playerHealth;
   int botHealth = 100;
   int secondsLeft = 60;
+  int skillCooldown = 0;
   bool finished = false;
 
   int get playerMaxHealth => widget.characterName == 'صخر' ? 125 : 100;
@@ -51,11 +54,19 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   double get attackRange => widget.characterName == 'موج' ? 0.48 : 0.42;
 
   String get abilityText => switch (widget.characterName) {
-        'برق' => 'سرعة حركة أعلى',
-        'صخر' => 'صحة ودفاع أعلى',
-        'لهب' => 'ضرر هجومي أعلى',
-        'موج' => 'مدى ضربة أبعد',
-        _ => 'قدرات متوازنة',
+        'برق' => 'اندفاع سريع نحو الروبوت',
+        'صخر' => 'استعادة 20 نقطة صحة',
+        'لهب' => 'ضربة لهب بقوة 36',
+        'موج' => 'موجة بعيدة بقوة 26',
+        _ => 'ضربة مركزة بقوة 24',
+      };
+
+  IconData get abilityIcon => switch (widget.characterName) {
+        'برق' => Icons.bolt,
+        'صخر' => Icons.shield,
+        'لهب' => Icons.local_fire_department,
+        'موج' => Icons.waves,
+        _ => Icons.auto_awesome,
       };
 
   Duration get botDelay => switch (widget.botLevel) {
@@ -67,6 +78,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   double get distance => math.sqrt(
         math.pow(playerX - botX, 2) + math.pow(playerY - botY, 2),
       );
+
+  bool get canUseSkill => !finished && skillCooldown == 0;
 
   @override
   void initState() {
@@ -91,6 +104,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     if (!mounted || finished) return;
     setState(() {
       secondsLeft--;
+      if (skillCooldown > 0) skillCooldown--;
       if (secondsLeft <= 0) finish();
     });
   }
@@ -132,15 +146,48 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     if (finished) return;
     setState(() {
       if (distance >= attackRange) return;
-      botHealth = math.max(0, botHealth - playerDamage).toInt();
-      botX = (botX + (botX >= playerX ? 0.20 : -0.20))
-          .clamp(-0.88, 0.88)
-          .toDouble();
-      botY = (botY + (botY >= playerY ? 0.20 : -0.20))
-          .clamp(-0.82, 0.82)
-          .toDouble();
-      if (botHealth == 0) finish();
+      damageBot(playerDamage, knockback: 0.20);
     });
+  }
+
+  void useSkill() {
+    if (!canUseSkill) return;
+    setState(() {
+      switch (widget.characterName) {
+        case 'برق':
+          final dx = botX - playerX;
+          final dy = botY - playerY;
+          final length = math.max(0.001, math.sqrt(dx * dx + dy * dy));
+          playerX = (playerX + (dx / length) * 0.38).clamp(-0.88, 0.88).toDouble();
+          playerY = (playerY + (dy / length) * 0.38).clamp(-0.82, 0.82).toDouble();
+          if (distance < 0.46) damageBot(22, knockback: 0.12);
+          break;
+        case 'صخر':
+          playerHealth = math.min(playerMaxHealth, playerHealth + 20).toInt();
+          break;
+        case 'لهب':
+          if (distance < 0.46) damageBot(36, knockback: 0.26);
+          break;
+        case 'موج':
+          if (distance < 0.72) damageBot(26, knockback: 0.34);
+          break;
+        default:
+          if (distance < 0.46) damageBot(24, knockback: 0.20);
+          break;
+      }
+      skillCooldown = skillCooldownSeconds;
+    });
+  }
+
+  void damageBot(int damage, {required double knockback}) {
+    botHealth = math.max(0, botHealth - damage).toInt();
+    botX = (botX + (botX >= playerX ? knockback : -knockback))
+        .clamp(-0.88, 0.88)
+        .toDouble();
+    botY = (botY + (botY >= playerY ? knockback : -knockback))
+        .clamp(-0.82, 0.82)
+        .toDouble();
+    if (botHealth == 0) finish();
   }
 
   void finish() {
@@ -160,6 +207,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       playerHealth = playerMaxHealth;
       botHealth = 100;
       secondsLeft = 60;
+      skillCooldown = 0;
       finished = false;
     });
     startTimers();
@@ -217,8 +265,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Chip(
-                avatar: const Icon(Icons.auto_awesome, size: 18),
-                label: Text('ميزة ${widget.characterName}: $abilityText'),
+                avatar: Icon(abilityIcon, size: 18),
+                label: Text('مهارة ${widget.characterName}: $abilityText'),
               ),
             ),
             Expanded(
@@ -264,9 +312,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    Text(
-                                      'النمط: ${widget.mode} • ${widget.players} لاعبين',
-                                    ),
+                                    Text('النمط: ${widget.mode} • ${widget.players} لاعبين'),
                                     const SizedBox(height: 14),
                                     FilledButton.icon(
                                       onPressed: restart,
@@ -291,13 +337,29 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                 children: [
                   _MovementPad(onMove: move, step: playerStep),
                   const Spacer(),
-                  FilledButton.tonalIcon(
-                    onPressed: attack,
-                    icon: const Icon(Icons.flash_on, size: 30),
-                    label: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      child: Text('ضربة $playerDamage'),
-                    ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FilledButton.tonalIcon(
+                        onPressed: canUseSkill ? useSkill : null,
+                        icon: Icon(abilityIcon, size: 26),
+                        label: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Text(
+                            skillCooldown == 0 ? 'المهارة' : 'انتظر $skillCooldown ث',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.tonalIcon(
+                        onPressed: attack,
+                        icon: const Icon(Icons.flash_on, size: 30),
+                        label: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Text('ضربة $playerDamage'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
