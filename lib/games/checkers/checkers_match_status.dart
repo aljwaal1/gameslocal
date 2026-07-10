@@ -10,6 +10,8 @@ class CheckersMatchStatus {
     this.reason,
   });
 
+  static const int startingPiecesPerSide = 12;
+
   final int redPieces;
   final int blackPieces;
   final bool redHasMove;
@@ -18,6 +20,16 @@ class CheckersMatchStatus {
   final String? reason;
 
   bool get isFinished => winner != null;
+
+  int get capturedByRed {
+    final captured = startingPiecesPerSide - blackPieces;
+    return captured < 0 ? 0 : captured;
+  }
+
+  int get capturedByBlack {
+    final captured = startingPiecesPerSide - redPieces;
+    return captured < 0 ? 0 : captured;
+  }
 
   String get winnerText {
     switch (winner) {
@@ -34,6 +46,8 @@ class CheckersMatchStatus {
 
   String get piecesText => 'الأحجار: الأحمر $redPieces • الأسود $blackPieces';
 
+  String get capturedText => 'الأسر: الأحمر $capturedByRed • الأسود $capturedByBlack';
+
   String get piecesAdvantageText {
     final difference = (redPieces - blackPieces).abs();
     if (difference == 0) return 'تعادل في عدد الأحجار';
@@ -46,7 +60,7 @@ class CheckersMatchStatus {
     final result = reason == null || reason!.isEmpty
         ? winnerText
         : '$winnerText — $reason';
-    return '$result • $piecesText • $piecesAdvantageText';
+    return '$result • $piecesText • $capturedText • $piecesAdvantageText';
   }
 }
 
