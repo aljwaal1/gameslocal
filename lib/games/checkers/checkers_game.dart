@@ -75,6 +75,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool redTurn = true;
   bool playVsBot = true;
   bool botThinking = false;
+  bool mustContinueCapture = false;
   String message = 'دور الأحمر';
   CheckersMatchStatus? matchStatus;
 
@@ -118,6 +119,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     selectedCol = null;
     redTurn = true;
     botThinking = false;
+    mustContinueCapture = false;
     matchStatus = null;
     message = currentTurnMessage();
     if (mounted) setState(() {});
@@ -188,6 +190,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final sc = selectedCol!;
 
     if (sr == r && sc == c) {
+      if (mustContinueCapture) {
+        GameFeedback.error();
+        setState(() => message = 'يجب إكمال الأكل بالحجر نفسه');
+        return;
+      }
       GameFeedback.tap();
       setState(() {
         selectedRow = null;
@@ -199,6 +206,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     if (board[r][c] != Piece.empty) {
       if (isCurrentPlayerPiece(board[r][c])) {
+        if (mustContinueCapture) {
+          GameFeedback.error();
+          setState(() => message = 'يجب إكمال الأكل بالحجر نفسه');
+          return;
+        }
         GameFeedback.tap();
         setState(() {
           selectedRow = r;
@@ -208,7 +220,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       return;
     }
 
-    final move = buildMoveIfValid(sr, sc, r, c, redTurn);
+    final move = legalMoveFor(sr, sc, r, c, redTurn);
     if (move == null) {
       GameFeedback.error();
       setState(() => message = 'حركة غير صحيحة');
@@ -219,6 +231,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     applyMove(move);
     if (networkMode) {
       widget.networkCore!.sendMove(move.toJson(), senderId: _localPlayerId());
+    }
+    if (continueCaptureIfAvailable(move)) {
+      setState(() {});
+      return;
     }
     finishTurn();
   }
@@ -256,6 +272,33 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     }
   }
 
+  CheckersMove? legalMoveFor(int sr, int sc, int r, int c, bool forRed) {
+    for (final move in allLegalMoves(forRed: forRed)) {
+      if (move.fromRow == sr && move.fromCol == sc && move.toRow == r && move.toCol == c) {
+        return move;
+      }
+    }
+    return null;
+  }
+
+  List<CheckersMove> captureMovesFrom(int row, int col, bool forRed) {
+    return allLegalMoves(forRed: forRed)
+        .where((move) => move.isCapture && move.fromRow == row && move.fromCol == col)
+        .toList();
+  }
+
+  bool continueCaptureIfAvailable(CheckersMove move) {
+    if (!move.isCapture) return false;
+    final captures = captureMovesFrom(move.toRow, move.toCol, redTurn);
+    if (captures.isEmpty) return false;
+
+    selectedRow = move.toRow;
+    selectedCol = move.toCol;
+    mustContinueCapture = true;
+    message = 'أكمل الأكل بالحجر نفسه';
+    return true;
+  }
+
   bool updateMatchStatus() {
     final status = CheckersMatchEvaluator.evaluate(
       redPieces: redPieceCount,
@@ -269,12 +312,14 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     selectedRow = null;
     selectedCol = null;
     botThinking = false;
+    mustContinueCapture = false;
     message = status.resultText;
     GameFeedback.win();
     return true;
   }
 
   void finishTurn() {
+    mustContinueCapture = false;
     if (updateMatchStatus()) {
       setState(() {});
       return;
@@ -307,18 +352,30 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     await Future<void>.delayed(const Duration(milliseconds: 550));
     if (!mounted) return;
 
-    final move = chooseBotMove();
+    var move = chooseBotMove();
     if (move == null) {
       updateMatchStatus();
       setState(() {});
       return;
     }
 
-    GameFeedback.move();
-    applyMove(move);
-    if (updateMatchStatus()) {
-      setState(() {});
-      return;
+    while (move != null) {
+      GameFeedback.move();
+      applyMove(move);
+      if (updateMatchStatus()) {
+        setState(() {});
+        return;
+      }
+
+      final nextCaptures = move.isCapture
+          ? captureMovesFrom(move.toRow, move.toCol, false)
+          : const <CheckersMove>[];
+      if (nextCaptures.isEmpty) break;
+
+      setState(() => message = 'الكمبيوتر يكمل الأكل...');
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+      move = nextCaptures[random.nextInt(nextCaptures.length)];
     }
     redTurn = true;
     botThinking = false;
@@ -384,7 +441,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         }
       }
     }
-    return moves;
+    final captures = moves.where((move) => move.isCapture).toList();
+    return captures.isNotEmpty ? captures : moves;
   }
 
   bool inside(int r, int c) => r >= 0 && r < 8 && c >= 0 && c < 8;
@@ -406,11 +464,16 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     try {
       final move = CheckersMove.fromJson(networkMessage.payload);
-      final validMove = buildMoveIfValid(move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
+      final validMove = legalMoveFor(move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
       if (validMove == null) return;
 
       GameFeedback.move();
       applyMove(validMove);
+      if (continueCaptureIfAvailable(validMove)) {
+        message = 'اللاعب الآخر يكمل الأكل...';
+        setState(() {});
+        return;
+      }
       finishTurn();
     } catch (_) {
       setState(() => message = 'وصلت حركة غير صالحة من اللاعب الآخر');
