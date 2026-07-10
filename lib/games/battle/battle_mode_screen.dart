@@ -20,14 +20,21 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
   int character = 0;
 
   static const characters = [
-    ('برق', Icons.bolt, 'سريع'),
-    ('صخر', Icons.shield, 'دفاعي'),
-    ('لهب', Icons.local_fire_department, 'قوي'),
-    ('موج', Icons.water_drop, 'متوازن'),
+    ('برق', Icons.bolt, 'سريع', 'حركة أسرع داخل الساحة'),
+    ('صخر', Icons.shield, 'دفاعي', 'صحة أعلى وضرر أقل من الروبوت'),
+    ('لهب', Icons.local_fire_department, 'قوي', 'ضرر أكبر في كل ضربة'),
+    ('موج', Icons.water_drop, 'متوازن', 'مدى هجوم أبعد'),
   ];
 
   String get selectedCharacterName => characters[character].$1;
   String get selectedCharacterStyle => characters[character].$3;
+  String get selectedCharacterAbility => characters[character].$4;
+
+  String get botLevelDescription => switch (botLevel) {
+        'سهل' => 'الروبوت أبطأ وأقل اندفاعًا نحو اللاعب.',
+        'صعب' => 'الروبوت أسرع وأكثر مطاردة للاعب.',
+        _ => 'سرعة ومطاردة متوازنتان للتدريب.',
+      };
 
   void _openArena() {
     Navigator.push(
@@ -139,20 +146,31 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
             const SizedBox(height: 10),
             _OptionCard(
               title: 'مستوى الروبوت',
-              child: DropdownButtonFormField<String>(
-                value: botLevel,
-                items: const [
-                  DropdownMenuItem(value: 'سهل', child: Text('سهل')),
-                  DropdownMenuItem(value: 'متوسط', child: Text('متوسط')),
-                  DropdownMenuItem(value: 'صعب', child: Text('صعب')),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: botLevel,
+                    items: const [
+                      DropdownMenuItem(value: 'سهل', child: Text('سهل')),
+                      DropdownMenuItem(value: 'متوسط', child: Text('متوسط')),
+                      DropdownMenuItem(value: 'صعب', child: Text('صعب')),
+                    ],
+                    onChanged: (value) => setState(() => botLevel = value ?? botLevel),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    botLevelDescription,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
-                onChanged: (value) => setState(() => botLevel = value ?? botLevel),
               ),
             ),
             const SizedBox(height: 12),
             _MatchPreviewCard(
               characterName: selectedCharacterName,
               characterStyle: selectedCharacterStyle,
+              characterAbility: selectedCharacterAbility,
               botLevel: botLevel,
             ),
             const SizedBox(height: 18),
@@ -214,11 +232,13 @@ class _MatchPreviewCard extends StatelessWidget {
   const _MatchPreviewCard({
     required this.characterName,
     required this.characterStyle,
+    required this.characterAbility,
     required this.botLevel,
   });
 
   final String characterName;
   final String characterStyle;
+  final String characterAbility;
   final String botLevel;
 
   @override
@@ -247,6 +267,8 @@ class _MatchPreviewCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text('الشخصية: $characterName • الأسلوب: $characterStyle'),
+          const SizedBox(height: 4),
+          Text('الميزة: $characterAbility'),
           const SizedBox(height: 4),
           Text('النمط: فردي 1 ضد 1 • الروبوت: $botLevel'),
         ],
