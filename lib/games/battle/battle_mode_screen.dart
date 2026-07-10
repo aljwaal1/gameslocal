@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'battle_arena_screen.dart';
+
 class BattleModeScreen extends StatefulWidget {
   const BattleModeScreen({super.key});
 
@@ -20,6 +22,38 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
     ('موج', Icons.water_drop, 'متوازن'),
   ];
 
+  void _setPlayers(int value) {
+    setState(() {
+      players = value;
+      if (mode == 'فرق' && players != 4) mode = 'فردي';
+    });
+  }
+
+  void _setMode(String value) {
+    setState(() {
+      mode = value;
+      if (mode == 'فرق') players = 4;
+    });
+  }
+
+  void _startMatch() {
+    final selectedCharacter = characters[character].$1;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: BattleArenaScreen(
+            characterName: selectedCharacter,
+            players: players,
+            mode: mode,
+            botLevel: botLevel,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -29,11 +63,11 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             const Text(
-              'إعداد مباراة تجريبية',
+              'إعداد المباراة',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            const Text('اختر الشخصية وعدد اللاعبين قبل دخول الساحة الأولى.'),
+            const Text('اختر الشخصية وعدد اللاعبين ثم ادخل الساحة الأولى القابلة للعب.'),
             const SizedBox(height: 18),
             const Text('الشخصية', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
@@ -98,7 +132,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
                   ButtonSegment(value: 4, label: Text('4')),
                 ],
                 selected: {players},
-                onSelectionChanged: (value) => setState(() => players = value.first),
+                onSelectionChanged: (value) => _setPlayers(value.first),
               ),
             ),
             const SizedBox(height: 10),
@@ -110,7 +144,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
                   ButtonSegment(value: 'فرق', label: Text('فرق 2 ضد 2')),
                 ],
                 selected: {mode},
-                onSelectionChanged: (value) => setState(() => mode = value.first),
+                onSelectionChanged: (value) => _setMode(value.first),
               ),
             ),
             const SizedBox(height: 10),
@@ -128,19 +162,11 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
             ),
             const SizedBox(height: 18),
             FilledButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'تم تجهيز: ${characters[character].$1} • $players لاعبين • $mode • روبوت $botLevel',
-                    ),
-                  ),
-                );
-              },
+              onPressed: _startMatch,
               icon: const Icon(Icons.play_arrow),
               label: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
-                child: Text('تجهيز المباراة'),
+                child: Text('ابدأ المباراة'),
               ),
             ),
           ],
