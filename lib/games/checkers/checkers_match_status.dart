@@ -1,4 +1,4 @@
-enum CheckersWinner { red, black }
+enum CheckersWinner { red, black, draw }
 
 class CheckersMatchStatus {
   const CheckersMatchStatus({
@@ -25,6 +25,8 @@ class CheckersMatchStatus {
         return 'فاز الأحمر';
       case CheckersWinner.black:
         return 'فاز الأسود';
+      case CheckersWinner.draw:
+        return 'تعادل';
       case null:
         return '';
     }
@@ -46,6 +48,17 @@ class CheckersMatchEvaluator {
     required bool redHasMove,
     required bool blackHasMove,
   }) {
+    if (redPieces <= 0 && blackPieces <= 0) {
+      return const CheckersMatchStatus(
+        redPieces: 0,
+        blackPieces: 0,
+        redHasMove: false,
+        blackHasMove: false,
+        winner: CheckersWinner.draw,
+        reason: 'انتهت أحجار الطرفين',
+      );
+    }
+
     if (redPieces <= 0) {
       return CheckersMatchStatus(
         redPieces: 0,
@@ -65,6 +78,17 @@ class CheckersMatchEvaluator {
         blackHasMove: false,
         winner: CheckersWinner.red,
         reason: 'انتهت أحجار الأسود',
+      );
+    }
+
+    if (!redHasMove && !blackHasMove) {
+      return CheckersMatchStatus(
+        redPieces: redPieces,
+        blackPieces: blackPieces,
+        redHasMove: false,
+        blackHasMove: false,
+        winner: CheckersWinner.draw,
+        reason: 'لا توجد حركة للطرفين',
       );
     }
 
