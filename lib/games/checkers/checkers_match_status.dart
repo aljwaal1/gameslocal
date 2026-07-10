@@ -56,6 +56,19 @@ class CheckersMatchStatus {
 
   String get capturedText => 'الأسر: الأحمر $capturedByRed • الأسود $capturedByBlack';
 
+  String get winnerCaptureText {
+    switch (winner) {
+      case CheckersWinner.red:
+        return 'أسر الفائز $capturedByRed حجرًا';
+      case CheckersWinner.black:
+        return 'أسر الفائز $capturedByBlack حجرًا';
+      case CheckersWinner.draw:
+        return 'إجمالي الأسر ${capturedByRed + capturedByBlack} حجرًا';
+      case null:
+        return '';
+    }
+  }
+
   String get piecesAdvantageText {
     final difference = (normalizedRedPieces - normalizedBlackPieces).abs();
     if (difference == 0) return 'تعادل في عدد الأحجار';
@@ -69,7 +82,7 @@ class CheckersMatchStatus {
     final result = reason == null || reason!.isEmpty
         ? winnerText
         : '$winnerText — $reason';
-    return '$result • $piecesText • $capturedText • $piecesAdvantageText';
+    return '$result • $piecesText • $capturedText • $winnerCaptureText • $piecesAdvantageText';
   }
 }
 
