@@ -11,5 +11,8 @@ dependencies:
     sdk: flutter
   shared_preferences: ^2.2.3
 
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
 flutter:
   uses-material-design: true
