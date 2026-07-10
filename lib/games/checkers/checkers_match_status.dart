@@ -52,18 +52,18 @@ class CheckersMatchStatus {
   }
 
   String get piecesText =>
-      'الأحجار: الأحمر $normalizedRedPieces • الأسود $normalizedBlackPieces';
+      'الأحجار المتبقية: الأحمر $normalizedRedPieces • الأسود $normalizedBlackPieces';
 
   String get capturedText => 'الأسر: الأحمر $capturedByRed • الأسود $capturedByBlack';
 
   String get winnerCaptureText {
     switch (winner) {
       case CheckersWinner.red:
-        return 'أسر الفائز $capturedByRed حجرًا';
+        return 'أسر الأحمر $capturedByRed من أحجار الأسود';
       case CheckersWinner.black:
-        return 'أسر الفائز $capturedByBlack حجرًا';
+        return 'أسر الأسود $capturedByBlack من أحجار الأحمر';
       case CheckersWinner.draw:
-        return 'إجمالي الأسر ${capturedByRed + capturedByBlack} حجرًا';
+        return 'إجمالي الأسر ${capturedByRed + capturedByBlack}';
       case null:
         return '';
     }
@@ -82,7 +82,7 @@ class CheckersMatchStatus {
     final result = reason == null || reason!.isEmpty
         ? winnerText
         : '$winnerText — $reason';
-    return '$result • $piecesText • $capturedText • $winnerCaptureText • $piecesAdvantageText';
+    return '$result\n$piecesText\n$capturedText • $winnerCaptureText • $piecesAdvantageText';
   }
 }
 
