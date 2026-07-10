@@ -51,6 +51,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
           textDirection: TextDirection.rtl,
           child: BattleArenaScreen(
             characterName: selectedCharacterName,
+            characterStyle: selectedCharacterStyle,
             players: players,
             mode: mode,
             botLevel: botLevel,
