@@ -4,11 +4,12 @@ import 'core/audio_feedback.dart';
 import 'core/game_definition.dart';
 import 'core/game_room.dart';
 import 'design/app_theme.dart';
+import 'games/battle/battle_mode_screen.dart';
+import 'games/cards/cards_placeholder.dart';
 import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_placeholder.dart';
-import 'games/domino/domino_game.dart';
-import 'games/cards/cards_placeholder.dart';
 import 'games/chicken/chicken_game.dart';
+import 'games/domino/domino_game.dart';
 import 'games/xo/xo_game.dart';
 import 'lan/screens/lan_home_screen.dart';
 import 'network/wifi_lobby_screen.dart';
@@ -39,6 +40,13 @@ class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
   final List<GameDefinition> games = [
+    GameDefinition(
+      id: 'battle',
+      name: 'Battle Mode',
+      playersText: '2 إلى 4 لاعبين',
+      status: 'إعداد مباراة ضد الكمبيوتر',
+      builder: (_, __) => const BattleModeScreen(),
+    ),
     GameDefinition(
       id: 'xo',
       name: 'إكس أو',
@@ -97,14 +105,11 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 10),
               Expanded(
                 child: GridView.count(
-                  physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                   childAspectRatio: 1.20,
-                  children: [
-                    for (final game in games) _GameCard(game: game),
-                  ],
+                  children: [for (final game in games) _GameCard(game: game)],
                 ),
               ),
             ],
@@ -130,7 +135,9 @@ class _HeroCard extends StatelessWidget {
           end: Alignment.bottomLeft,
           colors: [Color(0xFF1F6F63), Color(0xFF7B2CBF)],
         ),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 6))],
+        boxShadow: const [
+          BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 6)),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -147,7 +154,10 @@ class _HeroCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('GamesLocal', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                  Text(
+                    'GamesLocal',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                   SizedBox(height: 4),
                   Text('ألعاب محلية • روبوت • شبكة محلية', style: TextStyle(fontSize: 14, color: Colors.white)),
                 ],
@@ -159,7 +169,12 @@ class _HeroCard extends StatelessWidget {
                 GameFeedback.tap();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: SettingsScreen())),
+                  MaterialPageRoute(
+                    builder: (_) => const Directionality(
+                      textDirection: TextDirection.rtl,
+                      child: SettingsScreen(),
+                    ),
+                  ),
                 );
               },
               icon: const Icon(Icons.settings, color: Colors.white),
@@ -178,7 +193,14 @@ class _ModeStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _ModeChip(icon: Icons.smart_toy, text: 'روبوت', color: const Color(0xFF7B2CBF), onTap: () => GameFeedback.tap())),
+        Expanded(
+          child: _ModeChip(
+            icon: Icons.smart_toy,
+            text: 'روبوت',
+            color: const Color(0xFF7B2CBF),
+            onTap: () => GameFeedback.tap(),
+          ),
+        ),
         const SizedBox(width: 8),
         Expanded(
           child: _ModeChip(
@@ -190,7 +212,10 @@ class _ModeStrip extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: LanHomeScreen()),
+                  builder: (_) => const Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: LanHomeScreen(),
+                  ),
                 ),
               );
             },
@@ -207,7 +232,10 @@ class _ModeStrip extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const Directionality(textDirection: TextDirection.rtl, child: WifiLobbyScreen()),
+                  builder: (_) => const Directionality(
+                    textDirection: TextDirection.rtl,
+                    child: WifiLobbyScreen(),
+                  ),
                 ),
               );
             },
@@ -220,6 +248,7 @@ class _ModeStrip extends StatelessWidget {
 
 class _ModeChip extends StatelessWidget {
   const _ModeChip({required this.icon, required this.text, required this.color, required this.onTap});
+
   final IconData icon;
   final String text;
   final Color color;
@@ -243,7 +272,13 @@ class _ModeChip extends StatelessWidget {
           children: [
             Icon(icon, size: 19, color: color),
             const SizedBox(width: 5),
-            Flexible(child: Text(text, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w800, color: color))),
+            Flexible(
+              child: Text(
+                text,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontWeight: FontWeight.w800, color: color),
+              ),
+            ),
           ],
         ),
       ),
@@ -253,10 +288,13 @@ class _ModeChip extends StatelessWidget {
 
 class _GameCard extends StatelessWidget {
   const _GameCard({required this.game});
+
   final GameDefinition game;
 
   IconData get icon {
     switch (game.id) {
+      case 'battle':
+        return Icons.sports_martial_arts;
       case 'xo':
         return Icons.close;
       case 'checkers':
@@ -274,6 +312,8 @@ class _GameCard extends StatelessWidget {
 
   Color get color {
     switch (game.id) {
+      case 'battle':
+        return const Color(0xFFD62828);
       case 'xo':
         return const Color(0xFFE63946);
       case 'checkers':
@@ -310,7 +350,9 @@ class _GameCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
-          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 5))],
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 5)),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,9 +367,19 @@ class _GameCard extends StatelessWidget {
               child: Icon(icon, color: Colors.white, size: 28),
             ),
             const Spacer(),
-            Text(game.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.ink)),
+            Text(
+              game.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.ink),
+            ),
             const SizedBox(height: 3),
-            Text(game.playersText, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+            Text(
+              game.playersText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
           ],
         ),
       ),
