@@ -28,6 +28,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   final math.Random random = math.Random();
   Timer? matchTimer;
   Timer? botTimer;
+  Timer? effectTimer;
 
   double playerX = -0.55;
   double playerY = 0.45;
@@ -38,8 +39,10 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   int secondsLeft = 60;
   int skillCooldown = 0;
   bool finished = false;
-  String? skillMessage;
   bool skillSucceeded = false;
+  bool playerEffect = false;
+  bool botEffect = false;
+  String? skillMessage;
 
   int get playerMaxHealth => widget.characterName == 'صخر' ? 125 : 100;
 
@@ -97,6 +100,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void dispose() {
     matchTimer?.cancel();
     botTimer?.cancel();
+    effectTimer?.cancel();
     super.dispose();
   }
 
@@ -157,7 +161,21 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       skillSucceeded = succeeded;
       if (succeeded) {
         skillCooldown = skillCooldownSeconds;
+        _showSkillEffect(onPlayer: widget.characterName == 'صخر');
       }
+    });
+  }
+
+  void _showSkillEffect({required bool onPlayer}) {
+    effectTimer?.cancel();
+    playerEffect = onPlayer;
+    botEffect = !onPlayer;
+    effectTimer = Timer(const Duration(milliseconds: 550), () {
+      if (!mounted) return;
+      setState(() {
+        playerEffect = false;
+        botEffect = false;
+      });
     });
   }
 
@@ -167,13 +185,15 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
         final dx = botX - playerX;
         final dy = botY - playerY;
         final length = math.max(0.001, math.sqrt(dx * dx + dy * dy));
-        playerX = (playerX + (dx / length) * 0.38).clamp(-0.88, 0.88).toDouble();
-        playerY = (playerY + (dy / length) * 0.38).clamp(-0.82, 0.82).toDouble();
+        playerX =
+            (playerX + (dx / length) * 0.38).clamp(-0.88, 0.88).toDouble();
+        playerY =
+            (playerY + (dy / length) * 0.38).clamp(-0.82, 0.82).toDouble();
         if (distance < 0.46) {
           damageBot(22, knockback: 0.12);
           skillMessage = 'نجح اندفاع برق وأصاب الروبوت.';
         } else {
-          skillMessage = 'اندفع برق للأمام، اقترب أكثر لإصابة الروبوت.';
+          skillMessage = 'اندفع برق للأمام واقترب من الروبوت.';
         }
         return true;
       case 'صخر':
@@ -232,6 +252,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void restart() {
     matchTimer?.cancel();
     botTimer?.cancel();
+    effectTimer?.cancel();
     setState(() {
       playerX = -0.55;
       playerY = 0.45;
@@ -243,6 +264,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       skillCooldown = 0;
       skillMessage = null;
       skillSucceeded = false;
+      playerEffect = false;
+      botEffect = false;
       finished = false;
     });
     startTimers();
@@ -252,7 +275,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     final playerRatio = playerHealth / playerMaxHealth;
     final botRatio = botHealth / 100;
     if (playerRatio == botRatio) return 'تعادل';
-    return playerRatio > botRatio ? 'فوز ${widget.characterName}' : 'فوز الروبوت';
+    return playerRatio > botRatio
+        ? 'فوز ${widget.characterName}'
+        : 'فوز الروبوت';
   }
 
   @override
@@ -313,10 +338,13 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                       : Theme.of(context).colorScheme.errorContainer,
                   borderRadius: BorderRadius.circular(12),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     child: Row(
                       children: [
-                        Icon(skillSucceeded ? Icons.check_circle : Icons.info_outline),
+                        Icon(skillSucceeded
+                            ? Icons.check_circle
+                            : Icons.info_outline),
                         const SizedBox(width: 8),
                         Expanded(child: Text(skillMessage!)),
                       ],
@@ -335,18 +363,24 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                       const _ArenaBackground(),
                       Align(
                         alignment: Alignment(playerX, playerY),
-                        child: _Fighter(
-                          name: widget.characterName,
-                          icon: Icons.sports_martial_arts,
-                          color: Colors.blue,
+                        child: _SkillPulse(
+                          active: playerEffect,
+                          child: _Fighter(
+                            name: widget.characterName,
+                            icon: Icons.sports_martial_arts,
+                            color: Colors.blue,
+                          ),
                         ),
                       ),
                       Align(
                         alignment: Alignment(botX, botY),
-                        child: const _Fighter(
-                          name: 'روبوت',
-                          icon: Icons.smart_toy,
-                          color: Colors.red,
+                        child: _SkillPulse(
+                          active: botEffect,
+                          child: const _Fighter(
+                            name: 'روبوت',
+                            icon: Icons.smart_toy,
+                            color: Colors.red,
+                          ),
                         ),
                       ),
                       if (finished)
@@ -367,7 +401,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 8),
-                                    Text('النمط: ${widget.mode} • ${widget.players} لاعبين'),
+                                    Text(
+                                      'النمط: ${widget.mode} • ${widget.players} لاعبين',
+                                    ),
                                     const SizedBox(height: 14),
                                     FilledButton.icon(
                                       onPressed: restart,
@@ -401,7 +437,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                         label: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           child: Text(
-                            skillCooldown == 0 ? 'المهارة' : 'انتظر $skillCooldown ث',
+                            skillCooldown == 0
+                                ? 'المهارة'
+                                : 'انتظر $skillCooldown ث',
                           ),
                         ),
                       ),
@@ -421,6 +459,39 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SkillPulse extends StatelessWidget {
+  const _SkillPulse({required this.active, required this.child});
+
+  final bool active;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: active ? 1.35 : 1,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutBack,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: EdgeInsets.all(active ? 8 : 0),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: active
+              ? const [
+                  BoxShadow(
+                    color: Colors.amberAccent,
+                    blurRadius: 24,
+                    spreadRadius: 8,
+                  ),
+                ]
+              : const [],
+        ),
+        child: child,
       ),
     );
   }
@@ -470,7 +541,11 @@ class _ArenaPainter extends CustomPainter {
 }
 
 class _Fighter extends StatelessWidget {
-  const _Fighter({required this.name, required this.icon, required this.color});
+  const _Fighter({
+    required this.name,
+    required this.icon,
+    required this.color,
+  });
 
   final String name;
   final IconData icon;
@@ -489,7 +564,11 @@ class _Fighter extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: const [
-              BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 4)),
+              BoxShadow(
+                color: Colors.black38,
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
             ],
           ),
           child: Icon(icon, color: Colors.white, size: 34),
@@ -531,7 +610,10 @@ class _HealthBar extends StatelessWidget {
             Icon(icon, size: 17),
             const SizedBox(width: 5),
             Expanded(
-              child: Text('$label • $value/$maxValue', overflow: TextOverflow.ellipsis),
+              child: Text(
+                '$label • $value/$maxValue',
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
