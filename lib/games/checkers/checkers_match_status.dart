@@ -10,7 +10,7 @@ class CheckersMatchStatus {
     this.reason,
   });
 
-  static const int startingPiecesPerSide = 12;
+  static const int startingPiecesPerSide = 16;
 
   final int redPieces;
   final int blackPieces;
