@@ -47,6 +47,29 @@ class ChickenAchievements {
     return (prefs.getStringList(_storageKey) ?? const <String>[]).toSet();
   }
 
+  /// Returns every achievement with its current locked/unlocked state.
+  static Future<List<ChickenAchievementStatus>> loadStatuses() async {
+    final unlocked = await loadUnlocked();
+    return all
+        .map(
+          (achievement) => ChickenAchievementStatus(
+            achievement: achievement,
+            isUnlocked: unlocked.contains(achievement.id),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  /// Compact progress information for the result panel and achievements page.
+  static Future<ChickenAchievementProgress> loadProgress() async {
+    final unlocked = await loadUnlocked();
+    final unlockedCount = all.where((item) => unlocked.contains(item.id)).length;
+    return ChickenAchievementProgress(
+      unlockedCount: unlockedCount,
+      totalCount: all.length,
+    );
+  }
+
   /// Evaluates the completed round, persists newly unlocked achievements, and
   /// returns only the achievements unlocked by this round.
   static Future<List<ChickenAchievement>> evaluateRound({
@@ -98,4 +121,30 @@ class ChickenAchievement {
   final String title;
   final String description;
   final String emoji;
+}
+
+class ChickenAchievementStatus {
+  const ChickenAchievementStatus({
+    required this.achievement,
+    required this.isUnlocked,
+  });
+
+  final ChickenAchievement achievement;
+  final bool isUnlocked;
+}
+
+class ChickenAchievementProgress {
+  const ChickenAchievementProgress({
+    required this.unlockedCount,
+    required this.totalCount,
+  });
+
+  final int unlockedCount;
+  final int totalCount;
+
+  double get ratio => totalCount == 0 ? 0 : unlockedCount / totalCount;
+
+  int get percentage => (ratio * 100).round();
+
+  String get label => '$unlockedCount من $totalCount';
 }
