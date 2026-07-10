@@ -31,6 +31,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   int attempts = 0;
   int combo = 0;
   int bestCombo = 0;
+  int starSeconds = 0;
   bool isPlaying = false;
   bool isFinished = false;
   bool showFeathers = false;
@@ -57,6 +58,8 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     if (attempts == 0) return 0;
     return ((hits / attempts) * 100).round();
   }
+
+  int get starMultiplier => starSeconds > 0 ? 2 : 1;
 
   int get comboMultiplier {
     if (combo >= 6) return 3;
@@ -103,6 +106,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       attempts = 0;
       combo = 0;
       bestCombo = 0;
+      starSeconds = 0;
       showFeathers = false;
       isPlaying = true;
       isFinished = false;
@@ -115,6 +119,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       setState(() {
         remainingSeconds--;
         elapsedSeconds++;
+        if (starSeconds > 0) starSeconds--;
         if (remainingSeconds <= 0) {
           _finishGame(timer);
         }
@@ -145,11 +150,17 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       _collectTimeBonus();
       return;
     }
+    if (currentChicken.scoreBoost > 1) {
+      _collectStarBonus();
+      return;
+    }
 
     final bool isWrongChicken = currentChicken.isPenalty;
     final int multiplier = comboMultiplier;
     final int urgentBonus = remainingSeconds <= 10 ? 5 : 0;
-    final int earned = isWrongChicken ? currentChicken.points : (currentChicken.points + urgentBonus) * multiplier;
+    final int earned = isWrongChicken
+        ? currentChicken.points
+        : (currentChicken.points + urgentBonus) * multiplier * starMultiplier;
 
     _effectTimer?.cancel();
     setState(() {
@@ -199,6 +210,22 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     });
   }
 
+  void _collectStarBonus() {
+    _effectTimer?.cancel();
+    setState(() {
+      starSeconds = 5;
+      showFeathers = true;
+      chickenIndex = _nextChickenIndex();
+      currentChicken = _randomChicken();
+    });
+    GameFeedback.win();
+
+    _effectTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() => showFeathers = false);
+    });
+  }
+
   void _missTap() {
     if (!isPlaying) return;
     setState(() {
@@ -223,6 +250,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     if (level >= 3 && roll < 12) return _ChickenKind.red;
     if (roll >= 94) return _ChickenKind.gold;
     if (level >= 2 && roll >= 88) return _ChickenKind.clock;
+    if (level >= 3 && roll >= 84) return _ChickenKind.star;
     if (level >= 4 && roll >= 74) return _ChickenKind.black;
     if (level >= 2 && roll >= 48) return _ChickenKind.brown;
     return _ChickenKind.white;
@@ -241,6 +269,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       attempts = 0;
       combo = 0;
       bestCombo = 0;
+      starSeconds = 0;
       showFeathers = false;
       isPlaying = false;
       isFinished = false;
@@ -252,6 +281,8 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     if (!isPlaying) return 'اضغط على الدجاجة أو زر البدء لبدء الجولة';
     if (currentChicken.isPenalty) return 'انتبه! الدجاجة الحمراء تخصم نقاطًا — تجنبها';
     if (currentChicken.timeBonus > 0) return 'مكافأة وقت! اضغط الساعة لتحصل على 5 ثوانٍ';
+    if (currentChicken.scoreBoost > 1) return 'نجمة نادرة! اضغطها لتضاعف النقاط 5 ثوانٍ';
+    if (starSeconds > 0) return 'النجمة فعالة: النقاط ×2 لمدة $starSeconds ث';
     if (remainingSeconds <= 10) return 'الوقت قليل! كل إصابة تعطي نقاطًا إضافية';
     if (combo >= 6) return 'كومبو قوي ×3 — استمر بسرعة';
     if (combo >= 3) return 'كومبو ×2 — لا تضغط خارج الدجاجة';
@@ -260,6 +291,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
 
   String get _targetLabel {
     if (currentChicken.timeBonus > 0) return '+${currentChicken.timeBonus}ث';
+    if (currentChicken.scoreBoost > 1) return '×${currentChicken.scoreBoost}';
     return '${currentChicken.points > 0 ? '+' : ''}${currentChicken.points}';
   }
 
@@ -446,6 +478,7 @@ class _ChickenKind {
     required this.size,
     this.isPenalty = false,
     this.timeBonus = 0,
+    this.scoreBoost = 1,
   });
 
   final String name;
@@ -456,6 +489,7 @@ class _ChickenKind {
   final double size;
   final bool isPenalty;
   final int timeBonus;
+  final int scoreBoost;
 
   static const white = _ChickenKind(
     name: 'أبيض',
@@ -491,6 +525,16 @@ class _ChickenKind {
     color: Color(0xFFFFB703),
     softColor: Color(0xFFFFF0A3),
     size: 72,
+  );
+
+  static const star = _ChickenKind(
+    name: 'نجمة المضاعفة',
+    emoji: '⭐',
+    points: 0,
+    color: Color(0xFF7B2CBF),
+    softColor: Color(0xFFF0DFFF),
+    size: 70,
+    scoreBoost: 2,
   );
 
   static const clock = _ChickenKind(
