@@ -21,15 +21,16 @@ class CheckersMatchStatus {
 
   bool get isFinished => winner != null;
 
-  int get capturedByRed {
-    final captured = startingPiecesPerSide - blackPieces;
-    return captured < 0 ? 0 : captured;
+  int _capturedPieces(int remainingPieces) {
+    final captured = startingPiecesPerSide - remainingPieces;
+    if (captured < 0) return 0;
+    if (captured > startingPiecesPerSide) return startingPiecesPerSide;
+    return captured;
   }
 
-  int get capturedByBlack {
-    final captured = startingPiecesPerSide - redPieces;
-    return captured < 0 ? 0 : captured;
-  }
+  int get capturedByRed => _capturedPieces(blackPieces);
+
+  int get capturedByBlack => _capturedPieces(redPieces);
 
   String get winnerText {
     switch (winner) {
