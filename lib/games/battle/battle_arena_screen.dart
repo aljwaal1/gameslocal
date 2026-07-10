@@ -38,6 +38,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   int secondsLeft = 60;
   int skillCooldown = 0;
   bool finished = false;
+  String? skillMessage;
+  bool skillSucceeded = false;
 
   int get playerMaxHealth => widget.characterName == 'صخر' ? 125 : 100;
 
@@ -48,9 +50,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       };
 
   int get botDamage => widget.characterName == 'صخر' ? 4 : 6;
-
   double get playerStep => widget.characterName == 'برق' ? 0.17 : baseStep;
-
   double get attackRange => widget.characterName == 'موج' ? 0.48 : 0.42;
 
   String get abilityText => switch (widget.characterName) {
@@ -153,30 +153,63 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void useSkill() {
     if (!canUseSkill) return;
     setState(() {
-      switch (widget.characterName) {
-        case 'برق':
-          final dx = botX - playerX;
-          final dy = botY - playerY;
-          final length = math.max(0.001, math.sqrt(dx * dx + dy * dy));
-          playerX = (playerX + (dx / length) * 0.38).clamp(-0.88, 0.88).toDouble();
-          playerY = (playerY + (dy / length) * 0.38).clamp(-0.82, 0.82).toDouble();
-          if (distance < 0.46) damageBot(22, knockback: 0.12);
-          break;
-        case 'صخر':
-          playerHealth = math.min(playerMaxHealth, playerHealth + 20).toInt();
-          break;
-        case 'لهب':
-          if (distance < 0.46) damageBot(36, knockback: 0.26);
-          break;
-        case 'موج':
-          if (distance < 0.72) damageBot(26, knockback: 0.34);
-          break;
-        default:
-          if (distance < 0.46) damageBot(24, knockback: 0.20);
-          break;
+      final succeeded = _applySkill();
+      skillSucceeded = succeeded;
+      if (succeeded) {
+        skillCooldown = skillCooldownSeconds;
       }
-      skillCooldown = skillCooldownSeconds;
     });
+  }
+
+  bool _applySkill() {
+    switch (widget.characterName) {
+      case 'برق':
+        final dx = botX - playerX;
+        final dy = botY - playerY;
+        final length = math.max(0.001, math.sqrt(dx * dx + dy * dy));
+        playerX = (playerX + (dx / length) * 0.38).clamp(-0.88, 0.88).toDouble();
+        playerY = (playerY + (dy / length) * 0.38).clamp(-0.82, 0.82).toDouble();
+        if (distance < 0.46) {
+          damageBot(22, knockback: 0.12);
+          skillMessage = 'نجح اندفاع برق وأصاب الروبوت.';
+        } else {
+          skillMessage = 'اندفع برق للأمام، اقترب أكثر لإصابة الروبوت.';
+        }
+        return true;
+      case 'صخر':
+        if (playerHealth >= playerMaxHealth) {
+          skillMessage = 'الصحة ممتلئة؛ لم تُستخدم المهارة.';
+          return false;
+        }
+        final before = playerHealth;
+        playerHealth = math.min(playerMaxHealth, playerHealth + 20).toInt();
+        skillMessage = 'استعاد صخر ${playerHealth - before} نقطة صحة.';
+        return true;
+      case 'لهب':
+        if (distance >= 0.46) {
+          skillMessage = 'الروبوت بعيد عن ضربة اللهب.';
+          return false;
+        }
+        damageBot(36, knockback: 0.26);
+        skillMessage = 'أصابت ضربة اللهب الروبوت بقوة 36.';
+        return true;
+      case 'موج':
+        if (distance >= 0.72) {
+          skillMessage = 'الروبوت خارج مدى الموجة.';
+          return false;
+        }
+        damageBot(26, knockback: 0.34);
+        skillMessage = 'أصابت الموجة الروبوت ودفعته للخلف.';
+        return true;
+      default:
+        if (distance >= 0.46) {
+          skillMessage = 'اقترب أكثر لاستخدام المهارة.';
+          return false;
+        }
+        damageBot(24, knockback: 0.20);
+        skillMessage = 'نجحت الضربة المركزة.';
+        return true;
+    }
   }
 
   void damageBot(int damage, {required double knockback}) {
@@ -208,6 +241,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       botHealth = 100;
       secondsLeft = 60;
       skillCooldown = 0;
+      skillMessage = null;
+      skillSucceeded = false;
       finished = false;
     });
     startTimers();
@@ -269,6 +304,26 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                 label: Text('مهارة ${widget.characterName}: $abilityText'),
               ),
             ),
+            if (skillMessage != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Material(
+                  color: skillSucceeded
+                      ? Theme.of(context).colorScheme.primaryContainer
+                      : Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Icon(skillSucceeded ? Icons.check_circle : Icons.info_outline),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(skillMessage!)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -415,11 +470,7 @@ class _ArenaPainter extends CustomPainter {
 }
 
 class _Fighter extends StatelessWidget {
-  const _Fighter({
-    required this.name,
-    required this.icon,
-    required this.color,
-  });
+  const _Fighter({required this.name, required this.icon, required this.color});
 
   final String name;
   final IconData icon;
@@ -438,11 +489,7 @@ class _Fighter extends StatelessWidget {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
             boxShadow: const [
-              BoxShadow(
-                color: Colors.black38,
-                blurRadius: 8,
-                offset: Offset(0, 4),
-              ),
+              BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 4)),
             ],
           ),
           child: Icon(icon, color: Colors.white, size: 34),
