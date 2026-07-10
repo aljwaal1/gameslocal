@@ -96,12 +96,12 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   void resetBoard() {
     board = List.generate(8, (_) => List.filled(8, Piece.empty));
 
-    for (int r = 1; r <= 3; r++) {
+    for (int r = 1; r <= 2; r++) {
       for (int c = 0; c < 8; c++) {
         board[r][c] = Piece.black;
       }
     }
-    for (int r = 4; r <= 6; r++) {
+    for (int r = 5; r <= 6; r++) {
       for (int c = 0; c < 8; c++) {
         board[r][c] = Piece.red;
       }
@@ -487,7 +487,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
               const Padding(
                 padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
                 child: Text(
-                  'التوزيع المحلي: آخر سطر فارغ، والثلاثة أسطر التي قبله ممتلئة لكل جهة.',
+                  'التوزيع: 16 حجرًا لكل لاعب، صف خلفي فارغ وصفّان كاملان من 8 أحجار، مع صفّين فارغين بين اللاعبين.',
                   textAlign: TextAlign.center,
                 ),
               ),
