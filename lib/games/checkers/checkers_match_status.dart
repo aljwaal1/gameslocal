@@ -21,12 +21,18 @@ class CheckersMatchStatus {
 
   bool get isFinished => winner != null;
 
-  int _capturedPieces(int remainingPieces) {
-    final captured = startingPiecesPerSide - remainingPieces;
-    if (captured < 0) return 0;
-    if (captured > startingPiecesPerSide) return startingPiecesPerSide;
-    return captured;
+  int _normalizePieces(int pieces) {
+    if (pieces < 0) return 0;
+    if (pieces > startingPiecesPerSide) return startingPiecesPerSide;
+    return pieces;
   }
+
+  int get normalizedRedPieces => _normalizePieces(redPieces);
+
+  int get normalizedBlackPieces => _normalizePieces(blackPieces);
+
+  int _capturedPieces(int remainingPieces) =>
+      startingPiecesPerSide - _normalizePieces(remainingPieces);
 
   int get capturedByRed => _capturedPieces(blackPieces);
 
@@ -45,14 +51,29 @@ class CheckersMatchStatus {
     }
   }
 
-  String get piecesText => 'الأحجار: الأحمر $redPieces • الأسود $blackPieces';
+  String get piecesText =>
+      'الأحجار: الأحمر $normalizedRedPieces • الأسود $normalizedBlackPieces';
 
   String get capturedText => 'الأسر: الأحمر $capturedByRed • الأسود $capturedByBlack';
 
+  String get winnerCaptureText {
+    switch (winner) {
+      case CheckersWinner.red:
+        return 'أسر الفائز $capturedByRed حجرًا';
+      case CheckersWinner.black:
+        return 'أسر الفائز $capturedByBlack حجرًا';
+      case CheckersWinner.draw:
+        return 'إجمالي الأسر ${capturedByRed + capturedByBlack} حجرًا';
+      case null:
+        return '';
+    }
+  }
+
   String get piecesAdvantageText {
-    final difference = (redPieces - blackPieces).abs();
+    final difference = (normalizedRedPieces - normalizedBlackPieces).abs();
     if (difference == 0) return 'تعادل في عدد الأحجار';
-    final leader = redPieces > blackPieces ? 'الأحمر' : 'الأسود';
+    final leader =
+        normalizedRedPieces > normalizedBlackPieces ? 'الأحمر' : 'الأسود';
     return 'أفضلية $leader بفارق $difference';
   }
 
@@ -61,7 +82,7 @@ class CheckersMatchStatus {
     final result = reason == null || reason!.isEmpty
         ? winnerText
         : '$winnerText — $reason';
-    return '$result • $piecesText • $capturedText • $piecesAdvantageText';
+    return '$result • $piecesText • $capturedText • $winnerCaptureText • $piecesAdvantageText';
   }
 }
 
