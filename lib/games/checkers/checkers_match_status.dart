@@ -32,10 +32,14 @@ class CheckersMatchStatus {
     }
   }
 
+  String get piecesText => 'الأحجار: الأحمر $redPieces • الأسود $blackPieces';
+
   String get resultText {
     if (!isFinished) return '';
-    if (reason == null || reason!.isEmpty) return winnerText;
-    return '$winnerText — $reason';
+    final result = reason == null || reason!.isEmpty
+        ? winnerText
+        : '$winnerText — $reason';
+    return '$result • $piecesText';
   }
 }
 
