@@ -59,6 +59,7 @@ class LocalWifiTransport {
     _socketSubscription?.cancel();
     _socket = socket;
     _socketSubscription = socket
+        .map<List<int>>((data) => data)
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen(_handleLine, onDone: () {
