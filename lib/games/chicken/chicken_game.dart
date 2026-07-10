@@ -17,6 +17,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   static const int _roundSeconds = 30;
   static const int _maxRemainingSeconds = 45;
   static const String _bestScoreKey = 'chicken_best_score';
+  static const String _totalCoinsKey = 'chicken_total_coins';
 
   final Random _random = Random();
   Timer? _timer;
@@ -32,6 +33,8 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   int combo = 0;
   int bestCombo = 0;
   int starSeconds = 0;
+  int coins = 0;
+  int totalCoins = 0;
   bool isPlaying = false;
   bool isFinished = false;
   bool showFeathers = false;
@@ -85,12 +88,18 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     if (!mounted) return;
     setState(() {
       bestScore = prefs.getInt(_bestScoreKey) ?? 0;
+      totalCoins = prefs.getInt(_totalCoinsKey) ?? 0;
     });
   }
 
   Future<void> _saveBestScore(int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_bestScoreKey, value);
+  }
+
+  Future<void> _saveTotalCoins(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_totalCoinsKey, value);
   }
 
   void _startGame() {
@@ -107,6 +116,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       combo = 0;
       bestCombo = 0;
       starSeconds = 0;
+      coins = 0;
       showFeathers = false;
       isPlaying = true;
       isFinished = false;
@@ -152,6 +162,10 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     }
     if (currentChicken.scoreBoost > 1) {
       _collectStarBonus();
+      return;
+    }
+    if (currentChicken.coinValue > 0) {
+      _collectCoin();
       return;
     }
 
@@ -226,6 +240,24 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     });
   }
 
+  void _collectCoin() {
+    _effectTimer?.cancel();
+    setState(() {
+      coins += currentChicken.coinValue;
+      totalCoins += currentChicken.coinValue;
+      showFeathers = true;
+      chickenIndex = _nextChickenIndex();
+      currentChicken = _randomChicken();
+    });
+    _saveTotalCoins(totalCoins);
+    GameFeedback.move();
+
+    _effectTimer = Timer(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() => showFeathers = false);
+    });
+  }
+
   void _missTap() {
     if (!isPlaying) return;
     setState(() {
@@ -251,6 +283,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     if (roll >= 94) return _ChickenKind.gold;
     if (level >= 2 && roll >= 88) return _ChickenKind.clock;
     if (level >= 3 && roll >= 84) return _ChickenKind.star;
+    if (level >= 2 && roll >= 80) return _ChickenKind.coin;
     if (level >= 4 && roll >= 74) return _ChickenKind.black;
     if (level >= 2 && roll >= 48) return _ChickenKind.brown;
     return _ChickenKind.white;
@@ -270,6 +303,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       combo = 0;
       bestCombo = 0;
       starSeconds = 0;
+      coins = 0;
       showFeathers = false;
       isPlaying = false;
       isFinished = false;
@@ -282,6 +316,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     if (currentChicken.isPenalty) return 'انتبه! الدجاجة الحمراء تخصم نقاطًا — تجنبها';
     if (currentChicken.timeBonus > 0) return 'مكافأة وقت! اضغط الساعة لتحصل على 5 ثوانٍ';
     if (currentChicken.scoreBoost > 1) return 'نجمة نادرة! اضغطها لتضاعف النقاط 5 ثوانٍ';
+    if (currentChicken.coinValue > 0) return 'عملة نادرة! اجمعها ليبقى رصيدك محفوظًا';
     if (starSeconds > 0) return 'النجمة فعالة: النقاط ×2 لمدة $starSeconds ث';
     if (remainingSeconds <= 10) return 'الوقت قليل! كل إصابة تعطي نقاطًا إضافية';
     if (combo >= 6) return 'كومبو قوي ×3 — استمر بسرعة';
@@ -292,6 +327,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   String get _targetLabel {
     if (currentChicken.timeBonus > 0) return '+${currentChicken.timeBonus}ث';
     if (currentChicken.scoreBoost > 1) return '×${currentChicken.scoreBoost}';
+    if (currentChicken.coinValue > 0) return '+${currentChicken.coinValue}🪙';
     return '${currentChicken.points > 0 ? '+' : ''}${currentChicken.points}';
   }
 
@@ -444,7 +480,16 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
                             ),
                           ),
                         ),
-                        if (isFinished) _ResultPanel(score: score, bestScore: bestScore, hits: hits, accuracy: accuracy, bestCombo: bestCombo),
+                        if (isFinished)
+                          _ResultPanel(
+                            score: score,
+                            bestScore: bestScore,
+                            hits: hits,
+                            accuracy: accuracy,
+                            bestCombo: bestCombo,
+                            coins: coins,
+                            totalCoins: totalCoins,
+                          ),
                         Positioned(
                           left: 16,
                           right: 16,
@@ -479,6 +524,7 @@ class _ChickenKind {
     this.isPenalty = false,
     this.timeBonus = 0,
     this.scoreBoost = 1,
+    this.coinValue = 0,
   });
 
   final String name;
@@ -490,6 +536,7 @@ class _ChickenKind {
   final bool isPenalty;
   final int timeBonus;
   final int scoreBoost;
+  final int coinValue;
 
   static const white = _ChickenKind(
     name: 'أبيض',
@@ -527,6 +574,16 @@ class _ChickenKind {
     size: 72,
   );
 
+  static const coin = _ChickenKind(
+    name: 'عملة',
+    emoji: '🪙',
+    points: 0,
+    color: Color(0xFFE09F00),
+    softColor: Color(0xFFFFF1B8),
+    size: 68,
+    coinValue: 1,
+  );
+
   static const star = _ChickenKind(
     name: 'نجمة المضاعفة',
     emoji: '⭐',
@@ -559,13 +616,23 @@ class _ChickenKind {
 }
 
 class _ResultPanel extends StatelessWidget {
-  const _ResultPanel({required this.score, required this.bestScore, required this.hits, required this.accuracy, required this.bestCombo});
+  const _ResultPanel({
+    required this.score,
+    required this.bestScore,
+    required this.hits,
+    required this.accuracy,
+    required this.bestCombo,
+    required this.coins,
+    required this.totalCoins,
+  });
 
   final int score;
   final int bestScore;
   final int hits;
   final int accuracy;
   final int bestCombo;
+  final int coins;
+  final int totalCoins;
 
   @override
   Widget build(BuildContext context) {
@@ -596,6 +663,8 @@ class _ResultPanel extends StatelessWidget {
                     _MiniStat(label: 'الإصابات', value: '$hits'),
                     _MiniStat(label: 'الدقة', value: '$accuracy%'),
                     _MiniStat(label: 'أفضل كومبو', value: '$bestCombo'),
+                    _MiniStat(label: 'عملات الجولة', value: '$coins'),
+                    _MiniStat(label: 'إجمالي العملات', value: '$totalCoins'),
                   ],
                 ),
                 const SizedBox(height: 10),
