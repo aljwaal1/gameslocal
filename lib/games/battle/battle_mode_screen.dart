@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'battle_arena_screen.dart';
@@ -10,6 +12,8 @@ class BattleModeScreen extends StatefulWidget {
 }
 
 class _BattleModeScreenState extends State<BattleModeScreen> {
+  final math.Random _random = math.Random();
+
   int players = 2;
   String mode = 'فردي';
   String botLevel = 'متوسط';
@@ -39,7 +43,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
     });
   }
 
-  void _startMatch() {
+  void _openArena() {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -56,6 +60,16 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
     );
   }
 
+  void _startQuickMatch() {
+    setState(() {
+      character = _random.nextInt(characters.length);
+      players = 2;
+      mode = 'فردي';
+      botLevel = ['سهل', 'متوسط', 'صعب'][_random.nextInt(3)];
+    });
+    _openArena();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,7 +83,16 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            const Text('اختر الشخصية وعدد اللاعبين ثم ادخل الساحة الأولى القابلة للعب.'),
+            const Text('اختر الشخصية والإعدادات، أو ابدأ مباراة سريعة مباشرة.'),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: _startQuickMatch,
+              icon: const Icon(Icons.casino_outlined),
+              label: const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text('مباراة سريعة عشوائية'),
+              ),
+            ),
             const SizedBox(height: 18),
             const Text('الشخصية', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
@@ -172,7 +195,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
             ),
             const SizedBox(height: 18),
             FilledButton.icon(
-              onPressed: _startMatch,
+              onPressed: _openArena,
               icon: const Icon(Icons.play_arrow),
               label: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 14),
