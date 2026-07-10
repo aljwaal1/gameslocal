@@ -7,14 +7,12 @@ class BattleArenaScreen extends StatefulWidget {
   const BattleArenaScreen({
     super.key,
     required this.characterName,
-    required this.characterStyle,
     required this.players,
     required this.mode,
     required this.botLevel,
   });
 
   final String characterName;
-  final String characterStyle;
   final int players;
   final String mode;
   final String botLevel;
@@ -24,7 +22,7 @@ class BattleArenaScreen extends StatefulWidget {
 }
 
 class _BattleArenaScreenState extends State<BattleArenaScreen> {
-  static const double botStep = 0.13;
+  static const double baseStep = 0.13;
   final math.Random random = math.Random();
   Timer? matchTimer;
   Timer? botTimer;
@@ -38,21 +36,27 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   int secondsLeft = 60;
   bool finished = false;
 
-  double get playerStep => switch (widget.characterStyle) {
-        'سريع' => 0.17,
-        'دفاعي' => 0.11,
-        'قوي' => 0.13,
-        _ => 0.14,
+  int get playerMaxHealth => widget.characterName == 'صخر' ? 125 : 100;
+
+  int get playerDamage => switch (widget.characterName) {
+        'لهب' => 24,
+        'موج' => 20,
+        _ => 18,
       };
 
-  int get maxPlayerHealth => widget.characterStyle == 'دفاعي' ? 130 : 100;
-  int get attackDamage => switch (widget.characterStyle) {
-        'قوي' => 26,
-        'سريع' => 15,
-        'دفاعي' => 18,
-        _ => 21,
+  int get botDamage => widget.characterName == 'صخر' ? 4 : 6;
+
+  double get playerStep => widget.characterName == 'برق' ? 0.17 : baseStep;
+
+  double get attackRange => widget.characterName == 'موج' ? 0.48 : 0.42;
+
+  String get abilityText => switch (widget.characterName) {
+        'برق' => 'سرعة حركة أعلى',
+        'صخر' => 'صحة ودفاع أعلى',
+        'لهب' => 'ضرر هجومي أعلى',
+        'موج' => 'مدى ضربة أبعد',
+        _ => 'قدرات متوازنة',
       };
-  int get botDamage => widget.characterStyle == 'دفاعي' ? 4 : 6;
 
   Duration get botDelay => switch (widget.botLevel) {
         'صعب' => const Duration(milliseconds: 450),
@@ -67,7 +71,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   @override
   void initState() {
     super.initState();
-    playerHealth = maxPlayerHealth;
+    playerHealth = playerMaxHealth;
     startTimers();
   }
 
@@ -109,11 +113,11 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
 
     setState(() {
       if (random.nextDouble() < chaseChance) {
-        botX += playerX > botX ? botStep : -botStep;
-        botY += playerY > botY ? botStep : -botStep;
+        botX += playerX > botX ? baseStep : -baseStep;
+        botY += playerY > botY ? baseStep : -baseStep;
       } else {
-        botX += (random.nextBool() ? 1 : -1) * botStep;
-        botY += (random.nextBool() ? 1 : -1) * botStep;
+        botX += (random.nextBool() ? 1 : -1) * baseStep;
+        botY += (random.nextBool() ? 1 : -1) * baseStep;
       }
       botX = botX.clamp(-0.88, 0.88).toDouble();
       botY = botY.clamp(-0.82, 0.82).toDouble();
@@ -127,8 +131,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void attack() {
     if (finished) return;
     setState(() {
-      if (distance >= 0.42) return;
-      botHealth = math.max(0, botHealth - attackDamage).toInt();
+      if (distance >= attackRange) return;
+      botHealth = math.max(0, botHealth - playerDamage).toInt();
       botX = (botX + (botX >= playerX ? 0.20 : -0.20))
           .clamp(-0.88, 0.88)
           .toDouble();
@@ -153,7 +157,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       playerY = 0.45;
       botX = 0.55;
       botY = -0.35;
-      playerHealth = maxPlayerHealth;
+      playerHealth = playerMaxHealth;
       botHealth = 100;
       secondsLeft = 60;
       finished = false;
@@ -162,10 +166,10 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   }
 
   String get resultText {
-    if (playerHealth == botHealth) return 'تعادل';
-    return playerHealth > botHealth
-        ? 'فوز ${widget.characterName}'
-        : 'فوز الروبوت';
+    final playerRatio = playerHealth / playerMaxHealth;
+    final botRatio = botHealth / 100;
+    if (playerRatio == botRatio) return 'تعادل';
+    return playerRatio > botRatio ? 'فوز ${widget.characterName}' : 'فوز الروبوت';
   }
 
   @override
@@ -187,14 +191,14 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
               child: Row(
                 children: [
                   Expanded(
                     child: _HealthBar(
                       label: widget.characterName,
                       value: playerHealth,
-                      maxValue: maxPlayerHealth,
+                      maxValue: playerMaxHealth,
                       icon: Icons.person,
                     ),
                   ),
@@ -208,6 +212,13 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Chip(
+                avatar: const Icon(Icons.auto_awesome, size: 18),
+                label: Text('ميزة ${widget.characterName}: $abilityText'),
               ),
             ),
             Expanded(
@@ -283,9 +294,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                   FilledButton.tonalIcon(
                     onPressed: attack,
                     icon: const Icon(Icons.flash_on, size: 30),
-                    label: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 14),
-                      child: Text('ضربة'),
+                    label: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      child: Text('ضربة $playerDamage'),
                     ),
                   ),
                 ],
@@ -411,7 +422,7 @@ class _HealthBar extends StatelessWidget {
             Icon(icon, size: 17),
             const SizedBox(width: 5),
             Expanded(
-              child: Text('$label • $value', overflow: TextOverflow.ellipsis),
+              child: Text('$label • $value/$maxValue', overflow: TextOverflow.ellipsis),
             ),
           ],
         ),
