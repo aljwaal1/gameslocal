@@ -55,6 +55,42 @@ void main() {
       );
     });
 
+    test('rejects an invalid current character before comparing choices', () {
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: -1,
+          currentBotLevel: 'سهل',
+          characterRoll: 0,
+          levelRoll: 0,
+          characterCount: 4,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: 4,
+          currentBotLevel: 'سهل',
+          characterRoll: 0,
+          levelRoll: 0,
+          characterCount: 4,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects an unknown current bot level', () {
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: 0,
+          currentBotLevel: 'مستوى غير معروف',
+          characterRoll: 0,
+          levelRoll: 0,
+          characterCount: 4,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects negative random rolls before indexing lists', () {
       expect(
         () => buildBattleQuickMatchChoice(

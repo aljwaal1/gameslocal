@@ -24,6 +24,20 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
       'يجب أن يتوفر اختيار واحد على الأقل للشخصيات',
     );
   }
+  if (currentCharacter < 0 || currentCharacter >= characterCount) {
+    throw ArgumentError.value(
+      currentCharacter,
+      'currentCharacter',
+      'اختيار الشخصية الحالي خارج النطاق المتاح',
+    );
+  }
+  if (!battleBotLevels.contains(currentBotLevel)) {
+    throw ArgumentError.value(
+      currentBotLevel,
+      'currentBotLevel',
+      'مستوى الروبوت الحالي غير معروف',
+    );
+  }
   if (characterRoll < 0) {
     throw ArgumentError.value(
       characterRoll,
