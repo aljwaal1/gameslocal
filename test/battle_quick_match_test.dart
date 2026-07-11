@@ -29,6 +29,32 @@ void main() {
       expect(choice.botLevel, 'متوسط');
     });
 
+    test('changes the bot level when only one character is available', () {
+      final choice = buildBattleQuickMatchChoice(
+        currentCharacter: 0,
+        currentBotLevel: 'سهل',
+        characterRoll: 0,
+        levelRoll: 0,
+        characterCount: 1,
+      );
+
+      expect(choice.characterIndex, 0);
+      expect(choice.botLevel, 'متوسط');
+    });
+
+    test('wraps the fallback bot level for a single character', () {
+      final choice = buildBattleQuickMatchChoice(
+        currentCharacter: 0,
+        currentBotLevel: 'صعب',
+        characterRoll: 0,
+        levelRoll: 2,
+        characterCount: 1,
+      );
+
+      expect(choice.characterIndex, 0);
+      expect(choice.botLevel, 'سهل');
+    });
+
     test('wraps the fallback character at the end of the list', () {
       final choice = buildBattleQuickMatchChoice(
         currentCharacter: 3,
