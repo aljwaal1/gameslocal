@@ -68,12 +68,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       }
       selected = null;
       targets = <int>[];
-      if (captured?.symbol == '♔' || captured?.symbol == '♚') {
-        message = turn == ChessSide.white ? 'فاز الأبيض' : 'فاز الأسود';
+      turn = turn == ChessSide.white ? ChessSide.black : ChessSide.white;
+      final checked = _isKingInCheck(turn);
+      final hasMove = _hasAnyLegalMove(turn);
+      if (checked && !hasMove) {
+        message = turn == ChessSide.white ? 'كش مات — فاز الأسود' : 'كش مات — فاز الأبيض';
         GameFeedback.win();
+      } else if (!checked && !hasMove) {
+        message = 'تعادل — لا توجد نقلة قانونية';
+        GameFeedback.tap();
       } else {
-        turn = turn == ChessSide.white ? ChessSide.black : ChessSide.white;
-        message = turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود';
+        message = checked
+            ? (turn == ChessSide.white ? 'كش على الأبيض' : 'كش على الأسود')
+            : (turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود');
         GameFeedback.move();
       }
       setState(() {});
@@ -85,7 +92,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     }
     setState(() {
       selected = index;
-      targets = _moves(index, piece);
+      targets = _legalMoves(index, piece);
     });
   }
 
@@ -100,6 +107,54 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       message = turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود';
     });
     GameFeedback.tap();
+  }
+
+  List<int> _legalMoves(int index, ChessPiece piece) {
+    return _moves(index, piece).where((target) {
+      final captured = board[target];
+      if (captured?.symbol == '♔' || captured?.symbol == '♚') return false;
+      final original = board[index];
+      board[target] = original;
+      board[index] = null;
+      final leavesKingChecked = _isKingInCheck(piece.side);
+      board[index] = original;
+      board[target] = captured;
+      return !leavesKingChecked;
+    }).toList();
+  }
+
+  bool _hasAnyLegalMove(ChessSide side) {
+    for (var i = 0; i < board.length; i++) {
+      final piece = board[i];
+      if (piece != null && piece.side == side && _legalMoves(i, piece).isNotEmpty) return true;
+    }
+    return false;
+  }
+
+  bool _isKingInCheck(ChessSide side) {
+    final kingSymbol = side == ChessSide.white ? '♔' : '♚';
+    final king = board.indexWhere((piece) => piece?.symbol == kingSymbol);
+    if (king < 0) return true;
+    final opponent = side == ChessSide.white ? ChessSide.black : ChessSide.white;
+    return _isSquareAttacked(king, opponent);
+  }
+
+  bool _isSquareAttacked(int square, ChessSide bySide) {
+    final targetRow = square ~/ 8;
+    final targetCol = square % 8;
+    for (var i = 0; i < board.length; i++) {
+      final piece = board[i];
+      if (piece == null || piece.side != bySide) continue;
+      final row = i ~/ 8;
+      final col = i % 8;
+      if ('♙♟'.contains(piece.symbol)) {
+        final direction = bySide == ChessSide.white ? -1 : 1;
+        if (targetRow == row + direction && (targetCol - col).abs() == 1) return true;
+      } else if (_moves(i, piece).contains(square)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   List<int> _moves(int index, ChessPiece piece) {
@@ -169,7 +224,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
             ));
           },
         )))),
-        const Padding(padding: EdgeInsets.all(12), child: Text('لعب محلي للاعبين • تراجع عن النقلة • ترقية البيدق تلقائياً إلى وزير')),
+        const Padding(padding: EdgeInsets.all(12), child: Text('شطرنج قانوني: كش وكش مات وتعادل • تراجع • ترقية البيدق')),
       ])),
     );
   }
