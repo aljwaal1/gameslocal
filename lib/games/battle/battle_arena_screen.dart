@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
+import 'battle_bot_strategy.dart';
 
 class BattleArenaScreen extends StatefulWidget {
   const BattleArenaScreen({
@@ -212,23 +213,41 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
 
   void moveBot() {
     if (!mounted || finished) return;
-    final chaseChance = switch (widget.botLevel) {
-      'صعب' => 0.85,
-      'سهل' => 0.45,
-      _ => 0.65,
-    };
+    final pickupDistance = math.sqrt(
+      math.pow(botX - pickupX, 2) + math.pow(botY - pickupY, 2),
+    );
+    final goal = chooseBattleBotGoal(
+      health: botHealth,
+      pickupVisible: pickupVisible,
+      pickupDistance: pickupDistance,
+      difficulty: widget.botLevel,
+      decisionRoll: random.nextDouble(),
+    );
 
     setState(() {
-      if (random.nextDouble() < chaseChance) {
-        botX += playerX > botX ? baseStep : -baseStep;
-        botY += playerY > botY ? baseStep : -baseStep;
-      } else {
-        botX += (random.nextBool() ? 1 : -1) * baseStep;
-        botY += (random.nextBool() ? 1 : -1) * baseStep;
+      double targetX = playerX;
+      double targetY = playerY;
+      if (goal == BattleBotGoal.seekHealth) {
+        targetX = pickupX;
+        targetY = pickupY;
+      } else if (goal == BattleBotGoal.retreat) {
+        targetX = botX + (botX >= playerX ? 0.5 : -0.5);
+        targetY = botY + (botY >= playerY ? 0.5 : -0.5);
+      } else if (goal == BattleBotGoal.wander) {
+        targetX = botX + (random.nextBool() ? 0.4 : -0.4);
+        targetY = botY + (random.nextBool() ? 0.4 : -0.4);
       }
+
+      botX += targetX > botX ? baseStep : -baseStep;
+      botY += targetY > botY ? baseStep : -baseStep;
       botX = botX.clamp(-0.88, 0.88).toDouble();
       botY = botY.clamp(-0.82, 0.82).toDouble();
-      if (distance < 0.34) {
+
+      if (goal == BattleBotGoal.seekHealth && pickupDistance < 0.22 && pickupVisible) {
+        pickupVisible = false;
+        botHealth = math.min(100, botHealth + 18).toInt();
+      }
+      if (goal == BattleBotGoal.chase && distance < 0.34) {
         playerHealth = math.max(0, playerHealth - botDamage).toInt();
         if (playerHealth == 0) finish();
       }
