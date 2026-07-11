@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'domino_blocked_result.dart';
+import 'domino_starting_player.dart';
 import 'domino_turn_order.dart';
 
 class DominoFourPlayerScreen extends StatefulWidget {
@@ -33,14 +34,26 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       for (var a = 0; a <= 6; a++)
         for (var b = a; b <= 6; b++) _Tile(a, b),
     ]..shuffle(Random());
-    hands = List.generate(4, (player) => deck.sublist(player * 7, player * 7 + 7));
+    hands = List.generate(
+      4,
+      (player) => deck.sublist(player * 7, player * 7 + 7),
+    );
+    final startingPlayer = selectDominoStartingPlayer(
+      hands
+          .map(
+            (hand) => hand
+                .map((tile) => (tile.a, tile.b))
+                .toList(growable: false),
+          )
+          .toList(growable: false),
+    );
     board.clear();
     left = null;
     right = null;
-    turns.reset();
+    turns.reset(startingPlayer: startingPlayer);
     consecutivePasses = 0;
     gameFinished = false;
-    message = 'دور اللاعب 1';
+    message = 'يبدأ اللاعب ${startingPlayer + 1} لأنه يحمل أقوى قطعة';
     if (mounted) setState(() {});
   }
 
