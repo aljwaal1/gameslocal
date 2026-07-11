@@ -83,7 +83,11 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     super.initState();
     networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
     newRound(resetScore: true);
-    if (isNetworkGame && isHost) Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
+    if (isNetworkGame && isHost) {
+      Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
+    } else if (isNetworkGame) {
+      Future<void>.delayed(const Duration(milliseconds: 300), _requestRoundState);
+    }
   }
 
   @override
@@ -127,6 +131,11 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     setState(() {});
   }
 
+  void _requestRoundState() {
+    if (!isNetworkGame) return;
+    widget.networkCore!.sendMove(<String, dynamic>{'game': 'cards', 'action': 'stateRequest'}, senderId: localPlayerId);
+  }
+
   void _sendRoundStart() {
     if (!isNetworkGame || !isHost) return;
     widget.networkCore!.sendMove(<String, dynamic>{'game': 'cards', 'action': 'start', 'seed': roundSeed}, senderId: localPlayerId);
@@ -139,6 +148,10 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   void _handleNetworkMessage(NetworkMessage networkMessage) {
     if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId || networkMessage.payload['game'] != 'cards') return;
     final p = networkMessage.payload;
+    if (p['action'] == 'stateRequest') {
+      if (isHost) _sendRoundStart();
+      return;
+    }
     if (p['action'] == 'start') {
       newRound(resetScore: true, seed: (p['seed'] as num).toInt());
       return;
