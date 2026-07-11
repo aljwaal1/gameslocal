@@ -16,6 +16,19 @@ void main() {
       expect(choice.botLevel, 'صعب');
     });
 
+    test('changes the character whenever the roll repeats it', () {
+      final choice = buildBattleQuickMatchChoice(
+        currentCharacter: 1,
+        currentBotLevel: 'سهل',
+        characterRoll: 1,
+        levelRoll: 2,
+        characterCount: 4,
+      );
+
+      expect(choice.characterIndex, 2);
+      expect(choice.botLevel, 'صعب');
+    });
+
     test('changes the character when the full setup would repeat', () {
       final choice = buildBattleQuickMatchChoice(
         currentCharacter: 1,
@@ -40,6 +53,19 @@ void main() {
 
       expect(choice.characterIndex, 0);
       expect(choice.botLevel, 'متوسط');
+    });
+
+    test('keeps a different rolled level with one character', () {
+      final choice = buildBattleQuickMatchChoice(
+        currentCharacter: 0,
+        currentBotLevel: 'سهل',
+        characterRoll: 0,
+        levelRoll: 2,
+        characterCount: 1,
+      );
+
+      expect(choice.characterIndex, 0);
+      expect(choice.botLevel, 'صعب');
     });
 
     test('wraps the fallback bot level for a single character', () {
