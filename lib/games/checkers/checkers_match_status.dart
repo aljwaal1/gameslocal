@@ -114,13 +114,19 @@ class CheckersMatchStatus {
 class CheckersMatchEvaluator {
   const CheckersMatchEvaluator._();
 
+  static int _normalizePieces(int pieces) =>
+      pieces.clamp(0, CheckersMatchStatus.startingPiecesPerSide) as int;
+
   static CheckersMatchStatus evaluate({
     required int redPieces,
     required int blackPieces,
     required bool redHasMove,
     required bool blackHasMove,
   }) {
-    if (redPieces <= 0 && blackPieces <= 0) {
+    final normalizedRedPieces = _normalizePieces(redPieces);
+    final normalizedBlackPieces = _normalizePieces(blackPieces);
+
+    if (normalizedRedPieces == 0 && normalizedBlackPieces == 0) {
       return const CheckersMatchStatus(
         redPieces: 0,
         blackPieces: 0,
@@ -131,10 +137,10 @@ class CheckersMatchEvaluator {
       );
     }
 
-    if (redPieces <= 0) {
+    if (normalizedRedPieces == 0) {
       return CheckersMatchStatus(
         redPieces: 0,
-        blackPieces: blackPieces,
+        blackPieces: normalizedBlackPieces,
         redHasMove: false,
         blackHasMove: blackHasMove,
         winner: CheckersWinner.black,
@@ -142,9 +148,9 @@ class CheckersMatchEvaluator {
       );
     }
 
-    if (blackPieces <= 0) {
+    if (normalizedBlackPieces == 0) {
       return CheckersMatchStatus(
-        redPieces: redPieces,
+        redPieces: normalizedRedPieces,
         blackPieces: 0,
         redHasMove: redHasMove,
         blackHasMove: false,
@@ -154,16 +160,14 @@ class CheckersMatchEvaluator {
     }
 
     if (!redHasMove && !blackHasMove) {
-      final normalizedRedPieces = redPieces.clamp(0, CheckersMatchStatus.startingPiecesPerSide);
-      final normalizedBlackPieces = blackPieces.clamp(0, CheckersMatchStatus.startingPiecesPerSide);
       final winner = normalizedRedPieces == normalizedBlackPieces
           ? CheckersWinner.draw
           : normalizedRedPieces > normalizedBlackPieces
               ? CheckersWinner.red
               : CheckersWinner.black;
       return CheckersMatchStatus(
-        redPieces: redPieces,
-        blackPieces: blackPieces,
+        redPieces: normalizedRedPieces,
+        blackPieces: normalizedBlackPieces,
         redHasMove: false,
         blackHasMove: false,
         winner: winner,
@@ -175,8 +179,8 @@ class CheckersMatchEvaluator {
 
     if (!redHasMove) {
       return CheckersMatchStatus(
-        redPieces: redPieces,
-        blackPieces: blackPieces,
+        redPieces: normalizedRedPieces,
+        blackPieces: normalizedBlackPieces,
         redHasMove: false,
         blackHasMove: blackHasMove,
         winner: CheckersWinner.black,
@@ -186,8 +190,8 @@ class CheckersMatchEvaluator {
 
     if (!blackHasMove) {
       return CheckersMatchStatus(
-        redPieces: redPieces,
-        blackPieces: blackPieces,
+        redPieces: normalizedRedPieces,
+        blackPieces: normalizedBlackPieces,
         redHasMove: redHasMove,
         blackHasMove: false,
         winner: CheckersWinner.red,
@@ -196,8 +200,8 @@ class CheckersMatchEvaluator {
     }
 
     return CheckersMatchStatus(
-      redPieces: redPieces,
-      blackPieces: blackPieces,
+      redPieces: normalizedRedPieces,
+      blackPieces: normalizedBlackPieces,
       redHasMove: redHasMove,
       blackHasMove: blackHasMove,
     );
