@@ -3,6 +3,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
+
 class BattleArenaScreen extends StatefulWidget {
   const BattleArenaScreen({
     super.key,
@@ -10,12 +13,14 @@ class BattleArenaScreen extends StatefulWidget {
     required this.players,
     required this.mode,
     required this.botLevel,
+    this.networkCore,
   });
 
   final String characterName;
   final int players;
   final String mode;
   final String botLevel;
+  final LocalNetworkCore? networkCore;
 
   @override
   State<BattleArenaScreen> createState() => _BattleArenaScreenState();
@@ -29,6 +34,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   Timer? matchTimer;
   Timer? botTimer;
   Timer? effectTimer;
+  StreamSubscription<NetworkMessage>? networkSubscription;
 
   double playerX = -0.55;
   double playerY = 0.45;
@@ -82,18 +88,26 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
         math.pow(playerX - botX, 2) + math.pow(playerY - botY, 2),
       );
 
-  bool get canUseSkill => !finished && skillCooldown == 0;
+  bool get isNetworkGame => widget.networkCore != null;
+  bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  String get localPlayerId {
+    final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
+    final own = players.where((player) => player.isHost == isHost);
+    return own.isNotEmpty ? own.first.id : (isHost ? 'host' : 'client');
+  }
+  bool get canUseSkill => !finished && skillCooldown == 0 && (!isNetworkGame || isHost);
 
   @override
   void initState() {
     super.initState();
     playerHealth = playerMaxHealth;
+    if (isNetworkGame) networkSubscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
     startTimers();
   }
 
   void startTimers() {
     matchTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
-    botTimer = Timer.periodic(botDelay, (_) => moveBot());
+    if (!isNetworkGame) botTimer = Timer.periodic(botDelay, (_) => moveBot());
   }
 
   @override
@@ -101,7 +115,32 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     matchTimer?.cancel();
     botTimer?.cancel();
     effectTimer?.cancel();
+    networkSubscription?.cancel();
     super.dispose();
+  }
+
+  void _handleNetworkMessage(NetworkMessage message) {
+    if (!mounted || message.type != NetworkMessageType.move || message.senderId == localPlayerId || message.payload['game'] != 'battle') return;
+    final p = message.payload;
+    setState(() {
+      playerX = (p['playerX'] as num?)?.toDouble() ?? playerX;
+      playerY = (p['playerY'] as num?)?.toDouble() ?? playerY;
+      botX = (p['botX'] as num?)?.toDouble() ?? botX;
+      botY = (p['botY'] as num?)?.toDouble() ?? botY;
+      playerHealth = (p['playerHealth'] as num?)?.toInt() ?? playerHealth;
+      botHealth = (p['botHealth'] as num?)?.toInt() ?? botHealth;
+      secondsLeft = (p['secondsLeft'] as num?)?.toInt() ?? secondsLeft;
+      finished = p['finished'] == true;
+    });
+  }
+
+  void _sendState() {
+    if (!isNetworkGame) return;
+    widget.networkCore!.sendMove(<String, dynamic>{
+      'game': 'battle', 'playerX': playerX, 'playerY': playerY,
+      'botX': botX, 'botY': botY, 'playerHealth': playerHealth,
+      'botHealth': botHealth, 'secondsLeft': secondsLeft, 'finished': finished,
+    }, senderId: localPlayerId);
   }
 
   void tick() {
@@ -116,9 +155,15 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void move(double dx, double dy) {
     if (finished) return;
     setState(() {
-      playerX = (playerX + dx).clamp(-0.88, 0.88).toDouble();
-      playerY = (playerY + dy).clamp(-0.82, 0.82).toDouble();
+      if (isNetworkGame && !isHost) {
+        botX = (botX + dx).clamp(-0.88, 0.88).toDouble();
+        botY = (botY + dy).clamp(-0.82, 0.82).toDouble();
+      } else {
+        playerX = (playerX + dx).clamp(-0.88, 0.88).toDouble();
+        playerY = (playerY + dy).clamp(-0.82, 0.82).toDouble();
+      }
     });
+    _sendState();
   }
 
   void moveBot() {
@@ -150,8 +195,15 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     if (finished) return;
     setState(() {
       if (distance >= attackRange) return;
-      damageBot(playerDamage, knockback: 0.20);
+      if (isNetworkGame && !isHost) {
+        playerHealth = math.max(0, playerHealth - 18).toInt();
+        playerX = (playerX + (playerX >= botX ? 0.20 : -0.20)).clamp(-0.88, 0.88).toDouble();
+        if (playerHealth == 0) finish();
+      } else {
+        damageBot(playerDamage, knockback: 0.20);
+      }
     });
+    _sendState();
   }
 
   void useSkill() {
@@ -164,6 +216,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
         _showSkillEffect(onPlayer: widget.characterName == 'صخر');
       }
     });
+    _sendState();
   }
 
   void _showSkillEffect({required bool onPlayer}) {
@@ -277,7 +330,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     if (playerRatio == botRatio) return 'تعادل';
     return playerRatio > botRatio
         ? 'فوز ${widget.characterName}'
-        : 'فوز الروبوت';
+        : (isNetworkGame ? 'فوز اللاعب 2' : 'فوز الروبوت');
   }
 
   @override
@@ -313,7 +366,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _HealthBar(
-                      label: 'الروبوت',
+                      label: isNetworkGame ? 'اللاعب 2' : 'الروبوت',
                       value: botHealth,
                       maxValue: 100,
                       icon: Icons.smart_toy,
@@ -377,8 +430,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                         child: _SkillPulse(
                           active: botEffect,
                           child: const _Fighter(
-                            name: 'روبوت',
-                            icon: Icons.smart_toy,
+                            name: isNetworkGame ? 'اللاعب 2' : 'روبوت',
+                            icon: isNetworkGame ? Icons.person : Icons.smart_toy,
                             color: Colors.red,
                           ),
                         ),
