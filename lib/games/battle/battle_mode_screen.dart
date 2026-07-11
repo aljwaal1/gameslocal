@@ -64,8 +64,8 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
     final choice = buildBattleQuickMatchChoice(
       currentCharacter: character,
       currentBotLevel: botLevel,
-      characterRoll: _random.nextInt(characters.length),
-      levelRoll: _random.nextInt(battleBotLevels.length),
+      characterRoll: _random.nextInt(characters.length - 1),
+      levelRoll: _random.nextInt(battleBotLevels.length - 1),
       characterCount: characters.length,
     );
 
