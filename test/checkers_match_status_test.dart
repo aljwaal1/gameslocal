@@ -132,4 +132,33 @@ void main() {
       expect(draw.reason, 'لا توجد حركة للطرفين وتساوى عدد الأحجار');
     });
   });
+
+  group('CheckersMatchEvaluator piece-count normalization', () {
+    test('clamps impossible counts before returning an active match', () {
+      final status = CheckersMatchEvaluator.evaluate(
+        redPieces: 99,
+        blackPieces: 12,
+        redHasMove: true,
+        blackHasMove: true,
+      );
+
+      expect(status.redPieces, CheckersMatchStatus.startingPiecesPerSide);
+      expect(status.blackPieces, 12);
+      expect(status.winner, isNull);
+    });
+
+    test('treats negative counts as zero when deciding the winner', () {
+      final status = CheckersMatchEvaluator.evaluate(
+        redPieces: -4,
+        blackPieces: 7,
+        redHasMove: true,
+        blackHasMove: true,
+      );
+
+      expect(status.redPieces, 0);
+      expect(status.blackPieces, 7);
+      expect(status.winner, CheckersWinner.black);
+      expect(status.reason, 'انتهت أحجار الأحمر');
+    });
+  });
 }
