@@ -52,7 +52,7 @@ class HomeScreen extends StatelessWidget {
       name: 'إكس أو',
       playersText: 'لاعبان',
       status: 'ضد لاعب أو ضد الكمبيوتر',
-      builder: (_, __) => const XoGameScreen(),
+      builder: (_, networkCore) => XoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'checkers',
