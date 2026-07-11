@@ -79,9 +79,10 @@ class CheckersMatchStatus {
 
   String get resultText {
     if (!isFinished) return '';
-    final result = reason == null || reason!.isEmpty
+    final normalizedReason = reason?.trim();
+    final result = normalizedReason == null || normalizedReason.isEmpty
         ? winnerText
-        : '$winnerText — $reason';
+        : '$winnerText — $normalizedReason';
     return '$result\n$piecesText\n$capturedText • $winnerCaptureText • $piecesAdvantageText';
   }
 }
