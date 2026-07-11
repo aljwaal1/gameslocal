@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'battle_arena_screen.dart';
+import 'battle_quick_match.dart';
 
 class BattleModeScreen extends StatefulWidget {
   const BattleModeScreen({super.key});
@@ -55,9 +56,17 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
   }
 
   void _startQuickMatch() {
+    final choice = buildBattleQuickMatchChoice(
+      currentCharacter: character,
+      currentBotLevel: botLevel,
+      characterRoll: _random.nextInt(characters.length),
+      levelRoll: _random.nextInt(battleBotLevels.length),
+      characterCount: characters.length,
+    );
+
     setState(() {
-      character = _random.nextInt(characters.length);
-      botLevel = ['سهل', 'متوسط', 'صعب'][_random.nextInt(3)];
+      character = choice.characterIndex;
+      botLevel = choice.botLevel;
     });
     _openArena();
   }
