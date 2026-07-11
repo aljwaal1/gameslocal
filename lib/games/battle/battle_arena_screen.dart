@@ -429,7 +429,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                         alignment: Alignment(botX, botY),
                         child: _SkillPulse(
                           active: botEffect,
-                          child: const _Fighter(
+                          child: _Fighter(
                             name: isNetworkGame ? 'اللاعب 2' : 'روبوت',
                             icon: isNetworkGame ? Icons.person : Icons.smart_toy,
                             color: Colors.red,
