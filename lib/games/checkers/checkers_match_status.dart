@@ -38,6 +38,13 @@ class CheckersMatchStatus {
 
   int get capturedByBlack => _capturedPieces(redPieces);
 
+  String _pieceCountLabel(int count) {
+    if (count == 1) return 'حجر واحد';
+    if (count == 2) return 'حجرين';
+    if (count >= 3 && count <= 10) return '$count أحجار';
+    return '$count حجرًا';
+  }
+
   String get winnerText {
     switch (winner) {
       case CheckersWinner.red:
@@ -59,11 +66,11 @@ class CheckersMatchStatus {
   String get winnerCaptureText {
     switch (winner) {
       case CheckersWinner.red:
-        return 'أسر الأحمر $capturedByRed من أحجار الأسود';
+        return 'أسر الأحمر ${_pieceCountLabel(capturedByRed)} من أحجار الأسود';
       case CheckersWinner.black:
-        return 'أسر الأسود $capturedByBlack من أحجار الأحمر';
+        return 'أسر الأسود ${_pieceCountLabel(capturedByBlack)} من أحجار الأحمر';
       case CheckersWinner.draw:
-        return 'إجمالي الأسر ${capturedByRed + capturedByBlack}';
+        return 'إجمالي الأسر ${_pieceCountLabel(capturedByRed + capturedByBlack)}';
       case null:
         return '';
     }
@@ -74,7 +81,7 @@ class CheckersMatchStatus {
     if (difference == 0) return 'تعادل في عدد الأحجار';
     final leader =
         normalizedRedPieces > normalizedBlackPieces ? 'الأحمر' : 'الأسود';
-    return 'أفضلية $leader بفارق $difference';
+    return 'أفضلية $leader بفارق ${_pieceCountLabel(difference)}';
   }
 
   String get resultText {
