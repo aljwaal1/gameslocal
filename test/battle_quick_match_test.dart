@@ -3,59 +3,41 @@ import 'package:gameslocal/games/battle/battle_quick_match.dart';
 
 void main() {
   group('buildBattleQuickMatchChoice', () {
-    test('keeps rolled values when both differ from the current setup', () {
-      final choice = buildBattleQuickMatchChoice(
-        currentCharacter: 0,
-        currentBotLevel: 'متوسط',
-        characterRoll: 2,
-        levelRoll: 2,
-        characterCount: 4,
-      );
+    test('always excludes the current character when alternatives exist', () {
+      for (var currentCharacter = 0; currentCharacter < 4; currentCharacter++) {
+        for (var roll = 0; roll < 40; roll++) {
+          final choice = buildBattleQuickMatchChoice(
+            currentCharacter: currentCharacter,
+            currentBotLevel: 'متوسط',
+            characterRoll: roll,
+            levelRoll: roll,
+            characterCount: 4,
+          );
 
-      expect(choice.characterIndex, 2);
-      expect(choice.botLevel, 'صعب');
+          expect(choice.characterIndex, isNot(currentCharacter));
+          expect(choice.characterIndex, inInclusiveRange(0, 3));
+        }
+      }
     });
 
-    test('changes the character whenever the roll repeats it', () {
-      final choice = buildBattleQuickMatchChoice(
-        currentCharacter: 1,
-        currentBotLevel: 'سهل',
-        characterRoll: 1,
-        levelRoll: 2,
-        characterCount: 4,
-      );
+    test('always excludes the current bot level', () {
+      for (final currentLevel in battleBotLevels) {
+        for (var roll = 0; roll < 30; roll++) {
+          final choice = buildBattleQuickMatchChoice(
+            currentCharacter: 0,
+            currentBotLevel: currentLevel,
+            characterRoll: roll,
+            levelRoll: roll,
+            characterCount: 4,
+          );
 
-      expect(choice.characterIndex, 2);
-      expect(choice.botLevel, 'صعب');
+          expect(choice.botLevel, isNot(currentLevel));
+          expect(battleBotLevels, contains(choice.botLevel));
+        }
+      }
     });
 
-    test('changes both values when the full setup would repeat', () {
-      final choice = buildBattleQuickMatchChoice(
-        currentCharacter: 1,
-        currentBotLevel: 'متوسط',
-        characterRoll: 1,
-        levelRoll: 1,
-        characterCount: 4,
-      );
-
-      expect(choice.characterIndex, 2);
-      expect(choice.botLevel, 'صعب');
-    });
-
-    test('changes a repeated level even when the character is already new', () {
-      final choice = buildBattleQuickMatchChoice(
-        currentCharacter: 0,
-        currentBotLevel: 'سهل',
-        characterRoll: 2,
-        levelRoll: 0,
-        characterCount: 4,
-      );
-
-      expect(choice.characterIndex, 2);
-      expect(choice.botLevel, 'متوسط');
-    });
-
-    test('changes the bot level when only one character is available', () {
+    test('keeps the only character but still changes the bot level', () {
       final choice = buildBattleQuickMatchChoice(
         currentCharacter: 0,
         currentBotLevel: 'سهل',
@@ -68,43 +50,20 @@ void main() {
       expect(choice.botLevel, 'متوسط');
     });
 
-    test('keeps a different rolled level with one character', () {
-      final choice = buildBattleQuickMatchChoice(
-        currentCharacter: 0,
-        currentBotLevel: 'سهل',
-        characterRoll: 0,
-        levelRoll: 2,
-        characterCount: 1,
+    test('maps rolls across all alternatives without selecting current values', () {
+      final choices = List.generate(
+        6,
+        (roll) => buildBattleQuickMatchChoice(
+          currentCharacter: 1,
+          currentBotLevel: 'متوسط',
+          characterRoll: roll,
+          levelRoll: roll,
+          characterCount: 4,
+        ),
       );
 
-      expect(choice.characterIndex, 0);
-      expect(choice.botLevel, 'صعب');
-    });
-
-    test('wraps the fallback bot level for a single character', () {
-      final choice = buildBattleQuickMatchChoice(
-        currentCharacter: 0,
-        currentBotLevel: 'صعب',
-        characterRoll: 0,
-        levelRoll: 2,
-        characterCount: 1,
-      );
-
-      expect(choice.characterIndex, 0);
-      expect(choice.botLevel, 'سهل');
-    });
-
-    test('wraps both fallbacks at the end of their lists', () {
-      final choice = buildBattleQuickMatchChoice(
-        currentCharacter: 3,
-        currentBotLevel: 'صعب',
-        characterRoll: 3,
-        levelRoll: 2,
-        characterCount: 4,
-      );
-
-      expect(choice.characterIndex, 0);
-      expect(choice.botLevel, 'سهل');
+      expect(choices.map((choice) => choice.characterIndex).toSet(), {0, 2, 3});
+      expect(choices.map((choice) => choice.botLevel).toSet(), {'سهل', 'صعب'});
     });
 
     test('rejects an empty character list in release builds too', () {
@@ -120,7 +79,7 @@ void main() {
       );
     });
 
-    test('rejects an invalid current character before comparing choices', () {
+    test('rejects an invalid current character', () {
       expect(
         () => buildBattleQuickMatchChoice(
           currentCharacter: -1,
@@ -156,7 +115,7 @@ void main() {
       );
     });
 
-    test('rejects negative random rolls before indexing lists', () {
+    test('rejects negative random rolls', () {
       expect(
         () => buildBattleQuickMatchChoice(
           currentCharacter: 0,
