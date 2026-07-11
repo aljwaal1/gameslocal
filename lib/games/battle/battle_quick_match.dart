@@ -1,13 +1,21 @@
 class BattleQuickMatchChoice {
   factory BattleQuickMatchChoice({
     required int characterIndex,
+    required int characterCount,
     required String botLevel,
   }) {
-    if (characterIndex < 0) {
+    if (characterCount <= 0) {
+      throw ArgumentError.value(
+        characterCount,
+        'characterCount',
+        'يجب أن يتوفر اختيار واحد على الأقل للشخصيات',
+      );
+    }
+    if (characterIndex < 0 || characterIndex >= characterCount) {
       throw ArgumentError.value(
         characterIndex,
         'characterIndex',
-        'فهرس شخصية المباراة السريعة لا يمكن أن يكون سالبًا',
+        'فهرس شخصية المباراة السريعة خارج النطاق المتاح',
       );
     }
     if (!battleBotLevels.contains(botLevel)) {
@@ -19,16 +27,19 @@ class BattleQuickMatchChoice {
     }
     return BattleQuickMatchChoice._(
       characterIndex: characterIndex,
+      characterCount: characterCount,
       botLevel: botLevel,
     );
   }
 
   const BattleQuickMatchChoice._({
     required this.characterIndex,
+    required this.characterCount,
     required this.botLevel,
   });
 
   final int characterIndex;
+  final int characterCount;
   final String botLevel;
 
   @override
@@ -36,14 +47,15 @@ class BattleQuickMatchChoice {
       identical(this, other) ||
       other is BattleQuickMatchChoice &&
           characterIndex == other.characterIndex &&
+          characterCount == other.characterCount &&
           botLevel == other.botLevel;
 
   @override
-  int get hashCode => Object.hash(characterIndex, botLevel);
+  int get hashCode => Object.hash(characterIndex, characterCount, botLevel);
 
   @override
   String toString() =>
-      'BattleQuickMatchChoice(characterIndex: $characterIndex, botLevel: $botLevel)';
+      'BattleQuickMatchChoice(characterIndex: $characterIndex, characterCount: $characterCount, botLevel: $botLevel)';
 }
 
 const List<String> battleBotLevels = ['سهل', 'متوسط', 'صعب'];
@@ -106,6 +118,7 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
 
   return BattleQuickMatchChoice(
     characterIndex: nextCharacter,
+    characterCount: characterCount,
     botLevel: battleBotLevels[nextLevelIndex],
   );
 }
