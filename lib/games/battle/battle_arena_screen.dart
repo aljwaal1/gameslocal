@@ -103,7 +103,10 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void initState() {
     super.initState();
     playerHealth = playerMaxHealth;
-    if (isNetworkGame) networkSubscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
+    if (isNetworkGame) {
+      networkSubscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
+      if (!isHost) Future<void>.delayed(const Duration(milliseconds: 300), _requestState);
+    }
     startTimers();
   }
 
@@ -121,9 +124,18 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     super.dispose();
   }
 
+  void _requestState() {
+    if (!isNetworkGame) return;
+    widget.networkCore!.sendMove(<String, dynamic>{'game': 'battle', 'action': 'stateRequest'}, senderId: localPlayerId);
+  }
+
   void _handleNetworkMessage(NetworkMessage message) {
     if (!mounted || message.type != NetworkMessageType.move || message.senderId == localPlayerId || message.payload['game'] != 'battle') return;
     final p = message.payload;
+    if (p['action'] == 'stateRequest') {
+      if (isHost) _sendState();
+      return;
+    }
     setState(() {
       playerX = (p['playerX'] as num?)?.toDouble() ?? playerX;
       playerY = (p['playerY'] as num?)?.toDouble() ?? playerY;
@@ -139,7 +151,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void _sendState() {
     if (!isNetworkGame) return;
     widget.networkCore!.sendMove(<String, dynamic>{
-      'game': 'battle', 'playerX': playerX, 'playerY': playerY,
+      'game': 'battle', 'action': 'snapshot', 'playerX': playerX, 'playerY': playerY,
       'botX': botX, 'botY': botY, 'playerHealth': playerHealth,
       'botHealth': botHealth, 'secondsLeft': secondsLeft, 'finished': finished,
     }, senderId: localPlayerId);
