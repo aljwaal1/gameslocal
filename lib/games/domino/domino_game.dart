@@ -8,6 +8,7 @@ import '../../core/audio_feedback.dart';
 import '../../design/app_theme.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
+import 'domino_four_player_game.dart';
 
 class DominoTile {
   const DominoTile(this.left, this.right);
@@ -404,7 +405,10 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('الدومينو'),
-            actions: [IconButton(onPressed: () => startRound(resetScore: true), icon: const Icon(Icons.refresh))],
+            actions: [
+              if (!isNetworkGame) IconButton(tooltip: '4 لاعبين محليًا', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DominoFourPlayerScreen())), icon: const Icon(Icons.groups)),
+              IconButton(onPressed: () => startRound(resetScore: true), icon: const Icon(Icons.refresh)),
+            ],
           ),
           body: SafeArea(
             child: Padding(
