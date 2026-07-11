@@ -89,8 +89,8 @@ class HomeScreen extends StatelessWidget {
       id: 'cards',
       name: 'الشدة / السراقة',
       playersText: '2 إلى 4 لاعبين',
-      status: 'السراقة مع البسرا والروبوت',
-      builder: (_, __) => const CardsGameScreen(),
+      status: 'السراقة ضد الروبوت أو لاعب عبر الشبكة',
+      builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
     ),
   ];
 
