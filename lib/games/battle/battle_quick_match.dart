@@ -6,6 +6,20 @@ class BattleQuickMatchChoice {
 
   final int characterIndex;
   final String botLevel;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BattleQuickMatchChoice &&
+          characterIndex == other.characterIndex &&
+          botLevel == other.botLevel;
+
+  @override
+  int get hashCode => Object.hash(characterIndex, botLevel);
+
+  @override
+  String toString() =>
+      'BattleQuickMatchChoice(characterIndex: $characterIndex, botLevel: $botLevel)';
 }
 
 const List<String> battleBotLevels = ['سهل', 'متوسط', 'صعب'];
@@ -53,18 +67,21 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
     );
   }
 
-  var nextCharacter = characterRoll % characterCount;
-  var nextBotLevel = battleBotLevels[levelRoll % battleBotLevels.length];
-
-  if (characterCount > 1 && nextCharacter == currentCharacter) {
-    nextCharacter = (nextCharacter + 1) % characterCount;
-  } else if (characterCount == 1 && nextBotLevel == currentBotLevel) {
-    final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
-    nextBotLevel = battleBotLevels[(currentLevelIndex + 1) % battleBotLevels.length];
+  final int nextCharacter;
+  if (characterCount > 1) {
+    var candidate = characterRoll % (characterCount - 1);
+    if (candidate >= currentCharacter) candidate += 1;
+    nextCharacter = candidate;
+  } else {
+    nextCharacter = 0;
   }
+
+  final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
+  var nextLevelIndex = levelRoll % (battleBotLevels.length - 1);
+  if (nextLevelIndex >= currentLevelIndex) nextLevelIndex += 1;
 
   return BattleQuickMatchChoice(
     characterIndex: nextCharacter,
-    botLevel: nextBotLevel,
+    botLevel: battleBotLevels[nextLevelIndex],
   );
 }
