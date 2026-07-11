@@ -397,6 +397,12 @@ public class MainActivity extends Activity {
             apply(move);
             selectedRow = -1;
             selectedCol = -1;
+            if (allMoves(BLACK).isEmpty()) {
+                redTurn = false;
+                status.setText("فزت! لا توجد حركة للكمبيوتر");
+                invalidate();
+                return;
+            }
             redTurn = false;
             status.setText("الكمبيوتر يفكر...");
             invalidate();
@@ -416,7 +422,12 @@ public class MainActivity extends Activity {
                 apply(move);
                 redTurn = true;
                 botThinking = false;
-                status.setText("أنت الأحمر - دورك");
+                if (allMoves(RED).isEmpty()) {
+                    redTurn = false;
+                    status.setText("انتهت الجولة: لا توجد لك حركة");
+                } else {
+                    status.setText("أنت الأحمر - دورك");
+                }
                 invalidate();
             }, 550);
         }
@@ -455,7 +466,10 @@ public class MainActivity extends Activity {
             int dc = tc - sc;
             int dir = player == RED ? -1 : 1;
             if (Math.abs(dc) != Math.abs(dr)) return null;
-            if (dr == dir && Math.abs(dc) == 1) return new Move(sr, sc, tr, tc, -1, -1);
+            if (dr == dir && Math.abs(dc) == 1) {
+                if (hasCapture(player)) return null;
+                return new Move(sr, sc, tr, tc, -1, -1);
+            }
             if (dr == dir * 2 && Math.abs(dc) == 2) {
                 int mr = (sr + tr) / 2;
                 int mc = (sc + tc) / 2;
@@ -463,6 +477,25 @@ public class MainActivity extends Activity {
                 if (board[mr][mc] == opponent) return new Move(sr, sc, tr, tc, mr, mc);
             }
             return null;
+        }
+
+        private boolean hasCapture(int player) {
+            int dir = player == RED ? -1 : 1;
+            for (int r = 0; r < 8; r++) {
+                for (int c = 0; c < 8; c++) {
+                    if (board[r][c] != player) continue;
+                    for (int dc : new int[]{-2, 2}) {
+                        int tr = r + dir * 2;
+                        int tc = c + dc;
+                        if (!inside(tr, tc) || board[tr][tc] != EMPTY) continue;
+                        int mr = r + dir;
+                        int mc = c + dc / 2;
+                        int opponent = player == RED ? BLACK : RED;
+                        if (board[mr][mc] == opponent) return true;
+                    }
+                }
+            }
+            return false;
         }
 
         private void apply(Move move) {
