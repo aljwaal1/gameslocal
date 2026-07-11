@@ -18,8 +18,6 @@ lib/
       local_wifi_transport.dart
       network_message.dart
   games/
-    checkers/
-      checkers_game.dart
     battle/
       battle_mode_screen.dart
     cards/
@@ -36,18 +34,6 @@ lib/
     xo/
       xo_game.dart
 ```
-
-## النسخة الحالية V1
-
-- واجهة عربية RTL.
-- قائمة ألعاب: الضامة، الشطرنج، الدومينو، الشدة / السراقة.
-- غرفة مشتركة قبل الدخول للعبة.
-- لعبة الضامة تعمل محليًا على نفس الجهاز، وتم تجهيز نقل حركتها عبر Wi-Fi / Hotspot.
-- إكس أو والضامة تدعمان اللعب المحلي والشبكة المحلية.
-- الدومينو والشدة تعملان ضد الكمبيوتر.
-- الشطرنج يعمل محلياً للاعبين، ولعبة الدجاجة تتضمن متجر خلفيات.
-- النسخة الحديثة تُبنى منفصلة في `apk/modern/gameslocal-flutter.apk`.
-- نسخة Android 4.4 Java تُبنى منفصلة في `apk/legacy/gameslocal-kitkat.apk`.
 
 ## حالة الإصدار الحالي
 
