@@ -226,6 +226,27 @@ class LocalNetworkCore {
     ));
   }
 
+  Future<void> reconnect() async {
+    final previous = _state;
+    _transport.close();
+    if (previous.mode == LocalNetworkMode.host) {
+      await createRoom();
+      return;
+    }
+    if (previous.mode == LocalNetworkMode.client && previous.hostAddress.isNotEmpty) {
+      await joinRoom(
+        hostAddress: previous.hostAddress,
+        port: previous.port,
+        roomCode: previous.roomCode,
+      );
+      return;
+    }
+    _emit(_state.copyWith(
+      status: LocalNetworkStatus.error,
+      message: 'لا توجد بيانات اتصال سابقة لإعادة المحاولة.',
+    ));
+  }
+
   void disconnect() {
     _sendAndPublish(NetworkMessage(
       type: NetworkMessageType.disconnect,
