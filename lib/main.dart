@@ -6,9 +6,9 @@ import 'core/game_definition.dart';
 import 'core/game_room.dart';
 import 'design/app_theme.dart';
 import 'games/battle/battle_mode_screen.dart';
-import 'games/cards/cards_placeholder.dart';
+import 'games/cards/cards_game.dart';
 import 'games/checkers/checkers_game.dart';
-import 'games/chess/chess_placeholder.dart';
+import 'games/chess/chess_game.dart';
 import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
 import 'games/xo/xo_game.dart';
@@ -83,14 +83,14 @@ class HomeScreen extends StatelessWidget {
       name: 'الشطرنج',
       playersText: 'لاعبان',
       status: 'لعبة محلية كاملة للاعبين',
-      builder: (_, __) => const ChessPlaceholderScreen(),
+      builder: (_, __) => const ChessGameScreen(),
     ),
     GameDefinition(
       id: 'cards',
       name: 'الشدة / السراقة',
       playersText: '2 إلى 4 لاعبين',
       status: 'السراقة مع البسرا والروبوت',
-      builder: (_, __) => const CardsPlaceholderScreen(),
+      builder: (_, __) => const CardsGameScreen(),
     ),
   ];
 
