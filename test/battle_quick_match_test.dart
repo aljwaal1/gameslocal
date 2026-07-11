@@ -3,7 +3,7 @@ import 'package:gameslocal/games/battle/battle_quick_match.dart';
 
 void main() {
   group('buildBattleQuickMatchChoice', () {
-    test('keeps the rolled values when they differ from the current setup', () {
+    test('keeps rolled values when both differ from the current setup', () {
       final choice = buildBattleQuickMatchChoice(
         currentCharacter: 0,
         currentBotLevel: 'متوسط',
@@ -29,12 +29,25 @@ void main() {
       expect(choice.botLevel, 'صعب');
     });
 
-    test('changes the character when the full setup would repeat', () {
+    test('changes both values when the full setup would repeat', () {
       final choice = buildBattleQuickMatchChoice(
         currentCharacter: 1,
         currentBotLevel: 'متوسط',
         characterRoll: 1,
         levelRoll: 1,
+        characterCount: 4,
+      );
+
+      expect(choice.characterIndex, 2);
+      expect(choice.botLevel, 'صعب');
+    });
+
+    test('changes a repeated level even when the character is already new', () {
+      final choice = buildBattleQuickMatchChoice(
+        currentCharacter: 0,
+        currentBotLevel: 'سهل',
+        characterRoll: 2,
+        levelRoll: 0,
         characterCount: 4,
       );
 
@@ -81,12 +94,12 @@ void main() {
       expect(choice.botLevel, 'سهل');
     });
 
-    test('wraps the fallback character at the end of the list', () {
+    test('wraps both fallbacks at the end of their lists', () {
       final choice = buildBattleQuickMatchChoice(
         currentCharacter: 3,
-        currentBotLevel: 'سهل',
+        currentBotLevel: 'صعب',
         characterRoll: 3,
-        levelRoll: 0,
+        levelRoll: 2,
         characterCount: 4,
       );
 
