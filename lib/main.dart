@@ -65,8 +65,8 @@ class HomeScreen extends StatelessWidget {
       id: 'domino',
       name: 'الدومينو',
       playersText: 'لاعبان الآن / 4 لاحقًا',
-      status: 'نسخة أولى ضد الكمبيوتر',
-      builder: (_, __) => const DominoGameScreen(),
+      status: 'ضد الكمبيوتر أو لاعب عبر الشبكة',
+      builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'chicken',
