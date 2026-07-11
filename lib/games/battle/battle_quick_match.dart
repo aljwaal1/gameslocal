@@ -24,6 +24,20 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
       'يجب أن يتوفر اختيار واحد على الأقل للشخصيات',
     );
   }
+  if (characterRoll < 0) {
+    throw ArgumentError.value(
+      characterRoll,
+      'characterRoll',
+      'يجب ألا تكون قرعة الشخصية سالبة',
+    );
+  }
+  if (levelRoll < 0) {
+    throw ArgumentError.value(
+      levelRoll,
+      'levelRoll',
+      'يجب ألا تكون قرعة مستوى الروبوت سالبة',
+    );
+  }
 
   var nextCharacter = characterRoll % characterCount;
   final nextBotLevel = battleBotLevels[levelRoll % battleBotLevels.length];
