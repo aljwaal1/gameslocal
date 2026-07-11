@@ -85,11 +85,11 @@ void main() {
 
       expect(
         oneCaptureLead.captureAdvantageText,
-        'أفضلية الأسر لصالح الأسود بفارق حجر واحد',
+        'أفضلية الأسر لصالح الأحمر بفارق حجر واحد',
       );
       expect(
         twoCaptureLead.captureAdvantageText,
-        'أفضلية الأسر لصالح الأسود بفارق حجرين',
+        'أفضلية الأسر لصالح الأحمر بفارق حجرين',
       );
     });
 
