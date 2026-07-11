@@ -33,14 +33,14 @@ class PlayingCardModel {
 
 enum LastCollector { player, bot }
 
-class CardsPlaceholderScreen extends StatefulWidget {
-  const CardsPlaceholderScreen({super.key});
+class CardsGameScreen extends StatefulWidget {
+  const CardsGameScreen({super.key});
 
   @override
-  State<CardsPlaceholderScreen> createState() => _CardsPlaceholderScreenState();
+  State<CardsGameScreen> createState() => _CardsGameScreenState();
 }
 
-class _CardsPlaceholderScreenState extends State<CardsPlaceholderScreen> {
+class _CardsGameScreenState extends State<CardsGameScreen> {
   final Random random = Random();
   final settings = AppSettingsController.instance;
 
