@@ -86,7 +86,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       setState(() {});
       return;
     }
-    if (piece == null || piece.side != turn || message.startsWith('فاز')) {
+    if (piece == null || piece.side != turn || message.startsWith('كش مات') || message.startsWith('تعادل')) {
       setState(() { selected = null; targets = <int>[]; });
       return;
     }
