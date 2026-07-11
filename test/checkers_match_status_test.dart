@@ -23,8 +23,74 @@ void main() {
         status.resultText,
         contains('الأسر: الأحمر 11 حجرًا • الأسود 7 أحجار'),
       );
-      expect(status.resultText, contains('أسر الأحمر 11 حجرًا من أحجار الأسود'));
+      expect(
+        status.resultText,
+        contains('أفضلية الأسر لصالح الأحمر بفارق 4 أحجار'),
+      );
       expect(status.resultText, contains('أفضلية الأحمر بفارق 4 أحجار'));
+    });
+
+    test('reports capture advantage for either side and a true tie', () {
+      const redLead = CheckersMatchStatus(
+        redPieces: 9,
+        blackPieces: 5,
+        redHasMove: true,
+        blackHasMove: false,
+        winner: CheckersWinner.red,
+      );
+      const blackLead = CheckersMatchStatus(
+        redPieces: 4,
+        blackPieces: 8,
+        redHasMove: false,
+        blackHasMove: true,
+        winner: CheckersWinner.black,
+      );
+      const tiedCaptures = CheckersMatchStatus(
+        redPieces: 8,
+        blackPieces: 8,
+        redHasMove: false,
+        blackHasMove: false,
+        winner: CheckersWinner.draw,
+      );
+
+      expect(
+        redLead.captureAdvantageText,
+        'أفضلية الأسر لصالح الأحمر بفارق 4 أحجار',
+      );
+      expect(
+        blackLead.captureAdvantageText,
+        'أفضلية الأسر لصالح الأسود بفارق 4 أحجار',
+      );
+      expect(
+        tiedCaptures.captureAdvantageText,
+        'تعادل في عدد الأحجار المأسورة',
+      );
+    });
+
+    test('uses natural Arabic wording for capture differences', () {
+      const oneCaptureLead = CheckersMatchStatus(
+        redPieces: 8,
+        blackPieces: 7,
+        redHasMove: true,
+        blackHasMove: false,
+        winner: CheckersWinner.red,
+      );
+      const twoCaptureLead = CheckersMatchStatus(
+        redPieces: 8,
+        blackPieces: 6,
+        redHasMove: true,
+        blackHasMove: false,
+        winner: CheckersWinner.red,
+      );
+
+      expect(
+        oneCaptureLead.captureAdvantageText,
+        'أفضلية الأسر لصالح الأسود بفارق حجر واحد',
+      );
+      expect(
+        twoCaptureLead.captureAdvantageText,
+        'أفضلية الأسر لصالح الأسود بفارق حجرين',
+      );
     });
 
     test('uses natural Arabic wording for remaining piece counts', () {
