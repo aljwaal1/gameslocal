@@ -51,6 +51,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   bool playerEffect = false;
   bool botEffect = false;
   String? skillMessage;
+  double pickupX = 0;
+  double pickupY = 0;
+  bool pickupVisible = true;
 
   int get playerMaxHealth => widget.characterName == 'صخر' ? 125 : 100;
 
@@ -145,6 +148,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       botHealth = (p['botHealth'] as num?)?.toInt() ?? botHealth;
       secondsLeft = (p['secondsLeft'] as num?)?.toInt() ?? secondsLeft;
       finished = p['finished'] == true;
+      pickupX = (p['pickupX'] as num?)?.toDouble() ?? pickupX;
+      pickupY = (p['pickupY'] as num?)?.toDouble() ?? pickupY;
+      pickupVisible = p['pickupVisible'] as bool? ?? pickupVisible;
     });
   }
 
@@ -154,6 +160,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       'game': 'battle', 'action': 'snapshot', 'playerX': playerX, 'playerY': playerY,
       'botX': botX, 'botY': botY, 'playerHealth': playerHealth,
       'botHealth': botHealth, 'secondsLeft': secondsLeft, 'finished': finished,
+      'pickupX': pickupX, 'pickupY': pickupY, 'pickupVisible': pickupVisible,
     }, senderId: localPlayerId);
   }
 
@@ -162,6 +169,11 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     setState(() {
       secondsLeft--;
       if (skillCooldown > 0) skillCooldown--;
+      if (secondsLeft > 0 && secondsLeft % 15 == 0) {
+        pickupX = random.nextDouble() * 1.5 - 0.75;
+        pickupY = random.nextDouble() * 1.4 - 0.70;
+        pickupVisible = true;
+      }
       if (secondsLeft <= 0) finish();
     });
   }
@@ -177,7 +189,24 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
         playerY = (playerY + dy).clamp(-0.82, 0.82).toDouble();
       }
     });
+    _collectPickupIfClose();
     _sendState();
+  }
+
+  void _collectPickupIfClose() {
+    if (!pickupVisible) return;
+    final x = isNetworkGame && !isHost ? botX : playerX;
+    final y = isNetworkGame && !isHost ? botY : playerY;
+    if (math.sqrt(math.pow(x - pickupX, 2) + math.pow(y - pickupY, 2)) > 0.20) return;
+    pickupVisible = false;
+    if (isNetworkGame && !isHost) {
+      botHealth = math.min(100, botHealth + 18).toInt();
+    } else {
+      playerHealth = math.min(playerMaxHealth, playerHealth + 18).toInt();
+    }
+    skillMessage = 'تم التقاط حزمة علاج +18 صحة';
+    skillSucceeded = true;
+    GameFeedback.win();
   }
 
   void moveBot() {
@@ -334,6 +363,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       playerEffect = false;
       botEffect = false;
       finished = false;
+      pickupVisible = true;
+      pickupX = 0;
+      pickupY = 0;
     });
     startTimers();
   }
@@ -428,6 +460,11 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                     fit: StackFit.expand,
                     children: [
                       _ArenaBackground(arenaName: widget.arenaName),
+                      if (pickupVisible)
+                        Align(
+                          alignment: Alignment(pickupX, pickupY),
+                          child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.green, width: 3)), child: const Icon(Icons.medical_services, color: Colors.green)),
+                        ),
                       Align(
                         alignment: Alignment(playerX, playerY),
                         child: _SkillPulse(
