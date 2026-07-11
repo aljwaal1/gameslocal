@@ -113,7 +113,6 @@ class CheckersMatchStatus {
       piecesText,
       capturedText,
       captureAdvantageText,
-      piecesAdvantageText,
     ].join('\n');
   }
 }
