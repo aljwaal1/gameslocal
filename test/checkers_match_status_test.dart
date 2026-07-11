@@ -20,6 +20,20 @@ void main() {
       expect(status.resultText, contains('أفضلية الأحمر بفارق 4'));
     });
 
+    test('trims the reason and avoids a dangling separator', () {
+      const status = CheckersMatchStatus(
+        redPieces: 8,
+        blackPieces: 6,
+        redHasMove: true,
+        blackHasMove: false,
+        winner: CheckersWinner.red,
+        reason: '   ',
+      );
+
+      expect(status.resultText.split('\n').first, 'فاز الأحمر');
+      expect(status.resultText, isNot(contains('—')));
+    });
+
     test('keeps unfinished matches without a result message', () {
       const status = CheckersMatchStatus(
         redPieces: 16,
