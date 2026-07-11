@@ -54,10 +54,15 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
   }
 
   var nextCharacter = characterRoll % characterCount;
-  final nextBotLevel = battleBotLevels[levelRoll % battleBotLevels.length];
+  var nextBotLevel = battleBotLevels[levelRoll % battleBotLevels.length];
 
   if (nextCharacter == currentCharacter && nextBotLevel == currentBotLevel) {
-    nextCharacter = (nextCharacter + 1) % characterCount;
+    if (characterCount > 1) {
+      nextCharacter = (nextCharacter + 1) % characterCount;
+    } else {
+      final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
+      nextBotLevel = battleBotLevels[(currentLevelIndex + 1) % battleBotLevels.length];
+    }
   }
 
   return BattleQuickMatchChoice(
