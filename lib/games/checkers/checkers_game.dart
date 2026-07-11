@@ -86,6 +86,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool get networkMode => widget.networkCore != null && widget.networkCore!.state.mode != LocalNetworkMode.idle;
   bool get localPlayerIsRed => widget.networkCore?.state.mode != LocalNetworkMode.client;
   bool get isMyNetworkTurn => !networkMode || redTurn == localPlayerIsRed;
+  Set<String> get forcedCaptureSources => allLegalMoves(forRed: redTurn)
+      .where((move) => move.isCapture)
+      .map((move) => '${move.fromRow},${move.fromCol}')
+      .toSet();
 
   @override
   void initState() {
@@ -585,6 +589,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                                 piece: board[r][c],
                                 selected: selectedRow == r && selectedCol == c,
                                 possibleMove: targets.contains('$r,$c'),
+                                forcedCapture: forcedCaptureSources.contains('$r,$c'),
                                 onTap: () => tapCell(r, c),
                               );
                             },
@@ -631,12 +636,13 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _BoardCell extends StatelessWidget {
-  const _BoardCell({required this.row, required this.col, required this.piece, required this.selected, required this.possibleMove, required this.onTap});
+  const _BoardCell({required this.row, required this.col, required this.piece, required this.selected, required this.possibleMove, required this.forcedCapture, required this.onTap});
   final int row;
   final int col;
   final Piece piece;
   final bool selected;
   final bool possibleMove;
+  final bool forcedCapture;
   final VoidCallback onTap;
 
   @override
@@ -657,7 +663,7 @@ class _BoardCell extends StatelessWidget {
                     ? const [Color(0xFFE9FBCF), Color(0xFF9BE564)]
                     : [baseColor.withOpacity(0.92), baseColor],
           ),
-          border: Border.all(color: Colors.black.withOpacity(0.25), width: 0.55),
+          border: Border.all(color: forcedCapture ? const Color(0xFFFF3B30) : Colors.black.withOpacity(0.25), width: forcedCapture ? 3 : 0.55),
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -668,6 +674,8 @@ class _BoardCell extends StatelessWidget {
                 height: 16,
                 decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.primary.withOpacity(0.38)),
               ),
+            if (forcedCapture)
+              const Positioned(top: 2, right: 2, child: Icon(Icons.priority_high, color: Color(0xFFFF3B30), size: 16)),
             _PieceView(piece: piece),
           ],
         ),
