@@ -10,14 +10,14 @@ class ChessPiece {
   final ChessSide side;
 }
 
-class ChessPlaceholderScreen extends StatefulWidget {
-  const ChessPlaceholderScreen({super.key});
+class ChessGameScreen extends StatefulWidget {
+  const ChessGameScreen({super.key});
 
   @override
-  State<ChessPlaceholderScreen> createState() => _ChessPlaceholderScreenState();
+  State<ChessGameScreen> createState() => _ChessGameScreenState();
 }
 
-class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
+class _ChessGameScreenState extends State<ChessGameScreen> {
   late List<ChessPiece?> board;
   ChessSide turn = ChessSide.white;
   int? selected;
