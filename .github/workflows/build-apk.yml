@@ -3,12 +3,21 @@ name: Build APK Direct
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/build-apk.yml'
   pull_request:
     branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: gameslocal-modern-flutter
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -29,10 +38,6 @@ jobs:
         with:
           channel: stable
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: 8.7
 
       - name: Create Android Flutter project
         run: flutter create --platforms=android --org com.explapp --no-pub .
@@ -68,16 +73,12 @@ jobs:
       - name: Build Flutter APK
         run: flutter build apk --release
 
-      - name: Build KitKat Java APK
-        working-directory: android_kitkat_java
-        run: gradle assembleDebug --no-daemon
 
       - name: Copy APK files
         if: github.event_name != 'pull_request'
         run: |
-          mkdir -p apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/gameslocal-flutter.apk
-          cp android_kitkat_java/app/build/outputs/apk/debug/app-debug.apk apk/gameslocal-kitkat.apk
+          mkdir -p apk/modern
+          cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
           cat > DOWNLOAD_APK.md <<'EOF'
           # تحميل تطبيق ألعاب محلية
 
@@ -85,16 +86,12 @@ jobs:
 
           ## 1) نسخة الأجهزة الحديثة - Flutter
           تعمل للأجهزة الأحدث والأفضل أداءً:
-          https://github.com/aljwaal1/gameslocal/raw/main/apk/gameslocal-flutter.apk
-
-          ## 2) نسخة الأجهزة القديمة - Android 4.4 KitKat
-          نسخة Java خفيفة مخصصة لـ Android 4.4:
-          https://github.com/aljwaal1/gameslocal/raw/main/apk/gameslocal-kitkat.apk
+          https://github.com/aljwaal1/gameslocal/raw/main/apk/modern/gameslocal-flutter.apk
           EOF
 
       - name: Commit APK files
         if: github.event_name != 'pull_request'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Build Flutter and KitKat APK files
-          file_pattern: apk/gameslocal-flutter.apk apk/gameslocal-kitkat.apk DOWNLOAD_APK.md
+          commit_message: Build modern Flutter APK
+          file_pattern: apk/modern/gameslocal-flutter.apk DOWNLOAD_APK.md
