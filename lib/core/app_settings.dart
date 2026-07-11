@@ -17,10 +17,10 @@ class AppSettingsController extends ChangeNotifier {
   Future<void> load() async {
     _prefs ??= await SharedPreferences.getInstance();
     final difficultyIndex = _prefs!.getInt('bot_difficulty') ?? BotDifficulty.easy.index;
-    botDifficulty = BotDifficulty.values[difficultyIndex.clamp(0, BotDifficulty.values.length - 1)];
+    botDifficulty = BotDifficulty.values[difficultyIndex.clamp(0, BotDifficulty.values.length - 1).toInt()];
     soundEnabled = _prefs!.getBool('sound_enabled') ?? true;
     vibrationEnabled = _prefs!.getBool('vibration_enabled') ?? true;
-    tableColorIndex = (_prefs!.getInt('table_color') ?? 0).clamp(0, 3);
+    tableColorIndex = (_prefs!.getInt('table_color') ?? 0).clamp(0, 3).toInt();
     notifyListeners();
   }
 
@@ -57,7 +57,7 @@ class AppSettingsController extends ChangeNotifier {
   }
 
   void setTableColorIndex(int value) {
-    final safeValue = value.clamp(0, 3);
+    final safeValue = value.clamp(0, 3).toInt();
     if (tableColorIndex == safeValue) return;
     tableColorIndex = safeValue;
     _prefs?.setInt('table_color', safeValue);
