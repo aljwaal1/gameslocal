@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
 import '../../design/app_theme.dart';
+import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
 
 class DominoTile {
   const DominoTile(this.left, this.right);
@@ -22,7 +25,9 @@ class DominoTile {
 }
 
 class DominoGameScreen extends StatefulWidget {
-  const DominoGameScreen({super.key});
+  const DominoGameScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
 
   @override
   State<DominoGameScreen> createState() => _DominoGameScreenState();
@@ -31,6 +36,8 @@ class DominoGameScreen extends StatefulWidget {
 class _DominoGameScreenState extends State<DominoGameScreen> {
   final AppSettingsController settings = AppSettingsController.instance;
   final Random random = Random();
+  StreamSubscription<NetworkMessage>? networkSubscription;
+  int roundSeed = 0;
 
   List<DominoTile> stock = [];
   List<DominoTile> player = [];
@@ -44,20 +51,39 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   int roundNumber = 1;
   String message = 'دورك: اختر قطعة مناسبة';
 
+  bool get isNetworkGame => widget.networkCore != null;
+  bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  bool get isLocalTurn => isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
+  List<DominoTile> get localHand => isNetworkGame && !isHost ? bot : player;
+  String get localPlayerId {
+    final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
+    final own = players.where((p) => p.isHost == isHost);
+    return own.isNotEmpty ? own.first.id : (isHost ? 'host' : 'client');
+  }
+
   @override
   void initState() {
     super.initState();
+    networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
     startRound(resetScore: true);
+    if (isNetworkGame && isHost) Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
   }
 
-  void startRound({bool resetScore = false}) {
+  @override
+  void dispose() {
+    networkSubscription?.cancel();
+    super.dispose();
+  }
+
+  void startRound({bool resetScore = false, int? seed}) {
     final tiles = <DominoTile>[];
     for (int a = 0; a <= 6; a++) {
       for (int b = a; b <= 6; b++) {
         tiles.add(DominoTile(a, b));
       }
     }
-    tiles.shuffle(random);
+    roundSeed = seed ?? random.nextInt(1 << 31);
+    tiles.shuffle(Random(roundSeed));
     player = tiles.take(7).toList();
     bot = tiles.skip(7).take(7).toList();
     stock = tiles.skip(14).toList();
@@ -70,7 +96,52 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       botScore = 0;
       roundNumber = 1;
     }
-    message = 'الجولة $roundNumber: دورك، اختر قطعة مناسبة';
+    message = isNetworkGame
+        ? (isLocalTurn ? 'الجولة $roundNumber: دورك' : 'الجولة $roundNumber: بانتظار اللاعب الآخر')
+        : 'الجولة $roundNumber: دورك، اختر قطعة مناسبة';
+    setState(() {});
+  }
+
+  void _sendRoundStart() {
+    if (!isNetworkGame || !isHost) return;
+    widget.networkCore!.sendMove(<String, dynamic>{'game': 'domino', 'action': 'start', 'seed': roundSeed, 'round': roundNumber}, senderId: localPlayerId);
+  }
+
+  void _sendDominoAction(String action, {DominoTile? tile}) {
+    if (!isNetworkGame) return;
+    widget.networkCore!.sendMove(<String, dynamic>{
+      'game': 'domino', 'action': action,
+      if (tile != null) 'left': tile.left,
+      if (tile != null) 'right': tile.right,
+    }, senderId: localPlayerId);
+  }
+
+  void _handleNetworkMessage(NetworkMessage networkMessage) {
+    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId || networkMessage.payload['game'] != 'domino') return;
+    final payload = networkMessage.payload;
+    final action = payload['action']?.toString();
+    if (action == 'start') {
+      startRound(resetScore: true, seed: (payload['seed'] as num?)?.toInt());
+      return;
+    }
+    if (roundFinished) return;
+    if (action == 'play') {
+      final tile = DominoTile((payload['left'] as num).toInt(), (payload['right'] as num).toInt());
+      final remoteHand = isHost ? bot : player;
+      final index = remoteHand.indexWhere((t) => t.left == tile.left && t.right == tile.right);
+      if (index < 0 || !canPlay(remoteHand[index])) return;
+      placeTile(remoteHand[index], remoteHand);
+      if (remoteHand.isEmpty) {
+        finishRound(playerWon: !isHost, reason: 'اللاعب الآخر أنهى كل قطعه');
+        return;
+      }
+      playerTurn = !playerTurn;
+    } else if (action == 'draw' && stock.isNotEmpty) {
+      (isHost ? bot : player).add(stock.removeLast());
+    } else if (action == 'pass') {
+      playerTurn = !playerTurn;
+    }
+    message = isLocalTurn ? 'دورك: اختر قطعة مناسبة' : 'بانتظار اللاعب الآخر';
     setState(() {});
   }
 
@@ -78,7 +149,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   int? get rightEnd => board.isEmpty ? null : board.last.right;
 
   List<DominoTile> get sortedPlayerHand {
-    final list = List<DominoTile>.from(player);
+    final list = List<DominoTile>.from(localHand);
     list.sort((a, b) {
       final ap = canPlay(a) ? 0 : 1;
       final bp = canPlay(b) ? 0 : 1;
@@ -101,26 +172,27 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   void playPlayerTile(DominoTile tile) {
-    if (!playerTurn || roundFinished) return;
+    if (!isLocalTurn || roundFinished) return;
     if (!canPlay(tile)) {
       GameFeedback.error();
       setState(() => message = 'هذه القطعة لا تناسب الطرفين: $leftEnd أو $rightEnd');
       return;
     }
     GameFeedback.move();
-    placeTile(tile, player);
-    if (player.isEmpty) {
-      finishRound(playerWon: true, reason: 'أنهيت كل قطعك');
+    placeTile(tile, localHand);
+    _sendDominoAction('play', tile: tile);
+    if (localHand.isEmpty) {
+      finishRound(playerWon: isHost || !isNetworkGame, reason: 'أنهيت كل قطعك');
       return;
     }
     if (isBlocked) {
       finishBlockedRound();
       return;
     }
-    playerTurn = false;
-    message = 'الكمبيوتر يفكر...';
+    playerTurn = !playerTurn;
+    message = isNetworkGame ? 'بانتظار اللاعب الآخر' : 'الكمبيوتر يفكر...';
     setState(() {});
-    Future<void>.delayed(const Duration(milliseconds: 550), botMove);
+    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 550), botMove);
   }
 
   void drawTile() {
@@ -131,14 +203,15 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       return;
     }
     GameFeedback.tap();
-    player.add(stock.removeLast());
-    message = player.any(canPlay) ? 'سحبت قطعة. القطع المناسبة أصبحت في أول يدك' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
+    localHand.add(stock.removeLast());
+    _sendDominoAction('draw');
+    message = localHand.any(canPlay) ? 'سحبت قطعة. القطع المناسبة أصبحت في أول يدك' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
     setState(() {});
   }
 
   void passTurn() {
     if (!playerTurn || roundFinished) return;
-    if (player.any(canPlay)) {
+    if (localHand.any(canPlay)) {
       GameFeedback.error();
       setState(() => message = 'لديك قطعة مناسبة بإطار ذهبي، لا يمكنك التمرير');
       return;
@@ -148,10 +221,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       finishBlockedRound();
       return;
     }
-    playerTurn = false;
-    message = 'مررت الدور. الكمبيوتر يلعب...';
+    playerTurn = !playerTurn;
+    _sendDominoAction('pass');
+    message = isNetworkGame ? 'مررت الدور. بانتظار اللاعب الآخر' : 'مررت الدور. الكمبيوتر يلعب...';
     setState(() {});
-    Future<void>.delayed(const Duration(milliseconds: 450), botMove);
+    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 450), botMove);
   }
 
   void botMove() {
