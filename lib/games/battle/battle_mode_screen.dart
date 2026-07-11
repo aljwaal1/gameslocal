@@ -23,6 +23,13 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
   static const String mode = 'فردي';
   String botLevel = 'متوسط';
   int character = 0;
+  int arena = 0;
+
+  static const arenas = [
+    ('الغابة', Icons.forest, Color(0xFF1B4332)),
+    ('الصحراء', Icons.wb_sunny, Color(0xFFB45309)),
+    ('الجليد', Icons.ac_unit, Color(0xFF0369A1)),
+  ];
 
   static const characters = [
     ('برق', Icons.bolt, 'سريع', 'حركة أسرع داخل الساحة', 'اندفاع سريع نحو الروبوت مع ضربة عند الاقتراب'),
@@ -54,6 +61,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
             mode: mode,
             botLevel: botLevel,
             networkCore: widget.networkCore,
+            arenaName: arenas[arena].$1,
           ),
         ),
       ),
@@ -155,6 +163,17 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
                   ),
                 );
               },
+            ),
+            const SizedBox(height: 18),
+            const Text('الخريطة', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            SegmentedButton<int>(
+              segments: [
+                for (int i = 0; i < arenas.length; i++)
+                  ButtonSegment<int>(value: i, label: Text(arenas[i].$1), icon: Icon(arenas[i].$2)),
+              ],
+              selected: <int>{arena},
+              onSelectionChanged: (value) => setState(() => arena = value.first),
             ),
             const SizedBox(height: 18),
             _SupportedModeCard(networkGame: widget.networkCore != null),
