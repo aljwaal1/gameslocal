@@ -67,8 +67,8 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'domino',
       name: 'الدومينو',
-      playersText: 'لاعبان الآن / 4 لاحقًا',
-      status: 'ضد الكمبيوتر أو لاعب عبر الشبكة',
+      playersText: '2 عبر الشبكة / 4 محليًا',
+      status: 'ضد الكمبيوتر أو لاعب عبر الشبكة أو 4 لاعبين محليًا',
       builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -88,7 +88,7 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'cards',
       name: 'الشدة / السراقة',
-      playersText: '2 إلى 4 لاعبين',
+      playersText: 'لاعبان',
       status: 'السراقة ضد الروبوت أو لاعب عبر الشبكة',
       builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
     ),
