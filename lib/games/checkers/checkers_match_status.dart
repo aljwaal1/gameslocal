@@ -45,6 +45,14 @@ class CheckersMatchStatus {
     return '$count حجرًا';
   }
 
+  String _remainingPieceCountLabel(int count) {
+    if (count == 0) return 'لا أحجار';
+    if (count == 1) return 'حجر واحد';
+    if (count == 2) return 'حجران';
+    if (count >= 3 && count <= 10) return '$count أحجار';
+    return '$count حجرًا';
+  }
+
   String get winnerText {
     switch (winner) {
       case CheckersWinner.red:
@@ -59,9 +67,12 @@ class CheckersMatchStatus {
   }
 
   String get piecesText =>
-      'الأحجار المتبقية: الأحمر $normalizedRedPieces • الأسود $normalizedBlackPieces';
+      'الأحجار المتبقية: الأحمر ${_remainingPieceCountLabel(normalizedRedPieces)} • '
+      'الأسود ${_remainingPieceCountLabel(normalizedBlackPieces)}';
 
-  String get capturedText => 'الأسر: الأحمر $capturedByRed • الأسود $capturedByBlack';
+  String get capturedText =>
+      'الأسر: الأحمر ${_pieceCountLabel(capturedByRed)} • '
+      'الأسود ${_pieceCountLabel(capturedByBlack)}';
 
   String get winnerCaptureText {
     switch (winner) {
