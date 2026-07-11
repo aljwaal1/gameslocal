@@ -90,12 +90,12 @@ void main() {
   group('buildBattleQuickMatchChoice', () {
     test('always excludes the current character when alternatives exist', () {
       for (var currentCharacter = 0; currentCharacter < 4; currentCharacter++) {
-        for (var roll = 0; roll < 40; roll++) {
+        for (var roll = 0; roll < battleQuickMatchRollBound(4); roll++) {
           final choice = buildBattleQuickMatchChoice(
             currentCharacter: currentCharacter,
             currentBotLevel: 'متوسط',
             characterRoll: roll,
-            levelRoll: roll,
+            levelRoll: 0,
             characterCount: 4,
           );
 
@@ -108,11 +108,15 @@ void main() {
 
     test('always excludes the current bot level', () {
       for (final currentLevel in battleBotLevels) {
-        for (var roll = 0; roll < 30; roll++) {
+        for (
+          var roll = 0;
+          roll < battleQuickMatchRollBound(battleBotLevels.length);
+          roll++
+        ) {
           final choice = buildBattleQuickMatchChoice(
             currentCharacter: 0,
             currentBotLevel: currentLevel,
-            characterRoll: roll,
+            characterRoll: 0,
             levelRoll: roll,
             characterCount: 4,
           );
@@ -138,16 +142,20 @@ void main() {
     });
 
     test('maps rolls across every available alternative', () {
-      final choices = List.generate(
-        6,
-        (roll) => buildBattleQuickMatchChoice(
-          currentCharacter: 1,
-          currentBotLevel: 'متوسط',
-          characterRoll: roll,
-          levelRoll: roll,
-          characterCount: 4,
-        ),
-      );
+      final choices = <BattleQuickMatchChoice>[];
+      for (var characterRoll = 0; characterRoll < 3; characterRoll++) {
+        for (var levelRoll = 0; levelRoll < 2; levelRoll++) {
+          choices.add(
+            buildBattleQuickMatchChoice(
+              currentCharacter: 1,
+              currentBotLevel: 'متوسط',
+              characterRoll: characterRoll,
+              levelRoll: levelRoll,
+              characterCount: 4,
+            ),
+          );
+        }
+      }
 
       expect(choices.map((choice) => choice.characterIndex).toSet(), {0, 2, 3});
       expect(choices.map((choice) => choice.botLevel).toSet(), {'سهل', 'صعب'});
@@ -192,7 +200,17 @@ void main() {
           levelRoll: 0,
           characterCount: 4,
         ),
-        throwsArgumentError,
+        throwsRangeError,
+      );
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: 0,
+          currentBotLevel: 'سهل',
+          characterRoll: 3,
+          levelRoll: 0,
+          characterCount: 4,
+        ),
+        throwsRangeError,
       );
       expect(
         () => buildBattleQuickMatchChoice(
@@ -202,7 +220,17 @@ void main() {
           levelRoll: -1,
           characterCount: 4,
         ),
-        throwsArgumentError,
+        throwsRangeError,
+      );
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: 0,
+          currentBotLevel: 'سهل',
+          characterRoll: 0,
+          levelRoll: 2,
+          characterCount: 4,
+        ),
+        throwsRangeError,
       );
     });
   });
