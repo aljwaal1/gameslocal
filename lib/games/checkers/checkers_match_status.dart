@@ -154,13 +154,22 @@ class CheckersMatchEvaluator {
     }
 
     if (!redHasMove && !blackHasMove) {
+      final normalizedRedPieces = redPieces.clamp(0, CheckersMatchStatus.startingPiecesPerSide);
+      final normalizedBlackPieces = blackPieces.clamp(0, CheckersMatchStatus.startingPiecesPerSide);
+      final winner = normalizedRedPieces == normalizedBlackPieces
+          ? CheckersWinner.draw
+          : normalizedRedPieces > normalizedBlackPieces
+              ? CheckersWinner.red
+              : CheckersWinner.black;
       return CheckersMatchStatus(
         redPieces: redPieces,
         blackPieces: blackPieces,
         redHasMove: false,
         blackHasMove: false,
-        winner: CheckersWinner.draw,
-        reason: 'لا توجد حركة للطرفين',
+        winner: winner,
+        reason: winner == CheckersWinner.draw
+            ? 'لا توجد حركة للطرفين وتساوى عدد الأحجار'
+            : 'لا توجد حركة للطرفين وحُسمت بعدد الأحجار',
       );
     }
 

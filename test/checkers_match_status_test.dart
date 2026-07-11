@@ -98,4 +98,38 @@ void main() {
       expect(status.resultText, isEmpty);
     });
   });
+
+  group('CheckersMatchEvaluator blocked boards', () {
+    test('awards the win to the side with more pieces when neither can move', () {
+      final redWin = CheckersMatchEvaluator.evaluate(
+        redPieces: 8,
+        blackPieces: 5,
+        redHasMove: false,
+        blackHasMove: false,
+      );
+      final blackWin = CheckersMatchEvaluator.evaluate(
+        redPieces: 4,
+        blackPieces: 7,
+        redHasMove: false,
+        blackHasMove: false,
+      );
+
+      expect(redWin.winner, CheckersWinner.red);
+      expect(blackWin.winner, CheckersWinner.black);
+      expect(redWin.reason, 'لا توجد حركة للطرفين وحُسمت بعدد الأحجار');
+      expect(blackWin.reason, 'لا توجد حركة للطرفين وحُسمت بعدد الأحجار');
+    });
+
+    test('keeps a draw only when a blocked board has equal piece counts', () {
+      final draw = CheckersMatchEvaluator.evaluate(
+        redPieces: 6,
+        blackPieces: 6,
+        redHasMove: false,
+        blackHasMove: false,
+      );
+
+      expect(draw.winner, CheckersWinner.draw);
+      expect(draw.reason, 'لا توجد حركة للطرفين وتساوى عدد الأحجار');
+    });
+  });
 }
