@@ -176,6 +176,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       if ('♙♟'.contains(piece.symbol)) {
         final direction = bySide == ChessSide.white ? -1 : 1;
         if (targetRow == row + direction && (targetCol - col).abs() == 1) return true;
+      } else if ('♔♚'.contains(piece.symbol)) {
+        if ((targetRow - row).abs() <= 1 && (targetCol - col).abs() <= 1) return true;
       } else if (_moves(i, piece).contains(square)) {
         return true;
       }
