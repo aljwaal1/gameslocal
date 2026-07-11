@@ -87,6 +87,13 @@ class CheckersMatchStatus {
     }
   }
 
+  String get captureAdvantageText {
+    final difference = (capturedByRed - capturedByBlack).abs();
+    if (difference == 0) return 'تعادل في عدد الأحجار المأسورة';
+    final leader = capturedByRed > capturedByBlack ? 'الأحمر' : 'الأسود';
+    return 'أفضلية الأسر لصالح $leader بفارق ${_pieceCountLabel(difference)}';
+  }
+
   String get piecesAdvantageText {
     final difference = (normalizedRedPieces - normalizedBlackPieces).abs();
     if (difference == 0) return 'تعادل في عدد الأحجار';
@@ -105,7 +112,7 @@ class CheckersMatchStatus {
       result,
       piecesText,
       capturedText,
-      winnerCaptureText,
+      captureAdvantageText,
       piecesAdvantageText,
     ].join('\n');
   }
