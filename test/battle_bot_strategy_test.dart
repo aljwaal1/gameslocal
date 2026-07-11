@@ -77,4 +77,60 @@ void main() {
       BattleBotGoal.wander,
     );
   });
+
+  test('rejects invalid health values', () {
+    expect(
+      () => chooseBattleBotGoal(
+        health: 101,
+        pickupVisible: false,
+        pickupDistance: 1,
+        difficulty: 'متوسط',
+        decisionRoll: 0.5,
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('rejects negative or NaN pickup distances', () {
+    for (final distance in <double>[-0.1, double.nan]) {
+      expect(
+        () => chooseBattleBotGoal(
+          health: 50,
+          pickupVisible: true,
+          pickupDistance: distance,
+          difficulty: 'متوسط',
+          decisionRoll: 0.5,
+        ),
+        throwsArgumentError,
+      );
+    }
+  });
+
+  test('rejects unknown difficulty values', () {
+    expect(
+      () => chooseBattleBotGoal(
+        health: 50,
+        pickupVisible: false,
+        pickupDistance: 1,
+        difficulty: 'خبير',
+        decisionRoll: 0.5,
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('rejects decision rolls outside zero to one', () {
+    for (final roll in <double>[-0.01, 1.01, double.nan]) {
+      expect(
+        () => chooseBattleBotGoal(
+          health: 50,
+          pickupVisible: false,
+          pickupDistance: 1,
+          difficulty: 'متوسط',
+          decisionRoll: roll,
+        ),
+        throwsArgumentError,
+      );
+    }
+  });
 }
