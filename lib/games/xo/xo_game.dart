@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_settings.dart';
 import '../../design/app_theme.dart';
+import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
 
 enum XoCell { empty, x, o }
 
 class XoGameScreen extends StatefulWidget {
-  const XoGameScreen({super.key});
+  const XoGameScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
 
   @override
   State<XoGameScreen> createState() => _XoGameScreenState();
@@ -29,17 +33,66 @@ class _XoGameScreenState extends State<XoGameScreen> {
   int oWins = 0;
   int draws = 0;
   bool roundCounted = false;
+  StreamSubscription<NetworkMessage>? networkSubscription;
 
-  void reset() {
+  bool get isNetworkGame => widget.networkCore != null;
+  bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  XoCell get localMark => isHost ? XoCell.x : XoCell.o;
+  String get localPlayerId {
+    final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
+    final matching = players.where((player) => player.isHost == isHost);
+    return matching.isNotEmpty ? matching.first.id : (isHost ? 'host' : 'client');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (isNetworkGame) {
+      playVsBot = false;
+      message = isHost ? 'أنت X - دورك' : 'أنت O - بانتظار دور X';
+      networkSubscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
+    }
+  }
+
+  @override
+  void dispose() {
+    networkSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _handleNetworkMessage(NetworkMessage networkMessage) {
+    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId) return;
+    final action = networkMessage.payload['action']?.toString();
+    if (action == 'reset') {
+      _resetBoard(notifyPeer: false);
+      return;
+    }
+    final index = networkMessage.payload['index'];
+    if (action != 'place' || index is! int || index < 0 || index >= cells.length) return;
+    if (cells[index] != XoCell.empty || roundCounted || winLine.isNotEmpty) return;
+    final mark = networkMessage.payload['mark'] == XoCell.x.name ? XoCell.x : XoCell.o;
+    if (mark != (xTurn ? XoCell.x : XoCell.o)) return;
+    cells[index] = mark;
+    afterMove();
+  }
+
+  void _resetBoard({required bool notifyPeer}) {
     setState(() {
       cells = List.filled(9, XoCell.empty);
       xTurn = true;
       botThinking = false;
       winLine = [];
       roundCounted = false;
-      message = playVsBot ? 'أنت X - دورك' : 'دور X';
+      message = isNetworkGame
+          ? (isHost ? 'أنت X - دورك' : 'أنت O - بانتظار دور X')
+          : (playVsBot ? 'أنت X - دورك' : 'دور X');
     });
+    if (notifyPeer && isNetworkGame) {
+      widget.networkCore!.sendMove(<String, dynamic>{'action': 'reset'}, senderId: localPlayerId);
+    }
   }
+
+  void reset() => _resetBoard(notifyPeer: true);
 
   void resetScore() {
     setState(() {
@@ -53,8 +106,16 @@ class _XoGameScreenState extends State<XoGameScreen> {
   void tapCell(int index) {
     if (cells[index] != XoCell.empty || winLine.isNotEmpty || botThinking || roundCounted) return;
     if (playVsBot && !xTurn) return;
+    if (isNetworkGame && (xTurn ? XoCell.x : XoCell.o) != localMark) return;
 
-    cells[index] = xTurn ? XoCell.x : XoCell.o;
+    final mark = xTurn ? XoCell.x : XoCell.o;
+    cells[index] = mark;
+    if (isNetworkGame) {
+      widget.networkCore!.sendMove(
+        <String, dynamic>{'action': 'place', 'index': index, 'mark': mark.name},
+        senderId: localPlayerId,
+      );
+    }
     afterMove();
   }
 
@@ -83,7 +144,11 @@ class _XoGameScreenState extends State<XoGameScreen> {
     }
 
     xTurn = !xTurn;
-    message = playVsBot ? (xTurn ? 'أنت X - دورك' : 'الكمبيوتر يفكر...') : (xTurn ? 'دور X' : 'دور O');
+    message = isNetworkGame
+        ? ((xTurn ? XoCell.x : XoCell.o) == localMark
+            ? 'أنت ${localMark.name.toUpperCase()} - دورك'
+            : 'دور اللاعب الآخر')
+        : (playVsBot ? (xTurn ? 'أنت X - دورك' : 'الكمبيوتر يفكر...') : (xTurn ? 'دور X' : 'دور O'));
     setState(() {});
 
     if (playVsBot && !xTurn) runBot();
@@ -225,7 +290,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(playVsBot ? Icons.smart_toy : Icons.people, color: AppColors.primary),
+                          Icon(isNetworkGame ? Icons.wifi : (playVsBot ? Icons.smart_toy : Icons.people), color: AppColors.primary),
                           const SizedBox(width: 10),
                           Expanded(child: Text(message, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
                         ],
@@ -233,10 +298,10 @@ class _XoGameScreenState extends State<XoGameScreen> {
                       const SizedBox(height: 6),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: Text('مستوى الكمبيوتر من الإعدادات: ${settings.botDifficultyText}', style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold)),
+                        child: Text(isNetworkGame ? 'لعب شبكي محلي • أنت ${localMark.name.toUpperCase()}' : 'مستوى الكمبيوتر من الإعدادات: ${settings.botDifficultyText}', style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(height: 14),
-                      SegmentedButton<bool>(
+                      if (!isNetworkGame) SegmentedButton<bool>(
                         segments: const [
                           ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
                           ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
