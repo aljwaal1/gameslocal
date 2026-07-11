@@ -71,8 +71,8 @@ class CheckersMatchStatus {
       'الأسود ${_remainingPieceCountLabel(normalizedBlackPieces)}';
 
   String get capturedText =>
-      'الأسر: الأحمر ${_pieceCountLabel(capturedByRed)} • '
-      'الأسود ${_pieceCountLabel(capturedByBlack)}';
+      'الأسر: الأحمر ${_remainingPieceCountLabel(capturedByRed)} • '
+      'الأسود ${_remainingPieceCountLabel(capturedByBlack)}';
 
   String get winnerCaptureText {
     switch (winner) {
