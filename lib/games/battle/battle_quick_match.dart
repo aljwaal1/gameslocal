@@ -42,6 +42,12 @@ class BattleQuickMatchChoice {
   final int characterCount;
   final String botLevel;
 
+  bool differsFrom({
+    required int characterIndex,
+    required String botLevel,
+  }) =>
+      this.characterIndex != characterIndex || this.botLevel != botLevel;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -122,9 +128,16 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
   var nextLevelIndex = levelRoll % levelRollBound;
   if (nextLevelIndex >= currentLevelIndex) nextLevelIndex += 1;
 
-  return BattleQuickMatchChoice(
+  final choice = BattleQuickMatchChoice(
     characterIndex: nextCharacter,
     characterCount: characterCount,
     botLevel: battleBotLevels[nextLevelIndex],
   );
+  if (!choice.differsFrom(
+    characterIndex: currentCharacter,
+    botLevel: currentBotLevel,
+  )) {
+    throw StateError('يجب أن تختلف المباراة السريعة عن الإعداد الحالي');
+  }
+  return choice;
 }
