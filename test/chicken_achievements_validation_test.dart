@@ -9,7 +9,7 @@ void main() {
 
   test('accepts valid round stats and unlocks matching achievements', () async {
     final unlocked = await ChickenAchievements.evaluateRound(
-      score: 500,
+      score: 1000,
       hits: 15,
       accuracy: 100,
       bestCombo: 10,
@@ -21,11 +21,39 @@ void main() {
       containsAll(<String>[
         'first_hit',
         'score_500',
+        'score_1000',
         'combo_10',
         'accuracy_90',
         'perfect_15',
         'coins_3',
       ]),
+    );
+  });
+
+  test('1000-point achievement respects the exact score boundary', () async {
+    final belowThreshold = await ChickenAchievements.evaluateRound(
+      score: 999,
+      hits: 10,
+      accuracy: 80,
+      bestCombo: 5,
+      coins: 0,
+    );
+    expect(
+      belowThreshold.map((achievement) => achievement.id),
+      isNot(contains('score_1000')),
+    );
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final atThreshold = await ChickenAchievements.evaluateRound(
+      score: 1000,
+      hits: 10,
+      accuracy: 80,
+      bestCombo: 5,
+      coins: 0,
+    );
+    expect(
+      atThreshold.map((achievement) => achievement.id),
+      contains('score_1000'),
     );
   });
 
