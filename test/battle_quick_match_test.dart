@@ -4,15 +4,15 @@ import 'package:gameslocal/games/battle/battle_quick_match.dart';
 void main() {
   group('BattleQuickMatchChoice', () {
     test('compares choices by character and bot level', () {
-      const first = BattleQuickMatchChoice(
+      final first = BattleQuickMatchChoice(
         characterIndex: 2,
         botLevel: 'صعب',
       );
-      const same = BattleQuickMatchChoice(
+      final same = BattleQuickMatchChoice(
         characterIndex: 2,
         botLevel: 'صعب',
       );
-      const different = BattleQuickMatchChoice(
+      final different = BattleQuickMatchChoice(
         characterIndex: 1,
         botLevel: 'صعب',
       );
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('provides a readable diagnostic representation', () {
-      const choice = BattleQuickMatchChoice(
+      final choice = BattleQuickMatchChoice(
         characterIndex: 3,
         botLevel: 'سهل',
       );
@@ -31,6 +31,23 @@ void main() {
       expect(
         choice.toString(),
         'BattleQuickMatchChoice(characterIndex: 3, botLevel: سهل)',
+      );
+    });
+
+    test('rejects invalid direct choices', () {
+      expect(
+        () => BattleQuickMatchChoice(
+          characterIndex: -1,
+          botLevel: 'سهل',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => BattleQuickMatchChoice(
+          characterIndex: 0,
+          botLevel: 'مستوى غير معروف',
+        ),
+        throwsArgumentError,
       );
     });
   });
