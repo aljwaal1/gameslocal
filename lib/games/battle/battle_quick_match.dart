@@ -60,6 +60,17 @@ class BattleQuickMatchChoice {
 
 const List<String> battleBotLevels = ['سهل', 'متوسط', 'صعب'];
 
+int battleQuickMatchRollBound(int optionCount) {
+  if (optionCount <= 0) {
+    throw ArgumentError.value(
+      optionCount,
+      'optionCount',
+      'يجب أن يتوفر خيار واحد على الأقل للقرعة',
+    );
+  }
+  return optionCount > 1 ? optionCount - 1 : 1;
+}
+
 BattleQuickMatchChoice buildBattleQuickMatchChoice({
   required int currentCharacter,
   required String currentBotLevel,
@@ -67,13 +78,7 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
   required int levelRoll,
   required int characterCount,
 }) {
-  if (characterCount <= 0) {
-    throw ArgumentError.value(
-      characterCount,
-      'characterCount',
-      'يجب أن يتوفر اختيار واحد على الأقل للشخصيات',
-    );
-  }
+  final characterRollBound = battleQuickMatchRollBound(characterCount);
   if (currentCharacter < 0 || currentCharacter >= characterCount) {
     throw ArgumentError.value(
       currentCharacter,
@@ -105,7 +110,7 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
 
   final int nextCharacter;
   if (characterCount > 1) {
-    var candidate = characterRoll % (characterCount - 1);
+    var candidate = characterRoll % characterRollBound;
     if (candidate >= currentCharacter) candidate += 1;
     nextCharacter = candidate;
   } else {
@@ -113,7 +118,8 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
   }
 
   final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
-  var nextLevelIndex = levelRoll % (battleBotLevels.length - 1);
+  final levelRollBound = battleQuickMatchRollBound(battleBotLevels.length);
+  var nextLevelIndex = levelRoll % levelRollBound;
   if (nextLevelIndex >= currentLevelIndex) nextLevelIndex += 1;
 
   return BattleQuickMatchChoice(

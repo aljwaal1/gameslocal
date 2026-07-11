@@ -74,6 +74,19 @@ void main() {
     });
   });
 
+  group('battleQuickMatchRollBound', () {
+    test('always returns a positive Random.nextInt bound', () {
+      expect(battleQuickMatchRollBound(1), 1);
+      expect(battleQuickMatchRollBound(2), 1);
+      expect(battleQuickMatchRollBound(4), 3);
+    });
+
+    test('rejects an empty options list', () {
+      expect(() => battleQuickMatchRollBound(0), throwsArgumentError);
+      expect(() => battleQuickMatchRollBound(-1), throwsArgumentError);
+    });
+  });
+
   group('buildBattleQuickMatchChoice', () {
     test('always excludes the current character when alternatives exist', () {
       for (var currentCharacter = 0; currentCharacter < 4; currentCharacter++) {
