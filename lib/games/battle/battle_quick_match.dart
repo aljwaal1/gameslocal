@@ -6,6 +6,20 @@ class BattleQuickMatchChoice {
 
   final int characterIndex;
   final String botLevel;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BattleQuickMatchChoice &&
+          characterIndex == other.characterIndex &&
+          botLevel == other.botLevel;
+
+  @override
+  int get hashCode => Object.hash(characterIndex, botLevel);
+
+  @override
+  String toString() =>
+      'BattleQuickMatchChoice(characterIndex: $characterIndex, botLevel: $botLevel)';
 }
 
 const List<String> battleBotLevels = ['سهل', 'متوسط', 'صعب'];
