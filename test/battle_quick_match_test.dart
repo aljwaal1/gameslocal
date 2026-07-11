@@ -2,6 +2,39 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gameslocal/games/battle/battle_quick_match.dart';
 
 void main() {
+  group('BattleQuickMatchChoice', () {
+    test('compares choices by their selected character and bot level', () {
+      const first = BattleQuickMatchChoice(
+        characterIndex: 2,
+        botLevel: 'صعب',
+      );
+      const same = BattleQuickMatchChoice(
+        characterIndex: 2,
+        botLevel: 'صعب',
+      );
+      const different = BattleQuickMatchChoice(
+        characterIndex: 1,
+        botLevel: 'صعب',
+      );
+
+      expect(first, same);
+      expect(first.hashCode, same.hashCode);
+      expect(first, isNot(different));
+    });
+
+    test('provides a readable diagnostic representation', () {
+      const choice = BattleQuickMatchChoice(
+        characterIndex: 3,
+        botLevel: 'سهل',
+      );
+
+      expect(
+        choice.toString(),
+        'BattleQuickMatchChoice(characterIndex: 3, botLevel: سهل)',
+      );
+    });
+  });
+
   group('buildBattleQuickMatchChoice', () {
     test('always excludes the current character when alternatives exist', () {
       for (var currentCharacter = 0; currentCharacter < 4; currentCharacter++) {
