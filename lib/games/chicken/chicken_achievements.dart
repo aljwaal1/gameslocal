@@ -35,6 +35,12 @@ class ChickenAchievements {
       emoji: '🎯',
     ),
     ChickenAchievement(
+      id: 'perfect_15',
+      title: 'جولة مثالية',
+      description: 'حقق 15 إصابة على الأقل بدقة 100% في جولة واحدة.',
+      emoji: '💯',
+    ),
+    ChickenAchievement(
       id: 'coins_3',
       title: 'جامع العملات',
       description: 'اجمع 3 عملات في جولة واحدة.',
@@ -102,6 +108,7 @@ class ChickenAchievements {
     unlock('score_500', score >= 500);
     unlock('combo_10', bestCombo >= 10);
     unlock('accuracy_90', hits >= 10 && accuracy >= 90);
+    unlock('perfect_15', hits >= 15 && accuracy == 100);
     unlock('coins_3', coins >= 3);
 
     if (newlyUnlocked.isNotEmpty) {
