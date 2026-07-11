@@ -102,7 +102,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     final own = players.where((player) => player.isHost == isHost);
     return own.isNotEmpty ? own.first.id : (isHost ? 'host' : 'client');
   }
-  bool get canUseSkill => !finished && skillCooldown == 0 && (!isNetworkGame || isHost);
+  bool get canUseSkill => !finished && skillCooldown == 0;
 
   @override
   void initState() {
@@ -272,7 +272,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void useSkill() {
     if (!canUseSkill) return;
     setState(() {
-      final succeeded = _applySkill();
+      final succeeded = isNetworkGame && !isHost ? _applyGuestSkill() : _applySkill();
       skillSucceeded = succeeded;
       if (succeeded) {
         skillCooldown = skillCooldownSeconds;
@@ -293,6 +293,26 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
         botEffect = false;
       });
     });
+  }
+
+  bool _applyGuestSkill() {
+    if (botHealth <= 45) {
+      final before = botHealth;
+      botHealth = math.min(100, botHealth + 16).toInt();
+      skillMessage = 'استعاد اللاعب 2 ${botHealth - before} نقطة صحة.';
+      _showSkillEffect(onPlayer: false);
+      return true;
+    }
+    if (distance >= 0.62) {
+      skillMessage = 'اقترب أكثر لاستخدام مهارة اللاعب 2.';
+      return false;
+    }
+    playerHealth = math.max(0, playerHealth - 28).toInt();
+    playerX = (playerX + (playerX >= botX ? 0.28 : -0.28)).clamp(-0.88, 0.88).toDouble();
+    skillMessage = 'أصاب اللاعب 2 خصمه بضربة مضادة بقوة 28.';
+    if (playerHealth == 0) finish();
+    _showSkillEffect(onPlayer: true);
+    return true;
   }
 
   bool _applySkill() {
