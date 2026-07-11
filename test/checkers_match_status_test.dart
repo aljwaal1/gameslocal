@@ -15,10 +15,42 @@ void main() {
 
       expect(status.resultText.split('\n'), hasLength(5));
       expect(status.resultText, contains('فاز الأحمر — لا توجد حركة للأسود'));
-      expect(status.resultText, contains('الأحجار المتبقية: الأحمر 9 • الأسود 5'));
-      expect(status.resultText, contains('الأسر: الأحمر 11 • الأسود 7'));
+      expect(
+        status.resultText,
+        contains('الأحجار المتبقية: الأحمر 9 أحجار • الأسود 5 أحجار'),
+      );
+      expect(
+        status.resultText,
+        contains('الأسر: الأحمر 11 حجرًا • الأسود 7 أحجار'),
+      );
       expect(status.resultText, contains('أسر الأحمر 11 حجرًا من أحجار الأسود'));
       expect(status.resultText, contains('أفضلية الأحمر بفارق 4 أحجار'));
+    });
+
+    test('uses natural Arabic wording for remaining piece counts', () {
+      const noPieces = CheckersMatchStatus(
+        redPieces: 0,
+        blackPieces: 1,
+        redHasMove: false,
+        blackHasMove: true,
+        winner: CheckersWinner.black,
+      );
+      const twoPieces = CheckersMatchStatus(
+        redPieces: 2,
+        blackPieces: 2,
+        redHasMove: false,
+        blackHasMove: false,
+        winner: CheckersWinner.draw,
+      );
+
+      expect(
+        noPieces.piecesText,
+        'الأحجار المتبقية: الأحمر لا أحجار • الأسود حجر واحد',
+      );
+      expect(
+        twoPieces.piecesText,
+        'الأحجار المتبقية: الأحمر حجران • الأسود حجران',
+      );
     });
 
     test('uses natural Arabic wording for one- and two-piece differences', () {
