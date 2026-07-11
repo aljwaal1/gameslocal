@@ -196,7 +196,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   void drawTile() {
-    if (!playerTurn || roundFinished) return;
+    if (!isLocalTurn || roundFinished) return;
     if (stock.isEmpty) {
       GameFeedback.error();
       setState(() => message = 'لا توجد قطع للسحب. مرر إذا لا تملك حركة');
@@ -210,7 +210,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   void passTurn() {
-    if (!playerTurn || roundFinished) return;
+    if (!isLocalTurn || roundFinished) return;
     if (localHand.any(canPlay)) {
       GameFeedback.error();
       setState(() => message = 'لديك قطعة مناسبة بإطار ذهبي، لا يمكنك التمرير');
@@ -398,8 +398,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                     playerScore: playerScore,
                     botScore: botScore,
                     roundNumber: roundNumber,
-                    playerCount: player.length,
-                    botCount: bot.length,
+                    playerCount: localHand.length,
+                    botCount: (isNetworkGame && !isHost ? player : bot).length,
                     stockCount: stock.length,
                     playableCount: playableCount,
                     botDifficultyText: settings.botDifficultyText,
@@ -454,7 +454,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                   const SizedBox(height: 6),
                   _PlayerHand(
                     tiles: sortedPlayerHand,
-                    playerTurn: playerTurn,
+                    playerTurn: isLocalTurn,
                     roundFinished: roundFinished,
                     canPlay: canPlay,
                     onPlay: playPlayerTile,
