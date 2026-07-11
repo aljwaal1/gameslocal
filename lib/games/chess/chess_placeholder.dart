@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/audio_feedback.dart';
+
 enum ChessSide { white, black }
 
 class ChessPiece {
@@ -21,6 +23,9 @@ class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
   int? selected;
   List<int> targets = <int>[];
   String message = 'دور الأبيض';
+  final List<List<ChessPiece?>> history = <List<ChessPiece?>>[];
+  final List<ChessSide> turnHistory = <ChessSide>[];
+  int moveCount = 0;
 
   @override
   void initState() {
@@ -39,6 +44,9 @@ class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
       board[56 + i] = ChessPiece(whiteBack[i], ChessSide.white);
     }
     turn = ChessSide.white;
+    history.clear();
+    turnHistory.clear();
+    moveCount = 0;
     selected = null;
     targets = <int>[];
     message = 'دور الأبيض';
@@ -48,6 +56,9 @@ class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
   void _tap(int index) {
     final piece = board[index];
     if (selected != null && targets.contains(index)) {
+      history.add(List<ChessPiece?>.from(board));
+      turnHistory.add(turn);
+      moveCount++;
       final moving = board[selected!];
       final captured = board[index];
       board[index] = moving;
@@ -59,9 +70,11 @@ class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
       targets = <int>[];
       if (captured?.symbol == '♔' || captured?.symbol == '♚') {
         message = turn == ChessSide.white ? 'فاز الأبيض' : 'فاز الأسود';
+        GameFeedback.win();
       } else {
         turn = turn == ChessSide.white ? ChessSide.black : ChessSide.white;
         message = turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود';
+        GameFeedback.move();
       }
       setState(() {});
       return;
@@ -74,6 +87,19 @@ class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
       selected = index;
       targets = _moves(index, piece);
     });
+  }
+
+  void _undo() {
+    if (history.isEmpty) return;
+    setState(() {
+      board = history.removeLast();
+      turn = turnHistory.removeLast();
+      moveCount = (moveCount - 1).clamp(0, 999).toInt();
+      selected = null;
+      targets = <int>[];
+      message = turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود';
+    });
+    GameFeedback.tap();
   }
 
   List<int> _moves(int index, ChessPiece piece) {
@@ -127,9 +153,9 @@ class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الشطرنج'), actions: [IconButton(onPressed: _newGame, icon: const Icon(Icons.refresh))]),
+      appBar: AppBar(title: const Text('الشطرنج'), actions: [IconButton(onPressed: history.isEmpty ? null : _undo, tooltip: 'تراجع', icon: const Icon(Icons.undo)), IconButton(onPressed: _newGame, tooltip: 'لعبة جديدة', icon: const Icon(Icons.refresh))]),
       body: SafeArea(child: Column(children: [
-        Padding(padding: const EdgeInsets.all(16), child: Text(message, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold))),
+        Padding(padding: const EdgeInsets.all(16), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(message, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), Chip(label: Text('نقلة $moveCount'))])),
         Expanded(child: Center(child: AspectRatio(aspectRatio: 1, child: GridView.builder(
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
@@ -143,7 +169,7 @@ class _ChessPlaceholderScreenState extends State<ChessPlaceholderScreen> {
             ));
           },
         )))),
-        const Padding(padding: EdgeInsets.all(12), child: Text('لعب محلي للاعبين • ترقية البيدق تلقائياً إلى وزير')),
+        const Padding(padding: EdgeInsets.all(12), child: Text('لعب محلي للاعبين • تراجع عن النقلة • ترقية البيدق تلقائياً إلى وزير')),
       ])),
     );
   }
