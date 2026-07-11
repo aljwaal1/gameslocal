@@ -15,7 +15,7 @@ class AppSettingsController extends ChangeNotifier {
   int tableColorIndex = 0;
 
   Future<void> load() async {
-    _prefs ??= await SharedPreferences.getInstance();
+    _prefs = await SharedPreferences.getInstance();
     final difficultyIndex = _prefs!.getInt('bot_difficulty') ?? BotDifficulty.easy.index;
     botDifficulty = BotDifficulty.values[difficultyIndex.clamp(0, BotDifficulty.values.length - 1).toInt()];
     soundEnabled = _prefs!.getBool('sound_enabled') ?? true;
