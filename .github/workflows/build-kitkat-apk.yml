@@ -1,0 +1,41 @@
+name: Build KitKat APK Separate
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android_kitkat_java/**'
+      - '.github/workflows/build-kitkat-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gameslocal-legacy-kitkat
+  cancel-in-progress: true
+
+jobs:
+  build-legacy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build Android 4.4 Java APK
+        working-directory: android_kitkat_java
+        run: gradle assembleDebug --no-daemon
+      - name: Copy legacy APK separately
+        run: |
+          mkdir -p apk/legacy
+          cp android_kitkat_java/app/build/outputs/apk/debug/app-debug.apk apk/legacy/gameslocal-kitkat.apk
+      - name: Commit legacy APK only
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Build legacy KitKat APK
+          file_pattern: apk/legacy/gameslocal-kitkat.apk
