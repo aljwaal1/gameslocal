@@ -17,8 +17,28 @@ void main() {
       expect(status.resultText, contains('فاز الأحمر — لا توجد حركة للأسود'));
       expect(status.resultText, contains('الأحجار المتبقية: الأحمر 9 • الأسود 5'));
       expect(status.resultText, contains('الأسر: الأحمر 11 • الأسود 7'));
-      expect(status.resultText, contains('أسر الأحمر 11 من أحجار الأسود'));
-      expect(status.resultText, contains('أفضلية الأحمر بفارق 4'));
+      expect(status.resultText, contains('أسر الأحمر 11 حجرًا من أحجار الأسود'));
+      expect(status.resultText, contains('أفضلية الأحمر بفارق 4 أحجار'));
+    });
+
+    test('uses natural Arabic wording for one- and two-piece differences', () {
+      const onePieceLead = CheckersMatchStatus(
+        redPieces: 8,
+        blackPieces: 7,
+        redHasMove: true,
+        blackHasMove: false,
+        winner: CheckersWinner.red,
+      );
+      const twoPieceLead = CheckersMatchStatus(
+        redPieces: 8,
+        blackPieces: 6,
+        redHasMove: true,
+        blackHasMove: false,
+        winner: CheckersWinner.red,
+      );
+
+      expect(onePieceLead.piecesAdvantageText, 'أفضلية الأحمر بفارق حجر واحد');
+      expect(twoPieceLead.piecesAdvantageText, 'أفضلية الأحمر بفارق حجرين');
     });
 
     test('trims the reason and avoids a dangling separator', () {
