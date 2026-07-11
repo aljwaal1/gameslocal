@@ -276,7 +276,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       skillSucceeded = succeeded;
       if (succeeded) {
         skillCooldown = skillCooldownSeconds;
-        _showSkillEffect(onPlayer: widget.characterName == 'صخر');
+        if (!isNetworkGame || isHost) _showSkillEffect(onPlayer: widget.characterName == 'صخر');
       }
     });
     _sendState();
