@@ -54,5 +54,28 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('rejects negative random rolls before indexing lists', () {
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: 0,
+          currentBotLevel: 'سهل',
+          characterRoll: -1,
+          levelRoll: 0,
+          characterCount: 4,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: 0,
+          currentBotLevel: 'سهل',
+          characterRoll: 0,
+          levelRoll: -1,
+          characterCount: 4,
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }
