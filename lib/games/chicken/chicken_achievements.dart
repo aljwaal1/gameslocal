@@ -23,6 +23,12 @@ class ChickenAchievements {
       emoji: '🏆',
     ),
     ChickenAchievement(
+      id: 'score_1000',
+      title: 'أسطورة المزرعة',
+      description: 'حقق 1000 نقطة في جولة واحدة.',
+      emoji: '👑',
+    ),
+    ChickenAchievement(
       id: 'combo_10',
       title: 'سلسلة سريعة',
       description: 'وصل إلى كومبو 10 في جولة واحدة.',
@@ -106,6 +112,7 @@ class ChickenAchievements {
 
     unlock('first_hit', hits >= 1);
     unlock('score_500', score >= 500);
+    unlock('score_1000', score >= 1000);
     unlock('combo_10', bestCombo >= 10);
     unlock('accuracy_90', hits >= 10 && accuracy >= 90);
     unlock('perfect_15', hits >= 15 && accuracy == 100);
