@@ -3,7 +3,7 @@ import 'package:gameslocal/games/checkers/checkers_match_status.dart';
 
 void main() {
   group('CheckersMatchStatus resultText', () {
-    test('shows a readable five-line summary for a red win', () {
+    test('shows a concise four-line summary for a red win', () {
       const status = CheckersMatchStatus(
         redPieces: 9,
         blackPieces: 5,
@@ -13,7 +13,7 @@ void main() {
         reason: 'لا توجد حركة للأسود',
       );
 
-      expect(status.resultText.split('\n'), hasLength(5));
+      expect(status.resultText.split('\n'), hasLength(4));
       expect(status.resultText, contains('فاز الأحمر — لا توجد حركة للأسود'));
       expect(
         status.resultText,
@@ -27,7 +27,7 @@ void main() {
         status.resultText,
         contains('أفضلية الأسر لصالح الأحمر بفارق 4 أحجار'),
       );
-      expect(status.resultText, contains('أفضلية الأحمر بفارق 4 أحجار'));
+      expect(status.resultText, isNot(contains('أفضلية الأحمر بفارق 4 أحجار')));
     });
 
     test('reports capture advantage for either side and a true tie', () {
