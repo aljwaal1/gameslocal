@@ -60,7 +60,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       turnHistory.add(turn);
       moveCount++;
       final moving = board[selected!];
-      final captured = board[index];
       board[index] = moving;
       board[selected!] = null;
       if ((moving?.symbol == '♙' && index ~/ 8 == 0) || (moving?.symbol == '♟' && index ~/ 8 == 7)) {
