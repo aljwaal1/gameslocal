@@ -135,7 +135,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-                      _NetworkStatusBox(state: state),
+                      _NetworkStatusBox(state: state, onReconnect: networkCore.reconnect),
                     ],
                   ),
                 ),
@@ -153,9 +153,10 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
 }
 
 class _NetworkStatusBox extends StatelessWidget {
-  const _NetworkStatusBox({required this.state});
+  const _NetworkStatusBox({required this.state, required this.onReconnect});
 
   final LocalNetworkState state;
+  final Future<void> Function() onReconnect;
 
   @override
   Widget build(BuildContext context) {
@@ -182,6 +183,10 @@ class _NetworkStatusBox extends StatelessWidget {
             const SizedBox(height: 6),
             Text('IP اللاعب الأول: ${state.hostAddress}', style: const TextStyle(fontWeight: FontWeight.bold)),
             Text('Port: ${state.port}'),
+          ],
+          if (state.status == LocalNetworkStatus.error || state.status == LocalNetworkStatus.disconnected) ...[
+            const SizedBox(height: 10),
+            OutlinedButton.icon(onPressed: onReconnect, icon: const Icon(Icons.refresh), label: const Text('إعادة الاتصال')),
           ],
           if (state.roomCode.isNotEmpty) ...[
             const SizedBox(height: 6),
