@@ -223,7 +223,7 @@ class _SupportedModeCard extends StatelessWidget {
               child: Icon(Icons.sports_martial_arts, color: colorScheme.primary),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
