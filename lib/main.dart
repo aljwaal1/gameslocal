@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/audio_feedback.dart';
+import 'core/app_settings.dart';
 import 'core/game_definition.dart';
 import 'core/game_room.dart';
 import 'design/app_theme.dart';
@@ -15,7 +16,9 @@ import 'lan/screens/lan_home_screen.dart';
 import 'network/wifi_lobby_screen.dart';
 import 'settings/settings_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppSettingsController.instance.load();
   runApp(const GamesLocalApp());
 }
 
