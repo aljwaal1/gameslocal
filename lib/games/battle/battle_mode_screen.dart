@@ -2,11 +2,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/network/local_network_core.dart';
+
 import 'battle_arena_screen.dart';
 import 'battle_quick_match.dart';
 
 class BattleModeScreen extends StatefulWidget {
-  const BattleModeScreen({super.key});
+  const BattleModeScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
 
   @override
   State<BattleModeScreen> createState() => _BattleModeScreenState();
@@ -49,6 +53,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
             players: players,
             mode: mode,
             botLevel: botLevel,
+            networkCore: widget.networkCore,
           ),
         ),
       ),
@@ -84,10 +89,10 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            const Text('اختر الشخصية ومستوى الروبوت، أو ابدأ مباراة سريعة مباشرة.'),
+            Text(widget.networkCore == null ? 'اختر الشخصية ومستوى الروبوت، أو ابدأ مباراة سريعة مباشرة.' : 'اختر شخصيتك ثم ابدأ مواجهة اللاعب الآخر عبر الشبكة المحلية.'),
             const SizedBox(height: 14),
             OutlinedButton.icon(
-              onPressed: _startQuickMatch,
+              onPressed: widget.networkCore == null ? _startQuickMatch : null,
               icon: const Icon(Icons.casino_outlined),
               label: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
@@ -152,14 +157,14 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               },
             ),
             const SizedBox(height: 18),
-            const _SupportedModeCard(),
+            _SupportedModeCard(networkGame: widget.networkCore != null),
             const SizedBox(height: 10),
             _OptionCard(
-              title: 'مستوى الروبوت',
+              title: widget.networkCore == null ? 'مستوى الروبوت' : 'نوع المباراة',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<String>(
+                  if (widget.networkCore == null) DropdownButtonFormField<String>(
                     value: botLevel,
                     items: const [
                       DropdownMenuItem(value: 'سهل', child: Text('سهل')),
@@ -170,7 +175,7 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    botLevelDescription,
+                    widget.networkCore == null ? botLevelDescription : 'اتصال محلي مباشر بين لاعبين؛ المضيف هو اللاعب الأول.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -201,7 +206,9 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
 }
 
 class _SupportedModeCard extends StatelessWidget {
-  const _SupportedModeCard();
+  const _SupportedModeCard({required this.networkGame});
+
+  final bool networkGame;
 
   @override
   Widget build(BuildContext context) {
@@ -221,12 +228,12 @@ class _SupportedModeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'النمط المتاح حاليًا: 1 ضد 1',
+                    networkGame ? 'النمط: لاعب ضد لاعب عبر LAN' : 'النمط المتاح حاليًا: 1 ضد 1',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'لاعب واحد ضد روبوت. اللعب الجماعي ونمط الفرق سيظهران بعد اكتمال دعمهما داخل الساحة.',
+                    networkGame ? 'تتم مزامنة الحركة والهجوم والصحة بين الجهازين.' : 'لاعب واحد ضد روبوت. اللعب الجماعي ونمط الفرق سيظهران بعد اكتمال دعمهما داخل الساحة.',
                     style: TextStyle(fontSize: 12),
                   ),
                 ],
