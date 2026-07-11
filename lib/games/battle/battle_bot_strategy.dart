@@ -1,5 +1,7 @@
 enum BattleBotGoal { chase, retreat, seekHealth, wander }
 
+const _supportedBattleDifficulties = {'سهل', 'متوسط', 'صعب'};
+
 BattleBotGoal chooseBattleBotGoal({
   required int health,
   required bool pickupVisible,
@@ -7,6 +9,31 @@ BattleBotGoal chooseBattleBotGoal({
   required String difficulty,
   required double decisionRoll,
 }) {
+  if (health < 0 || health > 100) {
+    throw ArgumentError.value(health, 'health', 'must be between 0 and 100');
+  }
+  if (pickupDistance.isNaN || pickupDistance < 0) {
+    throw ArgumentError.value(
+      pickupDistance,
+      'pickupDistance',
+      'must be zero or greater',
+    );
+  }
+  if (!_supportedBattleDifficulties.contains(difficulty)) {
+    throw ArgumentError.value(
+      difficulty,
+      'difficulty',
+      'must be سهل, متوسط, or صعب',
+    );
+  }
+  if (decisionRoll.isNaN || decisionRoll < 0 || decisionRoll > 1) {
+    throw ArgumentError.value(
+      decisionRoll,
+      'decisionRoll',
+      'must be between 0 and 1',
+    );
+  }
+
   if (health <= 35 && pickupVisible && pickupDistance <= 0.9) {
     return BattleBotGoal.seekHealth;
   }
