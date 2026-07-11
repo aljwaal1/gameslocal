@@ -10,8 +10,8 @@ void main() {
   test('accepts valid round stats and unlocks matching achievements', () async {
     final unlocked = await ChickenAchievements.evaluateRound(
       score: 500,
-      hits: 10,
-      accuracy: 90,
+      hits: 15,
+      accuracy: 100,
       bestCombo: 10,
       coins: 3,
     );
@@ -23,9 +23,31 @@ void main() {
         'score_500',
         'combo_10',
         'accuracy_90',
+        'perfect_15',
         'coins_3',
       ]),
     );
+  });
+
+  test('perfect round requires both full accuracy and enough hits', () async {
+    final tooFewHits = await ChickenAchievements.evaluateRound(
+      score: 400,
+      hits: 14,
+      accuracy: 100,
+      bestCombo: 8,
+      coins: 0,
+    );
+    expect(tooFewHits.map((achievement) => achievement.id), isNot(contains('perfect_15')));
+
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final missedShot = await ChickenAchievements.evaluateRound(
+      score: 400,
+      hits: 15,
+      accuracy: 99,
+      bestCombo: 8,
+      coins: 0,
+    );
+    expect(missedShot.map((achievement) => achievement.id), isNot(contains('perfect_15')));
   });
 
   test('rejects accuracy outside the supported range', () async {
