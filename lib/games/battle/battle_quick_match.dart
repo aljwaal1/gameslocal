@@ -1,5 +1,29 @@
 class BattleQuickMatchChoice {
-  const BattleQuickMatchChoice({
+  factory BattleQuickMatchChoice({
+    required int characterIndex,
+    required String botLevel,
+  }) {
+    if (characterIndex < 0) {
+      throw ArgumentError.value(
+        characterIndex,
+        'characterIndex',
+        'فهرس شخصية المباراة السريعة لا يمكن أن يكون سالبًا',
+      );
+    }
+    if (!battleBotLevels.contains(botLevel)) {
+      throw ArgumentError.value(
+        botLevel,
+        'botLevel',
+        'مستوى روبوت المباراة السريعة غير معروف',
+      );
+    }
+    return BattleQuickMatchChoice._(
+      characterIndex: characterIndex,
+      botLevel: botLevel,
+    );
+  }
+
+  const BattleQuickMatchChoice._({
     required this.characterIndex,
     required this.botLevel,
   });
