@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/material.dart';
 import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
 import '../../design/app_theme.dart';
+import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
 
 class PlayingCardModel {
   const PlayingCardModel({required this.rank, required this.suit});
@@ -34,7 +37,9 @@ class PlayingCardModel {
 enum LastCollector { player, bot }
 
 class CardsGameScreen extends StatefulWidget {
-  const CardsGameScreen({super.key});
+  const CardsGameScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
 
   @override
   State<CardsGameScreen> createState() => _CardsGameScreenState();
@@ -43,6 +48,8 @@ class CardsGameScreen extends StatefulWidget {
 class _CardsGameScreenState extends State<CardsGameScreen> {
   final Random random = Random();
   final settings = AppSettingsController.instance;
+  StreamSubscription<NetworkMessage>? networkSubscription;
+  int roundSeed = 0;
 
   List<PlayingCardModel> deck = [];
   List<PlayingCardModel> table = [];
@@ -61,13 +68,31 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   LastCollector? lastCollector;
   String message = 'السراقة: الصور = 10، والباقي = 1';
 
+  bool get isNetworkGame => widget.networkCore != null;
+  bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  bool get isLocalTurn => isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
+  List<PlayingCardModel> get localHand => isNetworkGame && !isHost ? botHand : playerHand;
+  String get localPlayerId {
+    final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
+    final own = players.where((p) => p.isHost == isHost);
+    return own.isNotEmpty ? own.first.id : (isHost ? 'host' : 'client');
+  }
+
   @override
   void initState() {
     super.initState();
+    networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
     newRound(resetScore: true);
+    if (isNetworkGame && isHost) Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
   }
 
-  void newRound({bool resetScore = false}) {
+  @override
+  void dispose() {
+    networkSubscription?.cancel();
+    super.dispose();
+  }
+
+  void newRound({bool resetScore = false, int? seed}) {
     const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
     const suits = ['♥', '♦', '♣', '♠'];
     final cards = <PlayingCardModel>[];
@@ -76,7 +101,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         cards.add(PlayingCardModel(rank: rank, suit: suit));
       }
     }
-    cards.shuffle(random);
+    roundSeed = seed ?? random.nextInt(1 << 31);
+    cards.shuffle(Random(roundSeed));
 
     deck = cards;
     table = deck.take(4).toList();
@@ -97,7 +123,34 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       botSteals = 0;
     }
     dealHands();
-    message = 'دورك: اختر ورقة متشابهة للالتقاط أو السرقة';
+    message = isNetworkGame ? (isLocalTurn ? 'دورك: اختر ورقة' : 'بانتظار اللاعب الآخر') : 'دورك: اختر ورقة متشابهة للالتقاط أو السرقة';
+    setState(() {});
+  }
+
+  void _sendRoundStart() {
+    if (!isNetworkGame || !isHost) return;
+    widget.networkCore!.sendMove(<String, dynamic>{'game': 'cards', 'action': 'start', 'seed': roundSeed}, senderId: localPlayerId);
+  }
+
+  void _sendCard(PlayingCardModel card) {
+    widget.networkCore?.sendMove(<String, dynamic>{'game': 'cards', 'action': 'play', 'rank': card.rank, 'suit': card.suit}, senderId: localPlayerId);
+  }
+
+  void _handleNetworkMessage(NetworkMessage networkMessage) {
+    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId || networkMessage.payload['game'] != 'cards') return;
+    final p = networkMessage.payload;
+    if (p['action'] == 'start') {
+      newRound(resetScore: true, seed: (p['seed'] as num).toInt());
+      return;
+    }
+    if (p['action'] != 'play' || roundFinished) return;
+    final remoteHand = isHost ? botHand : playerHand;
+    final index = remoteHand.indexWhere((card) => card.rank == p['rank'] && card.suit == p['suit']);
+    if (index < 0) return;
+    playCard(remoteHand[index], remoteHand, isHost ? botPile : playerPile, isHost ? playerPile : botPile, isPlayer: !isHost);
+    if (checkRoundEnd()) return;
+    playerTurn = !playerTurn;
+    message = isLocalTurn ? 'دورك: اختر ورقة' : 'بانتظار اللاعب الآخر';
     setState(() {});
   }
 
@@ -113,14 +166,17 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   int scoreOfCards(List<PlayingCardModel> cards) => cards.fold(0, (sum, card) => sum + card.scoreValue);
 
   void playPlayerCard(PlayingCardModel card) {
-    if (!playerTurn || roundFinished) return;
+    if (!isLocalTurn || roundFinished) return;
     GameFeedback.move();
-    playCard(card, playerHand, playerPile, botPile, isPlayer: true);
+    final ownPile = isNetworkGame && !isHost ? botPile : playerPile;
+    final opponentPile = isNetworkGame && !isHost ? playerPile : botPile;
+    playCard(card, localHand, ownPile, opponentPile, isPlayer: !isNetworkGame || isHost);
+    if (isNetworkGame) _sendCard(card);
     if (checkRoundEnd()) return;
-    playerTurn = false;
-    message = 'الكمبيوتر يفكر...';
+    playerTurn = !playerTurn;
+    message = isNetworkGame ? 'بانتظار اللاعب الآخر' : 'الكمبيوتر يفكر...';
     setState(() {});
-    Future<void>.delayed(const Duration(milliseconds: 550), botMove);
+    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 550), botMove);
   }
 
   void botMove() {
@@ -330,12 +386,12 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        for (final card in playerHand)
+                        for (final card in localHand)
                           InkWell(
                             borderRadius: BorderRadius.circular(14),
-                            onTap: playerTurn && !roundFinished ? () => playPlayerCard(card) : null,
+                            onTap: isLocalTurn && !roundFinished ? () => playPlayerCard(card) : null,
                             child: Opacity(
-                              opacity: playerTurn && !roundFinished ? 1 : 0.5,
+                              opacity: isLocalTurn && !roundFinished ? 1 : 0.5,
                               child: PlayingCardView(card: card, highlight: canCaptureOrSteal(card)),
                             ),
                           ),
