@@ -216,11 +216,28 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           itemCount: 64,
           itemBuilder: (_, i) {
             final r=i~/8,c=i%8, dark=(r+c).isOdd;
-            return InkWell(onTap: ()=>_tap(i), child: Container(
-              color: targets.contains(i) ? Colors.amber : (selected==i ? Colors.orange : (dark ? const Color(0xFF769656) : const Color(0xFFEEEED2))),
-              alignment: Alignment.center,
-              child: Text(board[i]?.symbol ?? '', style: const TextStyle(fontSize: 34, color: Colors.black)),
-            ));
+            final isTarget = targets.contains(i);
+            final isCapture = isTarget && board[i] != null;
+            return InkWell(
+              onTap: () => _tap(i),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: dark ? const Color(0xFF769656) : const Color(0xFFEEEED2),
+                  border: selected == i ? Border.all(color: Colors.orange.shade800, width: 3) : null,
+                ),
+                alignment: Alignment.center,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (isTarget && !isCapture)
+                      Container(width: 16, height: 16, decoration: const BoxDecoration(color: Color(0xAA1B5E20), shape: BoxShape.circle)),
+                    if (isTarget && isCapture)
+                      Container(width: 38, height: 38, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.red.shade700, width: 3))),
+                    Text(board[i]?.symbol ?? '', style: const TextStyle(fontSize: 34, color: Colors.black)),
+                  ],
+                ),
+              ),
+            );
           },
         )))),
         const Padding(padding: EdgeInsets.all(12), child: Text('شطرنج قانوني: كش وكش مات وتعادل • تراجع • ترقية البيدق')),
