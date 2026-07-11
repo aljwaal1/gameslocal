@@ -36,13 +36,13 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       else if (t.a==right) { board.add(t); right=t.b; }
       else { board.add(_Tile(t.b,t.a)); right=t.a; }
       if (hands[turns.currentPlayer].isEmpty) { message='فاز اللاعب ${turns.currentPlayer+1}!'; return; }
-      turns.advance(); message='دور اللاعب ${turns.currentPlayer+1}';
+      turns.next(); message='دور اللاعب ${turns.currentPlayer+1}';
     });
   }
 
   void _pass() {
     if (hands[turns.currentPlayer].any(_legal)) { setState(()=>message='لديك قطعة صالحة، لا يمكنك التمرير'); return; }
-    setState(() { turns.advance(); message='تم التمرير — دور اللاعب ${turns.currentPlayer+1}'; });
+    setState(() { turns.next(); message='تم التمرير — دور اللاعب ${turns.currentPlayer+1}'; });
   }
 
   @override
