@@ -53,11 +53,14 @@ jobs:
           manifest.write_text(text, encoding='utf-8')
           PY
 
-      - name: Remove default test
-        run: rm -rf test
+      - name: Remove generated sample test
+        run: rm -f test/widget_test.dart
 
       - name: Get Flutter dependencies
         run: flutter pub get
+
+      - name: Run Flutter tests
+        run: flutter test
 
       - name: Analyze Flutter
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
