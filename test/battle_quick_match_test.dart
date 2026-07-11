@@ -41,5 +41,18 @@ void main() {
       expect(choice.characterIndex, 0);
       expect(choice.botLevel, 'سهل');
     });
+
+    test('rejects an empty character list in release builds too', () {
+      expect(
+        () => buildBattleQuickMatchChoice(
+          currentCharacter: 0,
+          currentBotLevel: 'سهل',
+          characterRoll: 0,
+          levelRoll: 0,
+          characterCount: 0,
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }
