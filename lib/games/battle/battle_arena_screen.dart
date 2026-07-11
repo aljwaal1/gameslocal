@@ -14,6 +14,7 @@ class BattleArenaScreen extends StatefulWidget {
     required this.mode,
     required this.botLevel,
     this.networkCore,
+    this.arenaName = 'الغابة',
   });
 
   final String characterName;
@@ -21,6 +22,7 @@ class BattleArenaScreen extends StatefulWidget {
   final String mode;
   final String botLevel;
   final LocalNetworkCore? networkCore;
+  final String arenaName;
 
   @override
   State<BattleArenaScreen> createState() => _BattleArenaScreenState();
@@ -337,7 +339,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('الساحة الأولى • ${widget.characterName}'),
+        title: Text('${widget.arenaName} • ${widget.characterName}'),
         actions: [
           Center(
             child: Text(
@@ -413,7 +415,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      const _ArenaBackground(),
+                      _ArenaBackground(arenaName: widget.arenaName),
                       Align(
                         alignment: Alignment(playerX, playerY),
                         child: _SkillPulse(
@@ -551,16 +553,23 @@ class _SkillPulse extends StatelessWidget {
 }
 
 class _ArenaBackground extends StatelessWidget {
-  const _ArenaBackground();
+  const _ArenaBackground({required this.arenaName});
+
+  final String arenaName;
 
   @override
   Widget build(BuildContext context) {
+    final colors = switch (arenaName) {
+      'الصحراء' => const [Color(0xFF78350F), Color(0xFFD97706), Color(0xFFFBBF24)],
+      'الجليد' => const [Color(0xFF0C4A6E), Color(0xFF0284C7), Color(0xFFBAE6FD)],
+      _ => const [Color(0xFF1B4332), Color(0xFF2D6A4F), Color(0xFF40916C)],
+    };
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1B4332), Color(0xFF2D6A4F), Color(0xFF40916C)],
+          colors: colors,
         ),
       ),
       child: CustomPaint(painter: _ArenaPainter()),
