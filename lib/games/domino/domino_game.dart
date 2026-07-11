@@ -66,7 +66,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     super.initState();
     networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
     startRound(resetScore: true);
-    if (isNetworkGame && isHost) Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
+    if (isNetworkGame && isHost) {
+      Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
+    } else if (isNetworkGame) {
+      Future<void>.delayed(const Duration(milliseconds: 300), _requestRoundState);
+    }
   }
 
   @override
@@ -102,6 +106,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     setState(() {});
   }
 
+  void _requestRoundState() {
+    if (!isNetworkGame) return;
+    widget.networkCore!.sendMove(<String, dynamic>{'game': 'domino', 'action': 'stateRequest'}, senderId: localPlayerId);
+  }
+
   void _sendRoundStart() {
     if (!isNetworkGame || !isHost) return;
     widget.networkCore!.sendMove(<String, dynamic>{'game': 'domino', 'action': 'start', 'seed': roundSeed, 'round': roundNumber}, senderId: localPlayerId);
@@ -120,6 +129,10 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId || networkMessage.payload['game'] != 'domino') return;
     final payload = networkMessage.payload;
     final action = payload['action']?.toString();
+    if (action == 'stateRequest') {
+      if (isHost) _sendRoundStart();
+      return;
+    }
     if (action == 'start') {
       startRound(resetScore: true, seed: (payload['seed'] as num?)?.toInt());
       return;
