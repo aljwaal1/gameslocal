@@ -17,7 +17,13 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
   required int levelRoll,
   required int characterCount,
 }) {
-  assert(characterCount > 0);
+  if (characterCount <= 0) {
+    throw ArgumentError.value(
+      characterCount,
+      'characterCount',
+      'يجب أن يتوفر اختيار واحد على الأقل للشخصيات',
+    );
+  }
 
   var nextCharacter = characterRoll % characterCount;
   final nextBotLevel = battleBotLevels[levelRoll % battleBotLevels.length];
