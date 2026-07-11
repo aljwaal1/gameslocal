@@ -3,17 +3,20 @@ import 'package:gameslocal/games/battle/battle_quick_match.dart';
 
 void main() {
   group('BattleQuickMatchChoice', () {
-    test('compares choices by character and bot level', () {
+    test('compares choices by character, count, and bot level', () {
       final first = BattleQuickMatchChoice(
         characterIndex: 2,
+        characterCount: 4,
         botLevel: 'صعب',
       );
       final same = BattleQuickMatchChoice(
         characterIndex: 2,
+        characterCount: 4,
         botLevel: 'صعب',
       );
       final different = BattleQuickMatchChoice(
         characterIndex: 1,
+        characterCount: 4,
         botLevel: 'صعب',
       );
 
@@ -25,12 +28,13 @@ void main() {
     test('provides a readable diagnostic representation', () {
       final choice = BattleQuickMatchChoice(
         characterIndex: 3,
+        characterCount: 4,
         botLevel: 'سهل',
       );
 
       expect(
         choice.toString(),
-        'BattleQuickMatchChoice(characterIndex: 3, botLevel: سهل)',
+        'BattleQuickMatchChoice(characterIndex: 3, characterCount: 4, botLevel: سهل)',
       );
     });
 
@@ -38,6 +42,15 @@ void main() {
       expect(
         () => BattleQuickMatchChoice(
           characterIndex: -1,
+          characterCount: 4,
+          botLevel: 'سهل',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => BattleQuickMatchChoice(
+          characterIndex: 4,
+          characterCount: 4,
           botLevel: 'سهل',
         ),
         throwsArgumentError,
@@ -45,6 +58,15 @@ void main() {
       expect(
         () => BattleQuickMatchChoice(
           characterIndex: 0,
+          characterCount: 0,
+          botLevel: 'سهل',
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => BattleQuickMatchChoice(
+          characterIndex: 0,
+          characterCount: 4,
           botLevel: 'مستوى غير معروف',
         ),
         throwsArgumentError,
@@ -66,6 +88,7 @@ void main() {
 
           expect(choice.characterIndex, isNot(currentCharacter));
           expect(choice.characterIndex, inInclusiveRange(0, 3));
+          expect(choice.characterCount, 4);
         }
       }
     });
@@ -97,6 +120,7 @@ void main() {
       );
 
       expect(choice.characterIndex, 0);
+      expect(choice.characterCount, 1);
       expect(choice.botLevel, 'متوسط');
     });
 
