@@ -79,6 +79,14 @@ class ChickenAchievements {
     required int bestCombo,
     required int coins,
   }) async {
+    _validateRoundStats(
+      score: score,
+      hits: hits,
+      accuracy: accuracy,
+      bestCombo: bestCombo,
+      coins: coins,
+    );
+
     final prefs = await SharedPreferences.getInstance();
     final unlocked = (prefs.getStringList(_storageKey) ?? const <String>[]).toSet();
     final newlyUnlocked = <ChickenAchievement>[];
@@ -101,6 +109,33 @@ class ChickenAchievements {
     }
 
     return newlyUnlocked;
+  }
+
+  static void _validateRoundStats({
+    required int score,
+    required int hits,
+    required int accuracy,
+    required int bestCombo,
+    required int coins,
+  }) {
+    if (score < 0) {
+      throw ArgumentError.value(score, 'score', 'must not be negative');
+    }
+    if (hits < 0) {
+      throw ArgumentError.value(hits, 'hits', 'must not be negative');
+    }
+    if (accuracy < 0 || accuracy > 100) {
+      throw ArgumentError.value(accuracy, 'accuracy', 'must be between 0 and 100');
+    }
+    if (bestCombo < 0) {
+      throw ArgumentError.value(bestCombo, 'bestCombo', 'must not be negative');
+    }
+    if (coins < 0) {
+      throw ArgumentError.value(coins, 'coins', 'must not be negative');
+    }
+    if (bestCombo > hits) {
+      throw ArgumentError.value(bestCombo, 'bestCombo', 'must not exceed hits');
+    }
   }
 
   static Future<void> resetForTesting() async {
