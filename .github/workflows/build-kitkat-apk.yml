@@ -35,7 +35,10 @@ jobs:
           mkdir -p apk/legacy
           cp android_kitkat_java/app/build/outputs/apk/debug/app-debug.apk apk/legacy/gameslocal-kitkat.apk
       - name: Commit legacy APK only
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Build legacy KitKat APK
-          file_pattern: apk/legacy/gameslocal-kitkat.apk
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add apk/legacy/gameslocal-kitkat.apk
+          git commit -m "Build legacy KitKat APK" || exit 0
+          git pull --rebase origin main
+          git push origin HEAD:main
