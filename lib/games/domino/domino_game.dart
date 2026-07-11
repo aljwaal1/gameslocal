@@ -303,7 +303,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       GameFeedback.win();
     } else {
       botScore += points;
-      message = '$reason. الكمبيوتر ربح $points نقطة';
+      message = isNetworkGame ? '$reason. اللاعب الآخر ربح $points نقطة' : '$reason. الكمبيوتر ربح $points نقطة';
       GameFeedback.error();
     }
     roundFinished = true;
@@ -322,7 +322,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     } else if (botPips < playerPips) {
       final points = playerPips - botPips;
       botScore += points;
-      message = 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
+      message = isNetworkGame ? 'اللعبة مغلقة. اللاعب الآخر قطعه أقل وربح $points نقطة' : 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
       GameFeedback.error();
     } else {
       message = 'اللعبة مغلقة وتعادل بالنقاط';
@@ -332,9 +332,14 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   void nextRound() {
+    if (isNetworkGame && !isHost) {
+      setState(() => message = 'انتظر المضيف لبدء الجولة الجديدة');
+      return;
+    }
     GameFeedback.tap();
     roundNumber++;
     startRound();
+    if (isNetworkGame) _sendRoundStart();
   }
 
   void placeTile(DominoTile tile, List<DominoTile> hand) {
