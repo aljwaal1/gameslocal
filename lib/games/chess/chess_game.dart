@@ -25,6 +25,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   String message = 'دور الأبيض';
   final List<List<ChessPiece?>> history = <List<ChessPiece?>>[];
   final List<ChessSide> turnHistory = <ChessSide>[];
+  final List<_CastlingRights> castlingHistory = <_CastlingRights>[];
+  bool whiteKingMoved = false;
+  bool blackKingMoved = false;
+  bool whiteLeftRookMoved = false;
+  bool whiteRightRookMoved = false;
+  bool blackLeftRookMoved = false;
+  bool blackRightRookMoved = false;
   int moveCount = 0;
 
   @override
@@ -46,6 +53,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     turn = ChessSide.white;
     history.clear();
     turnHistory.clear();
+    castlingHistory.clear();
+    whiteKingMoved = false;
+    blackKingMoved = false;
+    whiteLeftRookMoved = false;
+    whiteRightRookMoved = false;
+    blackLeftRookMoved = false;
+    blackRightRookMoved = false;
     moveCount = 0;
     selected = null;
     targets = <int>[];
@@ -58,10 +72,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     if (selected != null && targets.contains(index)) {
       history.add(List<ChessPiece?>.from(board));
       turnHistory.add(turn);
+      castlingHistory.add(_CastlingRights(
+        whiteKingMoved, blackKingMoved, whiteLeftRookMoved, whiteRightRookMoved,
+        blackLeftRookMoved, blackRightRookMoved,
+      ));
       moveCount++;
       final moving = board[selected!];
       board[index] = moving;
       board[selected!] = null;
+      _applyCastlingRookMove(moving, selected!, index);
+      _markCastlingPieceMoved(moving, selected!);
       if ((moving?.symbol == '♙' && index ~/ 8 == 0) || (moving?.symbol == '♟' && index ~/ 8 == 7)) {
         board[index] = ChessPiece(moving!.side == ChessSide.white ? '♕' : '♛', moving.side);
       }
@@ -100,6 +120,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     setState(() {
       board = history.removeLast();
       turn = turnHistory.removeLast();
+      final rights = castlingHistory.removeLast();
+      whiteKingMoved = rights.whiteKingMoved;
+      blackKingMoved = rights.blackKingMoved;
+      whiteLeftRookMoved = rights.whiteLeftRookMoved;
+      whiteRightRookMoved = rights.whiteRightRookMoved;
+      blackLeftRookMoved = rights.blackLeftRookMoved;
+      blackRightRookMoved = rights.blackRightRookMoved;
       moveCount = (moveCount - 1).clamp(0, 999).toInt();
       selected = null;
       targets = <int>[];
@@ -197,11 +224,57 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       for (final d in const [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) add(r+d[0], c+d[1]);
     } else if ('♔♚'.contains(piece.symbol)) {
       for (var dr=-1; dr<=1; dr++) for (var dc=-1; dc<=1; dc++) if (dr!=0 || dc!=0) add(r+dr,c+dc);
+      _addCastlingMoves(index, piece, out);
     } else {
       if ('♖♜♕♛'.contains(piece.symbol)) for (final d in const [[-1,0],[1,0],[0,-1],[0,1]]) ray(d[0],d[1]);
       if ('♗♝♕♛'.contains(piece.symbol)) for (final d in const [[-1,-1],[-1,1],[1,-1],[1,1]]) ray(d[0],d[1]);
     }
     return out;
+  }
+
+  void _addCastlingMoves(int index, ChessPiece king, List<int> out) {
+    final isWhite = king.side == ChessSide.white;
+    final row = isWhite ? 7 : 0;
+    final home = row * 8 + 4;
+    if (index != home || _isKingInCheck(king.side) || (isWhite ? whiteKingMoved : blackKingMoved)) return;
+    final opponent = isWhite ? ChessSide.black : ChessSide.white;
+    final rookSymbol = isWhite ? '♖' : '♜';
+    final leftRookMoved = isWhite ? whiteLeftRookMoved : blackLeftRookMoved;
+    final rightRookMoved = isWhite ? whiteRightRookMoved : blackRightRookMoved;
+    final kingSideRook = board[row * 8 + 7];
+    if (!rightRookMoved && kingSideRook?.symbol == rookSymbol &&
+        board[row * 8 + 5] == null && board[row * 8 + 6] == null &&
+        !_isSquareAttacked(row * 8 + 5, opponent) && !_isSquareAttacked(row * 8 + 6, opponent)) {
+      out.add(row * 8 + 6);
+    }
+    final queenSideRook = board[row * 8];
+    if (!leftRookMoved && queenSideRook?.symbol == rookSymbol &&
+        board[row * 8 + 1] == null && board[row * 8 + 2] == null && board[row * 8 + 3] == null &&
+        !_isSquareAttacked(row * 8 + 3, opponent) && !_isSquareAttacked(row * 8 + 2, opponent)) {
+      out.add(row * 8 + 2);
+    }
+  }
+
+  void _applyCastlingRookMove(ChessPiece? moving, int from, int to) {
+    if (moving == null || !'♔♚'.contains(moving.symbol) || (to - from).abs() != 2) return;
+    final row = from ~/ 8;
+    if (to > from) {
+      board[row * 8 + 5] = board[row * 8 + 7];
+      board[row * 8 + 7] = null;
+    } else {
+      board[row * 8 + 3] = board[row * 8];
+      board[row * 8] = null;
+    }
+  }
+
+  void _markCastlingPieceMoved(ChessPiece? piece, int from) {
+    if (piece == null) return;
+    if (piece.symbol == '♔') whiteKingMoved = true;
+    if (piece.symbol == '♚') blackKingMoved = true;
+    if (from == 56) whiteLeftRookMoved = true;
+    if (from == 63) whiteRightRookMoved = true;
+    if (from == 0) blackLeftRookMoved = true;
+    if (from == 7) blackRightRookMoved = true;
   }
 
   @override
@@ -244,4 +317,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       ])),
     );
   }
+}
+
+class _CastlingRights {
+  const _CastlingRights(this.whiteKingMoved, this.blackKingMoved, this.whiteLeftRookMoved, this.whiteRightRookMoved, this.blackLeftRookMoved, this.blackRightRookMoved);
+  final bool whiteKingMoved, blackKingMoved, whiteLeftRookMoved, whiteRightRookMoved, blackLeftRookMoved, blackRightRookMoved;
 }
