@@ -83,7 +83,13 @@ class CheckersMatchStatus {
     final result = normalizedReason == null || normalizedReason.isEmpty
         ? winnerText
         : '$winnerText — $normalizedReason';
-    return '$result\n$piecesText\n$capturedText • $winnerCaptureText • $piecesAdvantageText';
+    return [
+      result,
+      piecesText,
+      capturedText,
+      winnerCaptureText,
+      piecesAdvantageText,
+    ].join('\n');
   }
 }
 
