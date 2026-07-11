@@ -7,10 +7,10 @@ BattleBotGoal chooseBattleBotGoal({
   required String difficulty,
   required double decisionRoll,
 }) {
-  if (health < 35 && pickupVisible && pickupDistance < 0.9) {
+  if (health <= 35 && pickupVisible && pickupDistance <= 0.9) {
     return BattleBotGoal.seekHealth;
   }
-  if (health < 22) return BattleBotGoal.retreat;
+  if (health <= 22) return BattleBotGoal.retreat;
 
   final chaseThreshold = switch (difficulty) {
     'صعب' => 0.88,
