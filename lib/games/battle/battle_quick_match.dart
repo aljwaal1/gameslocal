@@ -77,6 +77,22 @@ int battleQuickMatchRollBound(int optionCount) {
   return optionCount > 1 ? optionCount - 1 : 1;
 }
 
+void _validateBattleQuickMatchRoll({
+  required int roll,
+  required int bound,
+  required String name,
+}) {
+  if (roll < 0 || roll >= bound) {
+    throw RangeError.range(
+      roll,
+      0,
+      bound - 1,
+      name,
+      'قيمة القرعة خارج النطاق الذي تسمح به Random.nextInt',
+    );
+  }
+}
+
 BattleQuickMatchChoice buildBattleQuickMatchChoice({
   required int currentCharacter,
   required String currentBotLevel,
@@ -99,24 +115,22 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
       'مستوى الروبوت الحالي غير معروف',
     );
   }
-  if (characterRoll < 0) {
-    throw ArgumentError.value(
-      characterRoll,
-      'characterRoll',
-      'يجب ألا تكون قرعة الشخصية سالبة',
-    );
-  }
-  if (levelRoll < 0) {
-    throw ArgumentError.value(
-      levelRoll,
-      'levelRoll',
-      'يجب ألا تكون قرعة مستوى الروبوت سالبة',
-    );
-  }
+
+  final levelRollBound = battleQuickMatchRollBound(battleBotLevels.length);
+  _validateBattleQuickMatchRoll(
+    roll: characterRoll,
+    bound: characterRollBound,
+    name: 'characterRoll',
+  );
+  _validateBattleQuickMatchRoll(
+    roll: levelRoll,
+    bound: levelRollBound,
+    name: 'levelRoll',
+  );
 
   final int nextCharacter;
   if (characterCount > 1) {
-    var candidate = characterRoll % characterRollBound;
+    var candidate = characterRoll;
     if (candidate >= currentCharacter) candidate += 1;
     nextCharacter = candidate;
   } else {
@@ -124,8 +138,7 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
   }
 
   final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
-  final levelRollBound = battleQuickMatchRollBound(battleBotLevels.length);
-  var nextLevelIndex = levelRoll % levelRollBound;
+  var nextLevelIndex = levelRoll;
   if (nextLevelIndex >= currentLevelIndex) nextLevelIndex += 1;
 
   final choice = BattleQuickMatchChoice(
