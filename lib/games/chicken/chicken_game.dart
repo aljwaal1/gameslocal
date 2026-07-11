@@ -20,6 +20,8 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   static const int _maxRemainingSeconds = 45;
   static const String _bestScoreKey = 'chicken_best_score';
   static const String _totalCoinsKey = 'chicken_total_coins';
+  static const String _backgroundKey = 'chicken_selected_background';
+  static const String _unlockedBackgroundsKey = 'chicken_unlocked_backgrounds';
 
   final Random _random = Random();
   Timer? _timer;
@@ -37,6 +39,8 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   int starSeconds = 0;
   int coins = 0;
   int totalCoins = 0;
+  String selectedBackgroundId = 'farm';
+  Set<String> unlockedBackgroundIds = {'farm'};
   bool isPlaying = false;
   bool isFinished = false;
   bool showFeathers = false;
@@ -62,6 +66,10 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   int get accuracy => attempts == 0 ? 0 : ((hits / attempts) * 100).round();
   int get starMultiplier => starSeconds > 0 ? 2 : 1;
   int get comboMultiplier => combo >= 6 ? 3 : combo >= 3 ? 2 : 1;
+  _ChickenBackground get selectedBackground => _ChickenBackground.all.firstWhere(
+        (background) => background.id == selectedBackgroundId,
+        orElse: () => _ChickenBackground.all.first,
+      );
 
   @override
   void initState() {
@@ -83,6 +91,9 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     setState(() {
       bestScore = prefs.getInt(_bestScoreKey) ?? 0;
       totalCoins = prefs.getInt(_totalCoinsKey) ?? 0;
+      selectedBackgroundId = prefs.getString(_backgroundKey) ?? 'farm';
+      unlockedBackgroundIds = {'farm', ...?prefs.getStringList(_unlockedBackgroundsKey)};
+      if (!unlockedBackgroundIds.contains(selectedBackgroundId)) selectedBackgroundId = 'farm';
       achievementProgress = progress;
     });
   }
@@ -95,6 +106,55 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   Future<void> _saveTotalCoins(int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_totalCoinsKey, value);
+  }
+
+  Future<void> _saveStore() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_totalCoinsKey, totalCoins);
+    await prefs.setString(_backgroundKey, selectedBackgroundId);
+    await prefs.setStringList(_unlockedBackgroundsKey, unlockedBackgroundIds.toList()..sort());
+  }
+
+  Future<void> _openStore() async {
+    if (isPlaying) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('أنهِ الجولة أولًا قبل فتح المتجر')));
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text('متجر المزرعة • $totalCoins 🪙', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              ..._ChickenBackground.all.map((background) {
+                final owned = unlockedBackgroundIds.contains(background.id);
+                final selected = selectedBackgroundId == background.id;
+                return Card(child: ListTile(
+                  leading: Text(background.emoji, style: const TextStyle(fontSize: 30)),
+                  title: Text(background.title),
+                  subtitle: Text(owned ? (selected ? 'مستخدمة الآن' : 'مملوكة') : '${background.price} عملة'),
+                  trailing: selected ? const Icon(Icons.check_circle, color: Colors.green) : FilledButton(
+                    onPressed: !owned && totalCoins < background.price ? null : () async {
+                      setState(() {
+                        if (!owned) { totalCoins -= background.price; unlockedBackgroundIds.add(background.id); }
+                        selectedBackgroundId = background.id;
+                      });
+                      setSheetState(() {});
+                      await _saveStore();
+                    },
+                    child: Text(owned ? 'اختيار' : 'شراء'),
+                  ),
+                ));
+              }),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 
   void _startGame() {
@@ -336,6 +396,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
         title: const Text('لعبة الدجاجة'),
         centerTitle: true,
         actions: [
+          IconButton(tooltip: 'المتجر • $totalCoins عملة', onPressed: _openStore, icon: const Icon(Icons.storefront_outlined)),
           IconButton(tooltip: 'الإنجازات', onPressed: _openAchievements, icon: const Icon(Icons.emoji_events_outlined)),
           IconButton(tooltip: 'إعادة', onPressed: _resetGame, icon: const Icon(Icons.refresh)),
         ],
@@ -385,14 +446,14 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
                   behavior: HitTestBehavior.opaque,
                   onTap: _missTap,
                   child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF8ED1FC), Color(0xFFB7E4A7), Color(0xFF6AB04C)]),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: selectedBackground.colors),
                     ),
                     child: Stack(children: [
-                      const Positioned(left: 18, bottom: 20, child: Text('🌾', style: TextStyle(fontSize: 46))),
-                      const Positioned(right: 28, bottom: 34, child: Text('🌳', style: TextStyle(fontSize: 54))),
-                      const Positioned(left: 38, top: 25, child: Text('☁️', style: TextStyle(fontSize: 38))),
-                      const Positioned(right: 40, top: 54, child: Text('☀️', style: TextStyle(fontSize: 42))),
+                      Positioned(left: 18, bottom: 20, child: Text(selectedBackground.leftEmoji, style: const TextStyle(fontSize: 46))),
+                      Positioned(right: 28, bottom: 34, child: Text(selectedBackground.rightEmoji, style: const TextStyle(fontSize: 54))),
+                      Positioned(left: 38, top: 25, child: Text(selectedBackground.skyEmoji, style: const TextStyle(fontSize: 38))),
+                      Positioned(right: 40, top: 54, child: Text(selectedBackground.lightEmoji, style: const TextStyle(fontSize: 42))),
                       AnimatedAlign(
                         duration: Duration(milliseconds: moveDurationMs),
                         curve: Curves.easeOutBack,
@@ -459,6 +520,25 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       ),
     );
   }
+}
+
+class _ChickenBackground {
+  const _ChickenBackground({required this.id, required this.title, required this.price, required this.emoji, required this.colors, required this.leftEmoji, required this.rightEmoji, required this.skyEmoji, required this.lightEmoji});
+  final String id;
+  final String title;
+  final int price;
+  final String emoji;
+  final List<Color> colors;
+  final String leftEmoji;
+  final String rightEmoji;
+  final String skyEmoji;
+  final String lightEmoji;
+
+  static const all = <_ChickenBackground>[
+    _ChickenBackground(id: 'farm', title: 'المزرعة الخضراء', price: 0, emoji: '🌾', colors: [Color(0xFF8ED1FC), Color(0xFFB7E4A7), Color(0xFF6AB04C)], leftEmoji: '🌾', rightEmoji: '🌳', skyEmoji: '☁️', lightEmoji: '☀️'),
+    _ChickenBackground(id: 'desert', title: 'مزرعة الصحراء', price: 8, emoji: '🏜️', colors: [Color(0xFF87CEEB), Color(0xFFFFD89B), Color(0xFFD98C3F)], leftEmoji: '🌵', rightEmoji: '🏜️', skyEmoji: '☁️', lightEmoji: '☀️'),
+    _ChickenBackground(id: 'night', title: 'المزرعة الليلية', price: 15, emoji: '🌙', colors: [Color(0xFF14213D), Color(0xFF264653), Color(0xFF2A5D50)], leftEmoji: '🌾', rightEmoji: '🌲', skyEmoji: '⭐', lightEmoji: '🌙'),
+  ];
 }
 
 class _ChickenKind {
