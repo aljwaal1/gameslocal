@@ -53,24 +53,21 @@ BattleQuickMatchChoice buildBattleQuickMatchChoice({
     );
   }
 
-  var nextCharacter = characterRoll % characterCount;
-  var nextBotLevel = battleBotLevels[levelRoll % battleBotLevels.length];
-
+  final int nextCharacter;
   if (characterCount > 1) {
-    if (nextCharacter == currentCharacter) {
-      nextCharacter = (nextCharacter + 1) % characterCount;
-    }
-    if (nextBotLevel == currentBotLevel) {
-      final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
-      nextBotLevel = battleBotLevels[(currentLevelIndex + 1) % battleBotLevels.length];
-    }
-  } else if (nextBotLevel == currentBotLevel) {
-    final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
-    nextBotLevel = battleBotLevels[(currentLevelIndex + 1) % battleBotLevels.length];
+    var candidate = characterRoll % (characterCount - 1);
+    if (candidate >= currentCharacter) candidate += 1;
+    nextCharacter = candidate;
+  } else {
+    nextCharacter = 0;
   }
+
+  final currentLevelIndex = battleBotLevels.indexOf(currentBotLevel);
+  var nextLevelIndex = levelRoll % (battleBotLevels.length - 1);
+  if (nextLevelIndex >= currentLevelIndex) nextLevelIndex += 1;
 
   return BattleQuickMatchChoice(
     characterIndex: nextCharacter,
-    botLevel: nextBotLevel,
+    botLevel: battleBotLevels[nextLevelIndex],
   );
 }
