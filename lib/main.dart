@@ -79,14 +79,14 @@ class HomeScreen extends StatelessWidget {
       id: 'chess',
       name: 'الشطرنج',
       playersText: 'لاعبان',
-      status: 'قيد التطوير ضمن مجلد مستقل',
+      status: 'لعبة محلية كاملة للاعبين',
       builder: (_, __) => const ChessPlaceholderScreen(),
     ),
     GameDefinition(
       id: 'cards',
       name: 'الشدة / السراقة',
       playersText: '2 إلى 4 لاعبين',
-      status: 'السراقة الأردنية/الفلسطينية',
+      status: 'السراقة مع البسرا والروبوت',
       builder: (_, __) => const CardsPlaceholderScreen(),
     ),
   ];
