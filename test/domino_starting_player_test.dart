@@ -44,4 +44,16 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  test('rejects tiles outside the standard zero-to-six range', () {
+    for (final invalidTile in <(int, int)>[(-1, 2), (2, 7)]) {
+      expect(
+        () => selectDominoStartingPlayer([
+          [(6, 6)],
+          [invalidTile],
+        ]),
+        throwsArgumentError,
+      );
+    }
+  });
 }
