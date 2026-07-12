@@ -201,7 +201,15 @@ class _ModeStrip extends StatelessWidget {
             icon: Icons.smart_toy,
             text: 'روبوت',
             color: const Color(0xFF7B2CBF),
-            onTap: () => GameFeedback.tap(),
+            onTap: () {
+              GameFeedback.tap();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  content: Text('اختر Battle أو إكس أو أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.'),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -256,6 +264,10 @@ class _ModeChip extends StatelessWidget {
   final String text;
   final Color color;
   final VoidCallback onTap;
+
+  bool get experimental => game.id == 'battle' || game.id == 'chicken';
+  String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
+  Color get releaseColor => experimental ? const Color(0xFFFF9F1C) : const Color(0xFF2A9D8F);
 
   @override
   Widget build(BuildContext context) {
@@ -360,14 +372,36 @@ class _GameCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [color, color.withOpacity(0.65)]),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Icon(icon, color: Colors.white, size: 28),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(colors: [color, color.withOpacity(0.65)]),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 28),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: releaseColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: releaseColor.withOpacity(0.35)),
+                  ),
+                  child: Text(
+                    releaseLabel,
+                    style: TextStyle(
+                      color: releaseColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const Spacer(),
             Text(
