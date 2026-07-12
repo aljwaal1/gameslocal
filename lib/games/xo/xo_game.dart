@@ -33,6 +33,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
   int oWins = 0;
   int draws = 0;
   bool roundCounted = false;
+  bool connectionLost = false;
   StreamSubscription<NetworkMessage>? networkSubscription;
 
   bool get isNetworkGame => widget.networkCore != null;
@@ -61,7 +62,16 @@ class _XoGameScreenState extends State<XoGameScreen> {
   }
 
   void _handleNetworkMessage(NetworkMessage networkMessage) {
-    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId) return;
+    if (!mounted || networkMessage.senderId == localPlayerId) return;
+    if (networkMessage.type == NetworkMessageType.disconnect) {
+      setState(() {
+        connectionLost = true;
+        botThinking = false;
+        message = 'انقطع اتصال اللاعب الآخر. أنشئ غرفة جديدة للمتابعة.';
+      });
+      return;
+    }
+    if (connectionLost || networkMessage.type != NetworkMessageType.move) return;
     final action = networkMessage.payload['action']?.toString();
     if (action == 'reset') {
       _resetBoard(notifyPeer: false);
@@ -83,6 +93,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
       botThinking = false;
       winLine = [];
       roundCounted = false;
+      connectionLost = false;
       message = isNetworkGame
           ? (isHost ? 'أنت X - دورك' : 'أنت O - بانتظار دور X')
           : (playVsBot ? 'أنت X - دورك' : 'دور X');
@@ -104,7 +115,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
   }
 
   void tapCell(int index) {
-    if (cells[index] != XoCell.empty || winLine.isNotEmpty || botThinking || roundCounted) return;
+    if (connectionLost || cells[index] != XoCell.empty || winLine.isNotEmpty || botThinking || roundCounted) return;
     if (playVsBot && !xTurn) return;
     if (isNetworkGame && (xTurn ? XoCell.x : XoCell.o) != localMark) return;
 
@@ -298,7 +309,12 @@ class _XoGameScreenState extends State<XoGameScreen> {
                       const SizedBox(height: 6),
                       Align(
                         alignment: Alignment.centerRight,
-                        child: Text(isNetworkGame ? 'لعب شبكي محلي • أنت ${localMark.name.toUpperCase()}' : 'مستوى الكمبيوتر من الإعدادات: ${settings.botDifficultyText}', style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          isNetworkGame
+                              ? (connectionLost ? 'الاتصال مقطوع' : 'لعب شبكي محلي • أنت ${localMark.name.toUpperCase()}')
+                              : 'مستوى الكمبيوتر من الإعدادات: ${settings.botDifficultyText}',
+                          style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold),
+                        ),
                       ),
                       const SizedBox(height: 14),
                       if (!isNetworkGame) SegmentedButton<bool>(
