@@ -1,6 +1,10 @@
 enum BattleBotGoal { chase, retreat, seekHealth, wander }
 
 const _supportedBattleDifficulties = {'سهل', 'متوسط', 'صعب'};
+const _criticalHealthThreshold = 22;
+const _criticalPickupReach = 0.45;
+const _lowHealthThreshold = 35;
+const _lowHealthPickupReach = 0.9;
 
 BattleBotGoal chooseBattleBotGoal({
   required int health,
@@ -34,10 +38,19 @@ BattleBotGoal chooseBattleBotGoal({
     );
   }
 
-  if (health <= 35 && pickupVisible && pickupDistance <= 0.9) {
+  if (health <= _criticalHealthThreshold) {
+    if (pickupVisible && pickupDistance <= _criticalPickupReach) {
+      return BattleBotGoal.seekHealth;
+    }
+    return BattleBotGoal.retreat;
+  }
+  if (
+    health <= _lowHealthThreshold &&
+    pickupVisible &&
+    pickupDistance <= _lowHealthPickupReach
+  ) {
     return BattleBotGoal.seekHealth;
   }
-  if (health <= 22) return BattleBotGoal.retreat;
 
   final chaseThreshold = switch (difficulty) {
     'صعب' => 0.88,
