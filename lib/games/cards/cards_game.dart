@@ -84,7 +84,10 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
     newRound(resetScore: true);
     if (isNetworkGame && isHost) {
-      Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
+      Future<void>.delayed(
+        const Duration(milliseconds: 250),
+        () => _sendRoundStart(resetScore: true),
+      );
     } else if (isNetworkGame) {
       Future<void>.delayed(const Duration(milliseconds: 300), _requestRoundState);
     }
@@ -136,9 +139,14 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     widget.networkCore!.sendMove(<String, dynamic>{'game': 'cards', 'action': 'stateRequest'}, senderId: localPlayerId);
   }
 
-  void _sendRoundStart() {
+  void _sendRoundStart({bool resetScore = false}) {
     if (!isNetworkGame || !isHost) return;
-    widget.networkCore!.sendMove(<String, dynamic>{'game': 'cards', 'action': 'start', 'seed': roundSeed}, senderId: localPlayerId);
+    widget.networkCore!.sendMove(<String, dynamic>{
+      'game': 'cards',
+      'action': 'start',
+      'seed': roundSeed,
+      'resetScore': resetScore,
+    }, senderId: localPlayerId);
   }
 
   void _sendCard(PlayingCardModel card) {
@@ -149,11 +157,14 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId || networkMessage.payload['game'] != 'cards') return;
     final p = networkMessage.payload;
     if (p['action'] == 'stateRequest') {
-      if (isHost) _sendRoundStart();
+      if (isHost) _sendRoundStart(resetScore: true);
       return;
     }
     if (p['action'] == 'start') {
-      newRound(resetScore: true, seed: (p['seed'] as num).toInt());
+      newRound(
+        resetScore: p['resetScore'] == true,
+        seed: (p['seed'] as num).toInt(),
+      );
       return;
     }
     if (p['action'] != 'play' || roundFinished) return;
@@ -165,6 +176,24 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     playerTurn = !playerTurn;
     message = isLocalTurn ? 'دورك: اختر ورقة' : 'بانتظار اللاعب الآخر';
     setState(() {});
+  }
+
+  void _startNextRound() {
+    if (isNetworkGame && !isHost) {
+      setState(() => message = 'انتظر المضيف لبدء الجولة الجديدة');
+      return;
+    }
+    newRound();
+    if (isNetworkGame) _sendRoundStart();
+  }
+
+  void _resetMatch() {
+    if (isNetworkGame && !isHost) {
+      setState(() => message = 'المضيف وحده يستطيع تصفير المباراة');
+      return;
+    }
+    newRound(resetScore: true);
+    if (isNetworkGame) _sendRoundStart(resetScore: true);
   }
 
   void dealHands() {
@@ -349,7 +378,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('الشدة / السراقة'),
-            actions: [IconButton(onPressed: () => newRound(resetScore: true), icon: const Icon(Icons.refresh))],
+            actions: [IconButton(onPressed: _resetMatch, tooltip: 'تصفير المباراة', icon: const Icon(Icons.refresh))],
           ),
           body: SafeArea(
             child: Padding(
@@ -415,7 +444,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
-                        onPressed: () => newRound(),
+                        onPressed: _startNextRound,
                         icon: const Icon(Icons.play_arrow),
                         label: const Text('جولة جديدة'),
                       ),
