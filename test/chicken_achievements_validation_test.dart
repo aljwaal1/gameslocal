@@ -91,6 +91,31 @@ void main() {
     );
   });
 
+  test('rejects non-zero accuracy when a round has no hits', () async {
+    expect(
+      () => ChickenAchievements.evaluateRound(
+        score: 0,
+        hits: 0,
+        accuracy: 100,
+        bestCombo: 0,
+        coins: 0,
+      ),
+      throwsArgumentError,
+    );
+  });
+
+  test('accepts a zero-accuracy round with no hits', () async {
+    final unlocked = await ChickenAchievements.evaluateRound(
+      score: 0,
+      hits: 0,
+      accuracy: 0,
+      bestCombo: 0,
+      coins: 0,
+    );
+
+    expect(unlocked, isEmpty);
+  });
+
   test('rejects impossible combo larger than hit count', () async {
     expect(
       () => ChickenAchievements.evaluateRound(
