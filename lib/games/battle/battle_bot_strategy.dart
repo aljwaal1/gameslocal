@@ -12,11 +12,11 @@ BattleBotGoal chooseBattleBotGoal({
   if (health < 0 || health > 100) {
     throw ArgumentError.value(health, 'health', 'must be between 0 and 100');
   }
-  if (pickupDistance.isNaN || pickupDistance < 0) {
+  if (!pickupDistance.isFinite || pickupDistance < 0) {
     throw ArgumentError.value(
       pickupDistance,
       'pickupDistance',
-      'must be zero or greater',
+      'must be a finite value that is zero or greater',
     );
   }
   if (!_supportedBattleDifficulties.contains(difficulty)) {

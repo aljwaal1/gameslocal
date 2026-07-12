@@ -91,8 +91,13 @@ void main() {
     );
   });
 
-  test('rejects negative or NaN pickup distances', () {
-    for (final distance in <double>[-0.1, double.nan]) {
+  test('rejects negative or non-finite pickup distances', () {
+    for (final distance in <double>[
+      -0.1,
+      double.nan,
+      double.infinity,
+      double.negativeInfinity,
+    ]) {
       expect(
         () => chooseBattleBotGoal(
           health: 50,
