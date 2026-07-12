@@ -24,15 +24,16 @@ void main() {
     expect(player, 1);
   });
 
-  test('keeps the earliest player when strongest tiles are equal', () {
-    final player = selectDominoStartingPlayer([
-      [(6, 5)],
-      [(5, 6)],
-      [(4, 3)],
-      [(2, 1)],
-    ]);
-
-    expect(player, 0);
+  test('rejects duplicate tiles even when their pip order is reversed', () {
+    for (final duplicateTile in <(int, int)>[(6, 5), (5, 6)]) {
+      expect(
+        () => selectDominoStartingPlayer([
+          [(6, 5)],
+          [duplicateTile],
+        ]),
+        throwsArgumentError,
+      );
+    }
   });
 
   test('rejects empty hands', () {
