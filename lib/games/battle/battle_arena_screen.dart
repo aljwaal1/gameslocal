@@ -49,6 +49,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   int secondsLeft = 60;
   int skillCooldown = 0;
   bool finished = false;
+  bool connectionLost = false;
   bool skillSucceeded = false;
   bool playerEffect = false;
   bool botEffect = false;
@@ -116,7 +117,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   }
 
   void startTimers() {
-    matchTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+    if (!isNetworkGame || isHost) {
+      matchTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+    }
     if (!isNetworkGame) botTimer = Timer.periodic(botDelay, (_) => moveBot());
   }
 
@@ -135,7 +138,23 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   }
 
   void _handleNetworkMessage(NetworkMessage message) {
-    if (!mounted || message.type != NetworkMessageType.move || message.senderId == localPlayerId || message.payload['game'] != 'battle') return;
+    if (!mounted || message.senderId == localPlayerId) return;
+    if (message.type == NetworkMessageType.disconnect) {
+      matchTimer?.cancel();
+      botTimer?.cancel();
+      setState(() {
+        connectionLost = true;
+        finished = true;
+        skillSucceeded = false;
+        skillMessage = 'انقطع اتصال اللاعب الآخر. ارجع إلى الغرفة لإعادة الاتصال.';
+      });
+      return;
+    }
+    if (connectionLost ||
+        message.type != NetworkMessageType.move ||
+        message.payload['game'] != 'battle') {
+      return;
+    }
     final p = message.payload;
     if (p['action'] == 'stateRequest') {
       if (isHost) _sendState();
@@ -178,6 +197,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       }
       if (secondsLeft <= 0) finish();
     });
+    if (isNetworkGame && isHost) _sendState();
   }
 
   void move(double dx, double dy) {
@@ -386,6 +406,13 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   }
 
   void restart() {
+    if (isNetworkGame && !isHost) {
+      setState(() {
+        skillSucceeded = false;
+        skillMessage = 'انتظر المضيف لبدء إعادة المباراة.';
+      });
+      return;
+    }
     matchTimer?.cancel();
     botTimer?.cancel();
     effectTimer?.cancel();
@@ -403,11 +430,13 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       playerEffect = false;
       botEffect = false;
       finished = false;
+      connectionLost = false;
       pickupVisible = true;
       pickupX = 0;
       pickupY = 0;
     });
     startTimers();
+    if (isNetworkGame) _sendState();
   }
 
   String get resultText {
