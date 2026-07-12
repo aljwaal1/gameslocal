@@ -93,7 +93,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
       botThinking = false;
       winLine = [];
       roundCounted = false;
-      connectionLost = false;
+      if (!isNetworkGame) connectionLost = false;
       message = isNetworkGame
           ? (isHost ? 'أنت X - دورك' : 'أنت O - بانتظار دور X')
           : (playVsBot ? 'أنت X - دورك' : 'دور X');
