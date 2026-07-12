@@ -167,12 +167,15 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       botY = (p['botY'] as num?)?.toDouble() ?? botY;
       playerHealth = (p['playerHealth'] as num?)?.toInt() ?? playerHealth;
       botHealth = (p['botHealth'] as num?)?.toInt() ?? botHealth;
-      secondsLeft = (p['secondsLeft'] as num?)?.toInt() ?? secondsLeft;
+      if (!isHost) {
+        secondsLeft = (p['secondsLeft'] as num?)?.toInt() ?? secondsLeft;
+      }
       finished = p['finished'] == true;
       pickupX = (p['pickupX'] as num?)?.toDouble() ?? pickupX;
       pickupY = (p['pickupY'] as num?)?.toDouble() ?? pickupY;
       pickupVisible = p['pickupVisible'] as bool? ?? pickupVisible;
     });
+    if (isHost) _sendState();
   }
 
   void _sendState() {
