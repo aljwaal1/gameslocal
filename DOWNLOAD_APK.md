@@ -1,7 +1,7 @@
 # تحميل تطبيق ألعاب محلية
 
-يوجد ملفان APK:
+## نسخة الأجهزة الحديثة - Flutter
 
-## 1) نسخة الأجهزة الحديثة - Flutter
-تعمل للأجهزة الأحدث والأفضل أداءً:
+هذه هي نسخة V1 الحديثة المبنية من آخر تعديلات ناجحة:
+
 https://github.com/aljwaal1/gameslocal/raw/main/apk/modern/gameslocal-flutter.apk
