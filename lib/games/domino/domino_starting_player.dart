@@ -11,6 +11,7 @@ int selectDominoStartingPlayer(List<List<(int, int)>> hands) {
   var bestFallbackPlayer = 0;
   var bestFallbackScore = -1;
   var bestFallbackHighPip = -1;
+  final seenTiles = <(int, int)>{};
 
   for (var player = 0; player < hands.length; player++) {
     for (final tile in hands[player]) {
@@ -21,6 +22,15 @@ int selectDominoStartingPlayer(List<List<(int, int)>> hands) {
           tile,
           'hands',
           'Tile pips must be between 0 and 6',
+        );
+      }
+
+      final normalizedTile = a <= b ? (a, b) : (b, a);
+      if (!seenTiles.add(normalizedTile)) {
+        throw ArgumentError.value(
+          tile,
+          'hands',
+          'A domino tile cannot appear more than once',
         );
       }
 
