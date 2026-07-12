@@ -26,6 +26,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   final Random _random = Random();
   Timer? _timer;
   Timer? _effectTimer;
+  Timer? _moveTimer;
 
   int score = 0;
   int bestScore = 0;
@@ -81,6 +82,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   void dispose() {
     _timer?.cancel();
     _effectTimer?.cancel();
+    _moveTimer?.cancel();
     super.dispose();
   }
 
@@ -160,6 +162,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   void _startGame() {
     _timer?.cancel();
     _effectTimer?.cancel();
+    _moveTimer?.cancel();
     setState(() {
       score = 0;
       remainingSeconds = _roundSeconds;
@@ -178,6 +181,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       isFinished = false;
     });
     GameFeedback.tap();
+    _scheduleTargetMove();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       setState(() {
@@ -191,6 +195,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
 
   Future<void> _finishGame(Timer timer) async {
     timer.cancel();
+    _moveTimer?.cancel();
     if (!mounted) return;
     setState(() {
       isPlaying = false;
@@ -311,6 +316,16 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     currentChicken = _randomChicken();
   }
 
+  void _scheduleTargetMove() {
+    _moveTimer?.cancel();
+    if (!isPlaying) return;
+    _moveTimer = Timer(Duration(milliseconds: moveDurationMs), () {
+      if (!mounted || !isPlaying) return;
+      setState(_moveTarget);
+      _scheduleTargetMove();
+    });
+  }
+
   void _missTap() {
     if (!isPlaying) return;
     setState(() {
@@ -343,6 +358,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   void _resetGame() {
     _timer?.cancel();
     _effectTimer?.cancel();
+    _moveTimer?.cancel();
     setState(() {
       score = 0;
       remainingSeconds = _roundSeconds;
