@@ -65,19 +65,28 @@ class CheckersMoveRules {
     return captures.isNotEmpty ? captures : allMoves;
   }
 
+  static List<CheckersMove> capturesFrom(
+    Iterable<CheckersMove> legalMoves, {
+    required int row,
+    required int col,
+  }) {
+    return legalMoves
+        .where(
+          (move) => move.isCapture && move.fromRow == row && move.fromCol == col,
+        )
+        .toList(growable: false);
+  }
+
   /// A capture chain may continue only from the piece that made the last capture.
   static List<CheckersMove> chainedCaptures(
     Iterable<CheckersMove> legalMoves,
     CheckersMove previousMove,
   ) {
-    return legalMoves
-        .where(
-          (move) =>
-              move.isCapture &&
-              move.fromRow == previousMove.toRow &&
-              move.fromCol == previousMove.toCol,
-        )
-        .toList(growable: false);
+    return capturesFrom(
+      legalMoves,
+      row: previousMove.toRow,
+      col: previousMove.toCol,
+    );
   }
 }
 
@@ -318,9 +327,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   }
 
   List<CheckersMove> captureMovesFrom(int row, int col, bool forRed) {
-    return allLegalMoves(forRed: forRed)
-        .where((move) => move.isCapture && move.fromRow == row && move.fromCol == col)
-        .toList(growable: false);
+    return CheckersMoveRules.capturesFrom(
+      allLegalMoves(forRed: forRed),
+      row: row,
+      col: col,
+    );
   }
 
   bool continueCaptureIfAvailable(CheckersMove move) {
