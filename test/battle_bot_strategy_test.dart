@@ -28,6 +28,32 @@ void main() {
     );
   });
 
+  test('critical bot seeks only a very close health pickup', () {
+    expect(
+      chooseBattleBotGoal(
+        health: 18,
+        pickupVisible: true,
+        pickupDistance: 0.45,
+        difficulty: 'صعب',
+        decisionRoll: 0,
+      ),
+      BattleBotGoal.seekHealth,
+    );
+  });
+
+  test('critical bot retreats when health pickup is not immediately reachable', () {
+    expect(
+      chooseBattleBotGoal(
+        health: 18,
+        pickupVisible: true,
+        pickupDistance: 0.46,
+        difficulty: 'صعب',
+        decisionRoll: 0,
+      ),
+      BattleBotGoal.retreat,
+    );
+  });
+
   test('retreats at critical health without a reachable pickup', () {
     expect(
       chooseBattleBotGoal(
