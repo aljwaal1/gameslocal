@@ -9,6 +9,7 @@ import '../../design/app_theme.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import 'domino_four_player_game.dart';
+import 'domino_starting_player.dart';
 
 class DominoTile {
   const DominoTile(this.left, this.right);
@@ -80,7 +81,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     super.dispose();
   }
 
-  void startRound({bool resetScore = false, int? seed}) {
+  void startRound({bool resetScore = false, int? seed, int? round}) {
     final tiles = <DominoTile>[];
     for (int a = 0; a <= 6; a++) {
       for (int b = a; b <= 6; b++) {
@@ -94,13 +95,16 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     stock = tiles.skip(14).toList();
     board = [];
     lastPlayedTile = null;
-    playerTurn = true;
+    playerTurn = selectDominoStartingPlayer(<List<(int, int)>>[
+      player.map((tile) => (tile.left, tile.right)).toList(growable: false),
+      bot.map((tile) => (tile.left, tile.right)).toList(growable: false),
+    ]) == 0;
     roundFinished = false;
     if (resetScore) {
       playerScore = 0;
       botScore = 0;
-      roundNumber = 1;
     }
+    roundNumber = round ?? (resetScore ? 1 : roundNumber);
     message = isNetworkGame
         ? (isLocalTurn ? 'الجولة $roundNumber: دورك' : 'الجولة $roundNumber: بانتظار اللاعب الآخر')
         : 'الجولة $roundNumber: دورك، اختر قطعة مناسبة';
@@ -135,7 +139,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       return;
     }
     if (action == 'start') {
-      startRound(resetScore: true, seed: (payload['seed'] as num?)?.toInt());
+      startRound(
+        resetScore: ((payload['round'] as num?)?.toInt() ?? 1) == 1,
+        seed: (payload['seed'] as num?)?.toInt(),
+        round: (payload['round'] as num?)?.toInt(),
+      );
       return;
     }
     if (roundFinished) return;
@@ -230,6 +238,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       setState(() => message = 'لديك قطعة مناسبة بإطار ذهبي، لا يمكنك التمرير');
       return;
     }
+    if (stock.isNotEmpty) {
+      GameFeedback.error();
+      setState(() => message = 'يجب السحب أولًا ما دامت هناك قطع في السحب');
+      return;
+    }
     GameFeedback.tap();
     if (isBlocked) {
       finishBlockedRound();
@@ -244,17 +257,17 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
   void botMove() {
     if (roundFinished) return;
-    final playable = bot.where(canPlay).toList();
+    var playable = bot.where(canPlay).toList();
+    while (playable.isEmpty && stock.isNotEmpty) {
+      bot.add(stock.removeLast());
+      playable = bot.where(canPlay).toList();
+    }
     if (playable.isEmpty) {
-      if (stock.isNotEmpty) {
-        bot.add(stock.removeLast());
-        message = 'الكمبيوتر سحب قطعة. دورك';
-      } else if (isBlocked) {
+      if (isBlocked) {
         finishBlockedRound();
         return;
-      } else {
-        message = 'الكمبيوتر مرر الدور. دورك';
       }
+      message = 'الكمبيوتر مرر الدور. دورك';
       playerTurn = true;
       setState(() {});
       return;
