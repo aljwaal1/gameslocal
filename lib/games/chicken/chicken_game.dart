@@ -78,11 +78,18 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     _loadSavedData();
   }
 
-  @override
-  void dispose() {
+  void _cancelRoundTimers() {
     _timer?.cancel();
     _effectTimer?.cancel();
     _moveTimer?.cancel();
+    _timer = null;
+    _effectTimer = null;
+    _moveTimer = null;
+  }
+
+  @override
+  void dispose() {
+    _cancelRoundTimers();
     super.dispose();
   }
 
@@ -160,9 +167,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   }
 
   void _startGame() {
-    _timer?.cancel();
-    _effectTimer?.cancel();
-    _moveTimer?.cancel();
+    _cancelRoundTimers();
     setState(() {
       score = 0;
       remainingSeconds = _roundSeconds;
@@ -195,7 +200,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
 
   Future<void> _finishGame(Timer timer) async {
     timer.cancel();
-    _moveTimer?.cancel();
+    _cancelRoundTimers();
     if (!mounted) return;
     setState(() {
       isPlaying = false;
@@ -360,9 +365,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
   }
 
   void _resetGame() {
-    _timer?.cancel();
-    _effectTimer?.cancel();
-    _moveTimer?.cancel();
+    _cancelRoundTimers();
     setState(() {
       score = 0;
       remainingSeconds = _roundSeconds;
