@@ -265,10 +265,6 @@ class _ModeChip extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  bool get experimental => game.id == 'battle' || game.id == 'chicken';
-  String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
-  Color get releaseColor => experimental ? const Color(0xFFFF9F1C) : const Color(0xFF2A9D8F);
-
   @override
   Widget build(BuildContext context) {
     return InkWell(
@@ -305,6 +301,10 @@ class _GameCard extends StatelessWidget {
   const _GameCard({required this.game});
 
   final GameDefinition game;
+
+  bool get experimental => game.id == 'battle' || game.id == 'chicken';
+  String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
+  Color get releaseColor => experimental ? const Color(0xFFFF9F1C) : const Color(0xFF2A9D8F);
 
   IconData get icon {
     switch (game.id) {
