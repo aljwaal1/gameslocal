@@ -16,8 +16,12 @@ int selectDominoStartingPlayer(List<List<(int, int)>> hands) {
     for (final tile in hands[player]) {
       final a = tile.$1;
       final b = tile.$2;
-      if (a < 0 || b < 0) {
-        throw ArgumentError.value(tile, 'hands', 'Tile pips cannot be negative');
+      if (a < 0 || a > 6 || b < 0 || b > 6) {
+        throw ArgumentError.value(
+          tile,
+          'hands',
+          'Tile pips must be between 0 and 6',
+        );
       }
 
       if (a == b && a > bestDouble) {
