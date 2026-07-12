@@ -269,6 +269,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       _moveTarget();
     });
     isWrong ? GameFeedback.error() : GameFeedback.move();
+    _scheduleTargetMove();
     _hideEffect();
   }
 
@@ -279,6 +280,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       _moveTarget();
     });
     GameFeedback.move();
+    _scheduleTargetMove();
     _hideEffect();
   }
 
@@ -289,6 +291,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
       _moveTarget();
     });
     GameFeedback.win();
+    _scheduleTargetMove();
     _hideEffect();
   }
 
@@ -301,6 +304,7 @@ class _ChickenGameScreenState extends State<ChickenGameScreen> {
     });
     _saveTotalCoins(totalCoins);
     GameFeedback.move();
+    _scheduleTargetMove();
     _hideEffect();
   }
 
