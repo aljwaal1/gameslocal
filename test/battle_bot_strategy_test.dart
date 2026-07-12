@@ -91,7 +91,7 @@ void main() {
     );
   });
 
-  test('rejects negative or non-finite pickup distances', () {
+  test('rejects negative or non-finite visible pickup distances', () {
     for (final distance in <double>[
       -0.1,
       double.nan,
@@ -109,6 +109,19 @@ void main() {
         throwsArgumentError,
       );
     }
+  });
+
+  test('ignores pickup distance when no pickup is visible', () {
+    expect(
+      chooseBattleBotGoal(
+        health: 18,
+        pickupVisible: false,
+        pickupDistance: double.infinity,
+        difficulty: 'صعب',
+        decisionRoll: 0,
+      ),
+      BattleBotGoal.retreat,
+    );
   });
 
   test('rejects unknown difficulty values', () {
