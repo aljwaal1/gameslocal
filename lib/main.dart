@@ -302,7 +302,7 @@ class _GameCard extends StatelessWidget {
 
   final GameDefinition game;
 
-  bool get experimental => game.id == 'battle' || game.id == 'chicken';
+  bool get experimental => !const <String>{'xo', 'checkers', 'domino'}.contains(game.id);
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
   Color get releaseColor => experimental ? const Color(0xFFFF9F1C) : const Color(0xFF2A9D8F);
 
