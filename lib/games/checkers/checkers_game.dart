@@ -55,6 +55,32 @@ class CheckersMove {
   }
 }
 
+class CheckersMoveRules {
+  const CheckersMoveRules._();
+
+  /// When one or more captures are available, non-capturing moves are illegal.
+  static List<CheckersMove> requireCapture(Iterable<CheckersMove> moves) {
+    final allMoves = moves.toList(growable: false);
+    final captures = allMoves.where((move) => move.isCapture).toList(growable: false);
+    return captures.isNotEmpty ? captures : allMoves;
+  }
+
+  /// A capture chain may continue only from the piece that made the last capture.
+  static List<CheckersMove> chainedCaptures(
+    Iterable<CheckersMove> legalMoves,
+    CheckersMove previousMove,
+  ) {
+    return legalMoves
+        .where(
+          (move) =>
+              move.isCapture &&
+              move.fromRow == previousMove.toRow &&
+              move.fromCol == previousMove.toCol,
+        )
+        .toList(growable: false);
+  }
+}
+
 class CheckersGameScreen extends StatefulWidget {
   const CheckersGameScreen({super.key, this.networkCore});
 
@@ -78,6 +104,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool mustContinueCapture = false;
   String message = 'دور الأحمر';
   CheckersMatchStatus? matchStatus;
+  bool resultDialogVisible = false;
 
   bool get gameFinished => matchStatus?.isFinished ?? false;
   int get redPieceCount => board.expand((row) => row).where(isRedPiece).length;
@@ -125,6 +152,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     botThinking = false;
     mustContinueCapture = false;
     matchStatus = null;
+    resultDialogVisible = false;
     message = currentTurnMessage();
     if (mounted) setState(() {});
   }
@@ -236,6 +264,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (networkMode) {
       widget.networkCore!.sendMove(move.toJson(), senderId: _localPlayerId());
     }
+    if (updateMatchStatus()) {
+      setState(() {});
+      return;
+    }
     if (continueCaptureIfAvailable(move)) {
       setState(() {});
       return;
@@ -288,7 +320,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   List<CheckersMove> captureMovesFrom(int row, int col, bool forRed) {
     return allLegalMoves(forRed: forRed)
         .where((move) => move.isCapture && move.fromRow == row && move.fromCol == col)
-        .toList();
+        .toList(growable: false);
   }
 
   bool continueCaptureIfAvailable(CheckersMove move) {
@@ -319,7 +351,42 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     mustContinueCapture = false;
     message = status.resultText;
     GameFeedback.win();
+    _showMatchResultDialog(status);
     return true;
+  }
+
+  void _showMatchResultDialog(CheckersMatchStatus status) {
+    if (resultDialogVisible || !mounted) return;
+    resultDialogVisible = true;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('انتهت المباراة'),
+          content: Text(status.resultText),
+          actions: [
+            if (!networkMode)
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  resetBoard();
+                },
+                icon: const Icon(Icons.replay),
+                label: const Text('مباراة جديدة'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('إغلاق'),
+            ),
+          ],
+        ),
+      ).whenComplete(() {
+        if (mounted) resultDialogVisible = false;
+      });
+    });
   }
 
   void finishTurn() {
@@ -445,8 +512,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         }
       }
     }
-    final captures = moves.where((move) => move.isCapture).toList();
-    return captures.isNotEmpty ? captures : moves;
+    return CheckersMoveRules.requireCapture(moves);
   }
 
   bool inside(int r, int c) => r >= 0 && r < 8 && c >= 0 && c < 8;
@@ -464,15 +530,31 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   }
 
   void _handleNetworkMessage(NetworkMessage networkMessage) {
-    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == _localPlayerId()) return;
+    if (!mounted ||
+        !networkMode ||
+        gameFinished ||
+        isMyNetworkTurn ||
+        networkMessage.type != NetworkMessageType.move ||
+        networkMessage.senderId == _localPlayerId()) {
+      return;
+    }
 
     try {
       final move = CheckersMove.fromJson(networkMessage.payload);
+      if (mustContinueCapture &&
+          (selectedRow != move.fromRow || selectedCol != move.fromCol)) {
+        return;
+      }
+
       final validMove = legalMoveFor(move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
       if (validMove == null) return;
 
       GameFeedback.move();
       applyMove(validMove);
+      if (updateMatchStatus()) {
+        setState(() {});
+        return;
+      }
       if (continueCaptureIfAvailable(validMove)) {
         message = 'اللاعب الآخر يكمل الأكل...';
         setState(() {});
