@@ -18,7 +18,7 @@ public class SoundMainActivity extends MainActivity {
     private long lastTapAt;
     private String lastStatus = "";
 
-    @Override protected void onCreate(Bundle savedInstanceState) {
+    @Override public void onCreate(Bundle savedInstanceState) {
         tones = new ToneGenerator(AudioManager.STREAM_MUSIC, 84);
         super.onCreate(savedInstanceState);
         observer.post(statusWatcher);
