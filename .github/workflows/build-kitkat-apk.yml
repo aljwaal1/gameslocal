@@ -2,7 +2,7 @@ name: Build KitKat APK Separate
 
 on:
   push:
-    branches: [ main ]
+    branches: [ legacy-android-4.4 ]
     paths:
       - 'android_kitkat_java/**'
       - '.github/workflows/build-kitkat-apk.yml'
@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: gameslocal-legacy-kitkat
+  group: gameslocal-legacy-android-4.4
   cancel-in-progress: true
 
 jobs:
@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: legacy-android-4.4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -29,16 +31,24 @@ jobs:
           gradle-version: '8.7'
       - name: Build Android 4.4 Java APK
         working-directory: android_kitkat_java
-        run: gradle assembleDebug --no-daemon
-      - name: Copy legacy APK separately
+        run: gradle clean assembleDebug --no-daemon
+      - name: Copy and verify legacy APK separately
         run: |
+          set -euo pipefail
+          APK="android_kitkat_java/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
           mkdir -p apk/legacy
-          cp android_kitkat_java/app/build/outputs/apk/debug/app-debug.apk apk/legacy/gameslocal-kitkat.apk
+          cp "$APK" apk/legacy/gameslocal-kitkat.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gameslocal-kitkat-android-4.4
+          path: apk/legacy/gameslocal-kitkat.apk
       - name: Commit legacy APK only
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add apk/legacy/gameslocal-kitkat.apk
-          git commit -m "Build legacy KitKat APK" || exit 0
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git diff --cached --quiet || git commit -m "Build legacy KitKat APK with interaction sounds"
+          git pull --rebase origin legacy-android-4.4
+          git push origin HEAD:legacy-android-4.4
