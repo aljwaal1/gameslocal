@@ -8,7 +8,7 @@
         android:label="ألعاب محلية 4.4"
         android:allowBackup="true">
         <activity
-            android:name=".MainActivity"
+            android:name=".SoundMainActivity"
             android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
