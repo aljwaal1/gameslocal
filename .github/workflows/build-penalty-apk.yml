@@ -6,6 +6,7 @@ on:
     branches: [feature/penalty-shootout]
     paths:
       - 'lib/games/football/**'
+      - 'lib/main.dart'
       - 'test/penalty_shootout_contract_test.dart'
       - 'tools/activate_penalty_game.py'
       - '.github/workflows/build-penalty-apk.yml'
@@ -43,11 +44,11 @@ jobs:
       - name: Install packages
         run: flutter pub get
 
-      - name: Format sources
-        run: dart format lib test
+      - name: Format football sources
+        run: dart format lib/main.dart lib/games/football/penalty_shootout_game.dart test/penalty_shootout_contract_test.dart
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Verify football formatting
+        run: dart format --output=none --set-exit-if-changed lib/main.dart lib/games/football/penalty_shootout_game.dart test/penalty_shootout_contract_test.dart
 
       - name: Analyze
         run: flutter analyze
@@ -75,6 +76,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/main.dart lib/games/football/penalty_shootout_game.dart apk/modern/gameslocal-football.apk
+          git add lib/main.dart lib/games/football/penalty_shootout_game.dart test/penalty_shootout_contract_test.dart apk/modern/gameslocal-football.apk
           git diff --cached --quiet || git commit -m "Build football penalty APK"
           git push
