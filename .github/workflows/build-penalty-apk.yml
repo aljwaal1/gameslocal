@@ -43,7 +43,10 @@ jobs:
       - name: Install packages
         run: flutter pub get
 
-      - name: Format check
+      - name: Format sources
+        run: dart format lib test
+
+      - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed lib test
 
       - name: Analyze
