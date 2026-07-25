@@ -1,0 +1,77 @@
+name: Build Penalty Shootout APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/penalty-shootout]
+    paths:
+      - 'lib/games/football/**'
+      - 'test/penalty_shootout_contract_test.dart'
+      - 'tools/activate_penalty_game.py'
+      - '.github/workflows/build-penalty-apk.yml'
+
+concurrency:
+  group: gameslocal-penalty-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Activate penalty game
+        run: python3 tools/activate_penalty_game.py
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        run: flutter pub get
+
+      - name: Format check
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Copy APK
+        run: |
+          mkdir -p apk/modern
+          cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-football.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gameslocal-football-${{ github.sha }}
+          path: apk/modern/gameslocal-football.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit activated source and APK
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart lib/games/football/penalty_shootout_game.dart apk/modern/gameslocal-football.apk
+          git diff --cached --quiet || git commit -m "Build football penalty APK"
+          git push
