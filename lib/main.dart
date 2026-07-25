@@ -11,6 +11,7 @@ import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_game.dart';
 import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
+import 'games/football/penalty_shootout_game.dart';
 import 'games/xo/xo_game.dart';
 import 'lan/screens/lan_home_screen.dart';
 import 'network/wifi_lobby_screen.dart';
@@ -51,6 +52,14 @@ class HomeScreen extends StatelessWidget {
       builder: (_, networkCore) => BattleModeScreen(networkCore: networkCore),
     ),
     GameDefinition(
+      id: 'football_penalties',
+      name: 'ركلات الترجيح',
+      playersText: 'لاعب ضد روبوت أو لاعبان LAN',
+      status: 'كرة قدم بمنتخبات وحارس آلي',
+      builder: (_, networkCore) =>
+          PenaltyShootoutGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
       id: 'xo',
       name: 'إكس أو',
       playersText: 'لاعبان',
@@ -62,14 +71,16 @@ class HomeScreen extends StatelessWidget {
       name: 'الضامة',
       playersText: 'لاعبان',
       status: 'ضد لاعب أو ضد الكمبيوتر',
-      builder: (_, networkCore) => CheckersGameScreen(networkCore: networkCore),
+      builder: (_, networkCore) =>
+          CheckersGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'domino',
       name: 'الدومينو',
       playersText: '2 عبر الشبكة / 4 محليًا',
       status: 'ضد الكمبيوتر أو لاعب عبر الشبكة أو 4 لاعبين محليًا',
-      builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
+      builder: (_, networkCore) =>
+          DominoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'chicken',
@@ -139,7 +150,11 @@ class _HeroCard extends StatelessWidget {
           colors: [Color(0xFF1F6F63), Color(0xFF7B2CBF)],
         ),
         boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 16, offset: Offset(0, 6)),
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
         ],
       ),
       child: Padding(
@@ -149,7 +164,11 @@ class _HeroCard extends StatelessWidget {
             const CircleAvatar(
               radius: 32,
               backgroundColor: AppColors.accent,
-              child: Icon(Icons.sports_esports, color: AppColors.primaryDark, size: 36),
+              child: Icon(
+                Icons.sports_esports,
+                color: AppColors.primaryDark,
+                size: 36,
+              ),
             ),
             const SizedBox(width: 14),
             const Expanded(
@@ -159,10 +178,17 @@ class _HeroCard extends StatelessWidget {
                 children: [
                   Text(
                     'GamesLocal',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   SizedBox(height: 4),
-                  Text('ألعاب محلية • روبوت • شبكة محلية', style: TextStyle(fontSize: 14, color: Colors.white)),
+                  Text(
+                    'ألعاب محلية • روبوت • شبكة محلية',
+                    style: TextStyle(fontSize: 14, color: Colors.white),
+                  ),
                 ],
               ),
             ),
@@ -206,7 +232,9 @@ class _ModeStrip extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   behavior: SnackBarBehavior.floating,
-                  content: Text('اختر Battle أو إكس أو أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.'),
+                  content: Text(
+                    'اختر كرة القدم أو Battle أو إكس أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.',
+                  ),
                 ),
               );
             },
@@ -258,7 +286,12 @@ class _ModeStrip extends StatelessWidget {
 }
 
 class _ModeChip extends StatelessWidget {
-  const _ModeChip({required this.icon, required this.text, required this.color, required this.onTap});
+  const _ModeChip({
+    required this.icon,
+    required this.text,
+    required this.color,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String text;
@@ -302,14 +335,22 @@ class _GameCard extends StatelessWidget {
 
   final GameDefinition game;
 
-  bool get experimental => !const <String>{'xo', 'checkers', 'domino'}.contains(game.id);
+  bool get experimental => !const <String>{
+        'xo',
+        'checkers',
+        'domino',
+        'football_penalties',
+      }.contains(game.id);
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
-  Color get releaseColor => experimental ? const Color(0xFFFF9F1C) : const Color(0xFF2A9D8F);
+  Color get releaseColor =>
+      experimental ? const Color(0xFFFF9F1C) : const Color(0xFF2A9D8F);
 
   IconData get icon {
     switch (game.id) {
       case 'battle':
         return Icons.sports_martial_arts;
+      case 'football_penalties':
+        return Icons.sports_soccer;
       case 'xo':
         return Icons.close;
       case 'checkers':
@@ -329,6 +370,8 @@ class _GameCard extends StatelessWidget {
     switch (game.id) {
       case 'battle':
         return const Color(0xFFD62828);
+      case 'football_penalties':
+        return const Color(0xFF0B7A3B);
       case 'xo':
         return const Color(0xFFE63946);
       case 'checkers':
@@ -366,7 +409,11 @@ class _GameCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 12, offset: Offset(0, 5)),
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 12,
+              offset: Offset(0, 5),
+            ),
           ],
         ),
         child: Column(
@@ -379,14 +426,17 @@ class _GameCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(colors: [color, color.withOpacity(0.65)]),
+                    gradient: LinearGradient(
+                      colors: [color, color.withOpacity(0.65)],
+                    ),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(icon, color: Colors.white, size: 28),
                 ),
                 const Spacer(),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: releaseColor.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(12),
@@ -408,7 +458,11 @@ class _GameCard extends StatelessWidget {
               game.name,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: AppColors.ink),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+                color: AppColors.ink,
+              ),
             ),
             const SizedBox(height: 3),
             Text(
