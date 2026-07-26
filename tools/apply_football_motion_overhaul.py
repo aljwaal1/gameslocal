@@ -12,17 +12,17 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "football" / "photo"
 
-# Wikimedia's Special:Redirect/file endpoint requests cached thumbnail variants
-# instead of repeatedly hitting the original-file backend. All five gameplay
-# frames are stored locally in the APK after the build.
+# The build downloads two cached public-domain photographs. wsrv.nl fetches,
+# resizes and caches the originals. Once imported, all five gameplay frames are
+# committed to the branch and every later build is completely offline.
 DOWNLOADS = {
     "player_kick.jpg": (
-        "https://commons.wikimedia.org/wiki/Special:Redirect/file/Zarekkick.jpg?width=1280",
+        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg&w=1280&output=jpg&q=88",
         "Zarekkick.jpg — Marcusquincy — Public domain",
         "https://commons.wikimedia.org/wiki/File:Zarekkick.jpg",
     ),
     "keeper_dive.jpg": (
-        "https://commons.wikimedia.org/wiki/Special:Redirect/file/Soccer_goalkeeper.jpg?width=1280",
+        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg&w=1280&output=jpg&q=88",
         "Soccer goalkeeper.jpg — Master Sgt. Lance Cheung, U.S. Air Force — Public domain",
         "https://commons.wikimedia.org/wiki/File:Soccer_goalkeeper.jpg",
     ),
@@ -61,10 +61,10 @@ def download_image(url: str, destination: Path) -> None:
             return
         except HTTPError as exc:
             errors.append(f"attempt {attempt}: HTTPError {exc.code}: {exc.reason}")
-            time.sleep(6 * attempt)
+            time.sleep(5 * attempt)
         except Exception as exc:
             errors.append(f"attempt {attempt}: {type(exc).__name__}: {exc}")
-            time.sleep(6 * attempt)
+            time.sleep(5 * attempt)
     raise RuntimeError(f"Unable to download {url}: {' | '.join(errors)}")
 
 
@@ -115,7 +115,7 @@ def write_sources() -> None:
             [
                 f"- `{filename}` — {credit}",
                 f"  - Source page: {page_url}",
-                f"  - Imported through: {download_url}",
+                f"  - Cached/resized through: {download_url}",
             ]
         )
     lines.extend(
@@ -206,7 +206,7 @@ def main() -> None:
         if not destination.exists() or not valid_image(destination.read_bytes()[:16]):
             download_image(url, destination)
         if index < len(DOWNLOADS) - 1:
-            time.sleep(3)
+            time.sleep(2)
 
     for destination_name, source_name in DERIVED.items():
         shutil.copyfile(ASSET_DIR / source_name, ASSET_DIR / destination_name)
