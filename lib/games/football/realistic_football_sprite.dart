@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+/// Visual poses backed by independent SVG image assets rather than Canvas body
+/// primitives. Keeping the poses separate makes motion replacement reviewable.
 enum FootballSpritePose {
   playerReady,
   playerRun,
