@@ -10,9 +10,9 @@ enum FootballSpritePose {
 
 /// A full-bleed photographic action frame.
 ///
-/// These images are real CC0/public-domain football photographs stored locally
-/// in the APK. The soft edge and colour treatment let consecutive photographs
-/// read as a single broadcast-style sequence instead of rectangular stickers.
+/// Two public-domain photographs are stored locally in the APK. Different
+/// crops, pans and timing create the five broadcast phases without network
+/// access during gameplay.
 class RealisticFootballSprite extends StatelessWidget {
   const RealisticFootballSprite({
     super.key,
@@ -32,8 +32,8 @@ class RealisticFootballSprite extends StatelessWidget {
   String get _assetPath {
     return switch (pose) {
       FootballSpritePose.playerReady =>
-        'assets/football/photo/player_ready.png',
-      FootballSpritePose.playerRun => 'assets/football/photo/player_run.png',
+        'assets/football/photo/player_ready.jpg',
+      FootballSpritePose.playerRun => 'assets/football/photo/player_run.jpg',
       FootballSpritePose.playerKick => 'assets/football/photo/player_kick.jpg',
       FootballSpritePose.keeperReady =>
         'assets/football/photo/keeper_ready.jpg',
