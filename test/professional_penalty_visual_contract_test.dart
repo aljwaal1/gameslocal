@@ -52,11 +52,14 @@ void main() {
       'assets/football/photo/player_kick.jpg',
       'assets/football/photo/keeper_ready.jpg',
       'assets/football/photo/keeper_dive.jpg',
-      'assets/football/photo/SOURCES.md',
     ]) {
       final file = File(asset);
       expect(file.existsSync(), isTrue, reason: 'Missing $asset');
       expect(file.lengthSync(), greaterThan(20000), reason: 'Invalid $asset');
     }
+
+    final sources = File('assets/football/photo/SOURCES.md');
+    expect(sources.existsSync(), isTrue);
+    expect(sources.lengthSync(), greaterThan(200));
   });
 }
