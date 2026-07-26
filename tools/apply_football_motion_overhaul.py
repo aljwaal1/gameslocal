@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,12 +48,12 @@ def valid_image(data: bytes) -> bool:
 
 def download_image(url: str, destination: Path) -> None:
     errors: list[str] = []
-    for attempt in range(1, 5):
+    for attempt in range(1, 6):
         try:
             request = Request(
                 url,
                 headers={
-                    "User-Agent": "gameslocal-football-photo-importer/3.0",
+                    "User-Agent": "GamesLocal/1.0 (offline football asset import; contact via GitHub aljwaal1/gameslocal)",
                     "Accept": "image/png,image/jpeg,*/*",
                 },
             )
@@ -63,9 +64,17 @@ def download_image(url: str, destination: Path) -> None:
             destination.write_bytes(data)
             print(f"Downloaded {destination.name}: {len(data)} bytes")
             return
+        except HTTPError as exc:
+            errors.append(f"attempt {attempt}: HTTPError {exc.code}: {exc.reason}")
+            # Wikimedia returns 429 when several originals are requested in a
+            # burst. Back off substantially before the next request.
+            if exc.code == 429:
+                time.sleep(15 * attempt)
+            else:
+                time.sleep(5 * attempt)
         except Exception as exc:  # Keep complete diagnostics in GitHub logs.
             errors.append(f"attempt {attempt}: {type(exc).__name__}: {exc}")
-            time.sleep(attempt * 2)
+            time.sleep(5 * attempt)
     raise RuntimeError(f"Unable to download {url}: {' | '.join(errors)}")
 
 
@@ -194,10 +203,13 @@ void main() {
 
 def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    for filename, (url, _credit, _page_url) in ASSETS.items():
+    for index, (filename, (url, _credit, _page_url)) in enumerate(ASSETS.items()):
         destination = ASSET_DIR / filename
         if not destination.exists() or not valid_image(destination.read_bytes()[:16]):
             download_image(url, destination)
+        # Avoid Wikimedia's burst rate limiter between original-file requests.
+        if index < len(ASSETS) - 1:
+            time.sleep(7)
     patch_game_timing()
     write_sources()
     write_contract_test()
