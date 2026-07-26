@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// Visual poses backed by independent SVG image assets rather than Canvas body
-/// primitives. Keeping the poses separate makes motion replacement reviewable.
 enum FootballSpritePose {
   playerReady,
   playerRun,
@@ -50,7 +48,20 @@ class _RealisticFootballSpriteState extends State<RealisticFootballSprite> {
     }
   }
 
-  String get _assetPath {
+  String get _cc0AssetPath {
+    return switch (widget.pose) {
+      FootballSpritePose.playerReady =>
+        'assets/football/cc0/player_ready.svg',
+      FootballSpritePose.playerRun => 'assets/football/cc0/player_run.svg',
+      FootballSpritePose.playerKick => 'assets/football/cc0/player_kick.svg',
+      FootballSpritePose.keeperReady =>
+        'assets/football/cc0/keeper_ready.svg',
+      FootballSpritePose.keeperDive =>
+        'assets/football/cc0/keeper_dive.svg',
+    };
+  }
+
+  String get _fallbackAssetPath {
     return switch (widget.pose) {
       FootballSpritePose.playerReady => 'assets/football/player_ready.svg',
       FootballSpritePose.playerRun => 'assets/football/player_run.svg',
@@ -61,13 +72,20 @@ class _RealisticFootballSpriteState extends State<RealisticFootballSprite> {
   }
 
   String _rgbHex(Color color) {
-    final argb = color.toARGB32();
-    final rgb = argb & 0x00FFFFFF;
+    final rgb = color.toARGB32() & 0x00FFFFFF;
     return '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
   }
 
   Future<String> _loadSvg() async {
-    final source = await rootBundle.loadString(_assetPath);
+    String source;
+    try {
+      source = await rootBundle.loadString(_cc0AssetPath);
+    } on FlutterError {
+      source = await rootBundle.loadString(_fallbackAssetPath);
+    }
+
+    // The legacy fallback sprites expose these two palette placeholders. The
+    // imported CC0 artwork keeps its original shading and photographic detail.
     return source
         .replaceAll('#D7263D', _rgbHex(widget.primary))
         .replaceAll('#F4F4F4', _rgbHex(widget.secondary));
