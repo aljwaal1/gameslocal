@@ -5,6 +5,8 @@ on:
     branches: [ main ]
     paths:
       - 'lib/**'
+      - 'assets/**'
+      - 'tools/apply_football_motion_overhaul.py'
       - 'test/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
@@ -38,6 +40,8 @@ jobs:
         with:
           channel: stable
 
+      - name: Import offline CC0 football artwork and timing
+        run: python3 tools/apply_football_motion_overhaul.py
 
       - name: Create Android Flutter project
         run: flutter create --platforms=android --org com.explapp --no-pub .
@@ -73,7 +77,6 @@ jobs:
       - name: Build Flutter APK
         run: flutter build apk --release
 
-
       - name: Copy APK files
         if: github.event_name != 'pull_request'
         run: |
@@ -82,19 +85,21 @@ jobs:
           cat > DOWNLOAD_APK.md <<'EOF'
           # تحميل تطبيق ألعاب محلية
 
-          يوجد ملفان APK:
-
-          ## 1) نسخة الأجهزة الحديثة - Flutter
-          تعمل للأجهزة الأحدث والأفضل أداءً:
+          ## نسخة الأجهزة الحديثة - Flutter
           https://github.com/aljwaal1/gameslocal/raw/main/apk/modern/gameslocal-flutter.apk
           EOF
 
-      - name: Commit modern APK only
+      - name: Commit APK and generated offline football assets
         if: github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add apk/modern/gameslocal-flutter.apk DOWNLOAD_APK.md
-          git commit -m "Build modern Flutter APK" || exit 0
+          git add \
+            apk/modern/gameslocal-flutter.apk \
+            DOWNLOAD_APK.md \
+            assets/football/cc0 \
+            lib/games/football/professional_penalty_game.dart \
+            test/professional_penalty_visual_contract_test.dart
+          git commit -m "Build APK with football motion overhaul" || exit 0
           git pull --rebase origin main
           git push origin HEAD:main
