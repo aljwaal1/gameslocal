@@ -10,7 +10,9 @@ void main() {
     final sceneSource = File(
       'lib/games/football/professional_penalty_scene.dart',
     ).readAsStringSync();
-    final mainSource = File('lib/main.dart').readAsStringSync();
+    final activationSource = File(
+      'tools/activate_penalty_game.py',
+    ).readAsStringSync();
 
     expect(gameSource, contains('class ProPenaltyShootoutGameScreen'));
     expect(gameSource, contains('AnimationController'));
@@ -27,6 +29,7 @@ void main() {
     expect(sceneSource, contains('_drawNetImpact'));
     expect(sceneSource, isNot(contains('class _PlayerPainter')));
 
-    expect(mainSource, contains('ProPenaltyShootoutGameScreen'));
+    expect(activationSource, contains('ProPenaltyShootoutGameScreen'));
+    expect(activationSource, contains('professional_penalty_game.dart'));
   });
 }
