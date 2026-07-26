@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
-/// Visual poses backed by independent SVG image assets rather than Canvas body
-/// primitives. Keeping the poses separate makes motion replacement reviewable.
 enum FootballSpritePose {
   playerReady,
   playerRun,
@@ -12,86 +8,87 @@ enum FootballSpritePose {
   keeperDive,
 }
 
-class RealisticFootballSprite extends StatefulWidget {
+/// A full-bleed photographic action frame.
+///
+/// Two public-domain photographs are stored locally in the APK. Different
+/// crops, pans and timing create the five broadcast phases without network
+/// access during gameplay.
+class RealisticFootballSprite extends StatelessWidget {
   const RealisticFootballSprite({
     super.key,
     required this.pose,
     required this.primary,
     required this.secondary,
     this.mirror = false,
+    this.alignment = Alignment.center,
   });
 
   final FootballSpritePose pose;
   final Color primary;
   final Color secondary;
   final bool mirror;
-
-  @override
-  State<RealisticFootballSprite> createState() =>
-      _RealisticFootballSpriteState();
-}
-
-class _RealisticFootballSpriteState extends State<RealisticFootballSprite> {
-  late Future<String> _svgFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _svgFuture = _loadSvg();
-  }
-
-  @override
-  void didUpdateWidget(covariant RealisticFootballSprite oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.pose != widget.pose ||
-        oldWidget.primary != widget.primary ||
-        oldWidget.secondary != widget.secondary) {
-      _svgFuture = _loadSvg();
-    }
-  }
+  final Alignment alignment;
 
   String get _assetPath {
-    return switch (widget.pose) {
-      FootballSpritePose.playerReady => 'assets/football/player_ready.svg',
-      FootballSpritePose.playerRun => 'assets/football/player_run.svg',
-      FootballSpritePose.playerKick => 'assets/football/player_kick.svg',
-      FootballSpritePose.keeperReady => 'assets/football/keeper_ready.svg',
-      FootballSpritePose.keeperDive => 'assets/football/keeper_dive.svg',
+    return switch (pose) {
+      FootballSpritePose.playerReady =>
+        'assets/football/photo/player_ready.jpg',
+      FootballSpritePose.playerRun => 'assets/football/photo/player_run.jpg',
+      FootballSpritePose.playerKick => 'assets/football/photo/player_kick.jpg',
+      FootballSpritePose.keeperReady =>
+        'assets/football/photo/keeper_ready.jpg',
+      FootballSpritePose.keeperDive =>
+        'assets/football/photo/keeper_dive.jpg',
     };
-  }
-
-  String _rgbHex(Color color) {
-    final argb = color.toARGB32();
-    final rgb = argb & 0x00FFFFFF;
-    return '#${rgb.toRadixString(16).padLeft(6, '0').toUpperCase()}';
-  }
-
-  Future<String> _loadSvg() async {
-    final source = await rootBundle.loadString(_assetPath);
-    return source
-        .replaceAll('#D7263D', _rgbHex(widget.primary))
-        .replaceAll('#F4F4F4', _rgbHex(widget.secondary));
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: _svgFuture,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox.expand();
-        }
-
-        return Transform.flip(
-          flipX: widget.mirror,
-          child: SvgPicture.string(
-            snapshot.data!,
-            fit: BoxFit.contain,
-            alignment: Alignment.bottomCenter,
-            excludeFromSemantics: true,
+    return Transform.flip(
+      flipX: mirror,
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) {
+          return const RadialGradient(
+            center: Alignment(0, -0.05),
+            radius: 1.08,
+            colors: <Color>[
+              Colors.white,
+              Colors.white,
+              Color(0xE8FFFFFF),
+              Colors.transparent,
+            ],
+            stops: <double>[0.0, 0.62, 0.84, 1.0],
+          ).createShader(bounds);
+        },
+        child: ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            Color.lerp(primary, secondary, 0.35)!.withOpacity(0.12),
+            BlendMode.softLight,
           ),
-        );
-      },
+          child: Image.asset(
+            _assetPath,
+            fit: BoxFit.cover,
+            alignment: alignment,
+            filterQuality: FilterQuality.high,
+            gaplessPlayback: true,
+            errorBuilder: (context, error, stackTrace) {
+              return const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color(0xFF162B3A),
+                      Color(0xFF07131F),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 }

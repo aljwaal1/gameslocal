@@ -76,7 +76,7 @@ class _ProPenaltyShootoutGameScreenState
     super.initState();
     _shotController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1320),
+      duration: const Duration(milliseconds: 3000),
     );
     _ambientController = AnimationController(
       vsync: this,
@@ -260,7 +260,7 @@ class _ProPenaltyShootoutGameScreenState
       await SystemSound.play(SystemSoundType.click);
     }
 
-    await Future<void>.delayed(const Duration(milliseconds: 760));
+    await Future<void>.delayed(const Duration(milliseconds: 1350));
     if (!mounted) return;
 
     setState(() {
@@ -292,7 +292,7 @@ class _ProPenaltyShootoutGameScreenState
 
   Future<void> _robotShot() async {
     if (_busy || _finished) return;
-    await Future<void>.delayed(const Duration(milliseconds: 740));
+    await Future<void>.delayed(const Duration(milliseconds: 1250));
     if (!mounted) return;
 
     final targetX = 0.10 + _random.nextDouble() * 0.80;
