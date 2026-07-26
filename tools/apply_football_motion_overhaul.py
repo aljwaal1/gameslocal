@@ -1,108 +1,72 @@
 #!/usr/bin/env python3
-"""Import CC0 football artwork and enforce the slower motion contract."""
+"""Import real football photographs and enforce the slower motion contract."""
 
 from __future__ import annotations
 
-import json
 import time
 from pathlib import Path
-from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSET_DIR = ROOT / "assets" / "football" / "cc0"
+ASSET_DIR = ROOT / "assets" / "football" / "photo"
 
+# Real photographs only. Each file is CC0 or public domain and is stored in the
+# APK after the first successful main-branch build, so gameplay is fully offline.
 ASSETS = {
-    "player_ready.svg": (
-        "341701",
-        "https://openclipart.org/download/341701",
-        "Football player — OpenClipart #341701",
+    "player_ready.png": (
+        "https://upload.wikimedia.org/wikipedia/commons/2/23/Best_player.png",
+        "Best player.png — Bouakez Moez — CC0",
+        "https://commons.wikimedia.org/wiki/File:Best_player.png",
     ),
-    "player_run.svg": (
-        "194544",
-        "https://openclipart.org/download/194544",
-        "Soccer Player (Green/Black) — OpenClipart #194544",
+    "player_run.jpg": (
+        "https://upload.wikimedia.org/wikipedia/commons/5/53/Flamengo_v_Vasco_September_2018_IMG_4466_Par%C3%A1_%28cropped%29.jpg",
+        "Flamengo v Vasco September 2018 IMG 4466 Pará (cropped).jpg — Nadine Oliverr — CC0",
+        "https://commons.wikimedia.org/wiki/File:Flamengo_v_Vasco_September_2018_IMG_4466_Par%C3%A1_(cropped).jpg",
     ),
-    "player_kick.svg": (
-        "349151",
-        "https://openclipart.org/download/349151",
-        "Soccer Player — OpenClipart #349151",
+    "player_kick.jpg": (
+        "https://upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg",
+        "Zarekkick.jpg — Marcusquincy — Public domain",
+        "https://commons.wikimedia.org/wiki/File:Zarekkick.jpg",
     ),
-    "keeper_ready.svg": (
-        "316443",
-        "https://openclipart.org/download/316443",
-        "Goalkeeper — OpenClipart #316443",
+    "keeper_ready.jpg": (
+        "https://upload.wikimedia.org/wikipedia/commons/1/19/Goal_keeper_during_a_football_game.jpg",
+        "Goal keeper during a football game.jpg — Samson Ssemakadde — CC0",
+        "https://commons.wikimedia.org/wiki/File:Goal_keeper_during_a_football_game.jpg",
     ),
-    "keeper_dive.svg": (
-        "282558",
-        "https://openclipart.org/download/282558",
-        "The goalkeeper — OpenClipart #282558",
+    "keeper_dive.jpg": (
+        "https://upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg",
+        "Soccer goalkeeper.jpg — Master Sgt. Lance Cheung, U.S. Air Force — Public domain",
+        "https://commons.wikimedia.org/wiki/File:Soccer_goalkeeper.jpg",
     ),
 }
 
 
-def request_bytes(url: str, accept: str) -> bytes:
-    request = Request(
-        url,
-        headers={
-            "User-Agent": "gameslocal-football-asset-importer/2.0",
-            "Accept": accept,
-        },
-    )
-    with urlopen(request, timeout=180) as response:  # noqa: S310 - fixed URLs
-        return response.read()
+def valid_image(data: bytes) -> bool:
+    return data.startswith(b"\x89PNG\r\n\x1a\n") or data.startswith(b"\xff\xd8\xff")
 
 
-def fetch_svg_from_dataset(openclipart_id: str) -> bytes:
-    where = f'"page_url" LIKE \'%/{openclipart_id}/%\''
-    query = urlencode(
-        {
-            "dataset": "kawwaaa/openclipart",
-            "config": "default",
-            "split": "train",
-            "where": where,
-            "offset": 0,
-            "length": 1,
-        }
-    )
-    endpoint = f"https://datasets-server.huggingface.co/filter?{query}"
-    payload = json.loads(request_bytes(endpoint, "application/json"))
-    rows = payload.get("rows") or []
-    if not rows:
-        raise RuntimeError(f"Dataset mirror has no row for OpenClipart #{openclipart_id}")
-    svg = rows[0].get("row", {}).get("svg_content")
-    if not isinstance(svg, str) or "<svg" not in svg[:2000].lower():
-        raise RuntimeError(f"Dataset mirror returned invalid SVG for #{openclipart_id}")
-    return svg.encode("utf-8")
-
-
-def download_svg(openclipart_id: str, url: str, destination: Path) -> None:
+def download_image(url: str, destination: Path) -> None:
     errors: list[str] = []
-    for attempt in range(1, 4):
+    for attempt in range(1, 5):
         try:
-            print(f"Fetching OpenClipart #{openclipart_id} from dataset mirror (attempt {attempt})")
-            data = fetch_svg_from_dataset(openclipart_id)
+            request = Request(
+                url,
+                headers={
+                    "User-Agent": "gameslocal-football-photo-importer/3.0",
+                    "Accept": "image/png,image/jpeg,*/*",
+                },
+            )
+            with urlopen(request, timeout=180) as response:  # noqa: S310
+                data = response.read()
+            if not valid_image(data):
+                raise RuntimeError(f"Response is not PNG/JPEG ({len(data)} bytes)")
             destination.write_bytes(data)
+            print(f"Downloaded {destination.name}: {len(data)} bytes")
             return
-        except Exception as exc:  # network diagnostics are retained for CI logs
-            errors.append(f"mirror attempt {attempt}: {exc}")
+        except Exception as exc:  # Keep complete diagnostics in GitHub logs.
+            errors.append(f"attempt {attempt}: {type(exc).__name__}: {exc}")
             time.sleep(attempt * 2)
-
-    for attempt in range(1, 4):
-        try:
-            print(f"Fetching OpenClipart #{openclipart_id} directly (attempt {attempt})")
-            data = request_bytes(url, "image/svg+xml,text/xml,*/*")
-            if b"<svg" not in data[:2000].lower():
-                raise RuntimeError("response is not SVG")
-            destination.write_bytes(data)
-            return
-        except Exception as exc:
-            errors.append(f"direct attempt {attempt}: {exc}")
-            time.sleep(attempt * 2)
-
-    raise RuntimeError(
-        f"Unable to fetch OpenClipart #{openclipart_id}: " + " | ".join(errors)
-    )
+    raise RuntimeError(f"Unable to download {url}: {' | '.join(errors)}")
 
 
 def replace_once(text: str, old: str, new: str) -> str:
@@ -139,30 +103,22 @@ def patch_game_timing() -> None:
 
 def write_sources() -> None:
     lines = [
-        "# Football artwork sources",
+        "# Photographic football assets",
         "",
-        "The files in this directory are imported from OpenClipart and are used",
-        "under the Creative Commons Zero (CC0) public-domain dedication.",
-        "A stable CC0 dataset mirror is used by the importer when the original",
-        "download server is unavailable.",
+        "These photographs are bundled locally for offline gameplay. GamesLocal",
+        "uses them as full-screen cinematic action frames and does not claim",
+        "endorsement by the photographed players or photographers.",
         "",
     ]
-    for filename, (openclipart_id, url, title) in ASSETS.items():
+    for filename, (download_url, credit, page_url) in ASSETS.items():
         lines.extend(
             [
-                f"- `{filename}` — {title}",
-                f"  - Detail: https://openclipart.org/detail/{openclipart_id}",
-                f"  - Original download: {url}",
+                f"- `{filename}` — {credit}",
+                f"  - Source page: {page_url}",
+                f"  - Downloaded from: {download_url}",
             ]
         )
-    lines.extend(
-        [
-            "",
-            "The original artwork is kept intact. GamesLocal only positions and",
-            "animates the SVG layers inside the penalty scene.",
-            "",
-        ]
-    )
+    lines.append("")
     (ASSET_DIR / "SOURCES.md").write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -174,7 +130,7 @@ def write_contract_test() -> None:
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('penalty mode keeps slow staged motion and CC0 human artwork', () {
+  test('penalty mode keeps slow staged motion and real photo frames', () {
     final gameSource = File(
       'lib/games/football/professional_penalty_game.dart',
     ).readAsStringSync();
@@ -184,7 +140,7 @@ void main() {
     final realisticScene = File(
       'lib/games/football/realistic_penalty_scene.dart',
     ).readAsStringSync();
-    final spriteSource = File(
+    final frameSource = File(
       'lib/games/football/realistic_football_sprite.dart',
     ).readAsStringSync();
 
@@ -203,27 +159,31 @@ void main() {
     expect(realisticScene, contains('final runT = _phase(0.12, 0.47'));
     expect(realisticScene, contains('final keeperDiveT = _phase(0.66, 0.92'));
     expect(realisticScene, contains('final flightT = _phase(0.60, 0.86'));
-    expect(realisticScene, contains('RealisticFootballSprite'));
+    expect(realisticScene, contains('AnimatedSwitcher'));
     expect(realisticScene, contains('_quadraticBezier'));
     expect(realisticScene, contains('_drawNetImpact'));
     expect(realisticScene, isNot(contains('_drawFootballerBody')));
     expect(realisticScene, isNot(contains('_drawKeeperBody')));
 
-    expect(spriteSource, contains('assets/football/cc0/player_ready.svg'));
-    expect(spriteSource, contains('assets/football/cc0/player_run.svg'));
-    expect(spriteSource, contains('assets/football/cc0/player_kick.svg'));
-    expect(spriteSource, contains('assets/football/cc0/keeper_ready.svg'));
-    expect(spriteSource, contains('assets/football/cc0/keeper_dive.svg'));
+    expect(frameSource, contains('Image.asset'));
+    expect(frameSource, contains('assets/football/photo/player_ready.png'));
+    expect(frameSource, contains('assets/football/photo/player_run.jpg'));
+    expect(frameSource, contains('assets/football/photo/player_kick.jpg'));
+    expect(frameSource, contains('assets/football/photo/keeper_ready.jpg'));
+    expect(frameSource, contains('assets/football/photo/keeper_dive.jpg'));
+    expect(frameSource, isNot(contains('SvgPicture')));
 
     for (final asset in <String>[
-      'assets/football/cc0/player_ready.svg',
-      'assets/football/cc0/player_run.svg',
-      'assets/football/cc0/player_kick.svg',
-      'assets/football/cc0/keeper_ready.svg',
-      'assets/football/cc0/keeper_dive.svg',
-      'assets/football/cc0/SOURCES.md',
+      'assets/football/photo/player_ready.png',
+      'assets/football/photo/player_run.jpg',
+      'assets/football/photo/player_kick.jpg',
+      'assets/football/photo/keeper_ready.jpg',
+      'assets/football/photo/keeper_dive.jpg',
+      'assets/football/photo/SOURCES.md',
     ]) {
-      expect(File(asset).existsSync(), isTrue, reason: 'Missing $asset');
+      final file = File(asset);
+      expect(file.existsSync(), isTrue, reason: 'Missing $asset');
+      expect(file.lengthSync(), greaterThan(20000), reason: 'Invalid $asset');
     }
   });
 }
@@ -234,14 +194,14 @@ void main() {
 
 def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    for filename, (openclipart_id, url, _title) in ASSETS.items():
+    for filename, (url, _credit, _page_url) in ASSETS.items():
         destination = ASSET_DIR / filename
-        if not destination.exists() or b"<svg" not in destination.read_bytes()[:2000].lower():
-            download_svg(openclipart_id, url, destination)
+        if not destination.exists() or not valid_image(destination.read_bytes()[:16]):
+            download_image(url, destination)
     patch_game_timing()
     write_sources()
     write_contract_test()
-    print("Football motion overhaul applied successfully.")
+    print("Photographic football overhaul applied successfully.")
 
 
 if __name__ == "__main__":
