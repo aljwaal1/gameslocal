@@ -12,34 +12,31 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "football" / "photo"
 
-# Only three original requests are made. The ready/run and keeper ready/dive
-# pairs reuse local photographs with different crop, pan, scale and timing.
+# The build downloads two cached public-domain photographs. wsrv.nl fetches,
+# resizes and caches the originals, avoiding Wikimedia burst limits. All five
+# gameplay frames are local files inside the APK after the build.
 DOWNLOADS = {
-    "player_ready.png": (
-        "https://upload.wikimedia.org/wikipedia/commons/2/23/Best_player.png",
-        "Best player.png — Bouakez Moez — CC0",
-        "https://commons.wikimedia.org/wiki/File:Best_player.png",
-    ),
     "player_kick.jpg": (
-        "https://upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg",
+        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg&w=1280&output=jpg&q=88",
         "Zarekkick.jpg — Marcusquincy — Public domain",
         "https://commons.wikimedia.org/wiki/File:Zarekkick.jpg",
     ),
     "keeper_dive.jpg": (
-        "https://upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg",
+        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg&w=1280&output=jpg&q=88",
         "Soccer goalkeeper.jpg — Master Sgt. Lance Cheung, U.S. Air Force — Public domain",
         "https://commons.wikimedia.org/wiki/File:Soccer_goalkeeper.jpg",
     ),
 }
 
 DERIVED = {
-    "player_run.png": "player_ready.png",
+    "player_ready.jpg": "player_kick.jpg",
+    "player_run.jpg": "player_kick.jpg",
     "keeper_ready.jpg": "keeper_dive.jpg",
 }
 
 
 def valid_image(data: bytes) -> bool:
-    return data.startswith(b"\x89PNG\r\n\x1a\n") or data.startswith(b"\xff\xd8\xff")
+    return data.startswith(b"\xff\xd8\xff") or data.startswith(b"\x89PNG\r\n\x1a\n")
 
 
 def download_image(url: str, destination: Path) -> None:
@@ -49,23 +46,25 @@ def download_image(url: str, destination: Path) -> None:
             request = Request(
                 url,
                 headers={
-                    "User-Agent": "GamesLocal/1.0 (offline football asset import; GitHub aljwaal1/gameslocal)",
-                    "Accept": "image/png,image/jpeg,*/*",
+                    "User-Agent": "GamesLocal/1.0 (offline football photo import)",
+                    "Accept": "image/jpeg,image/png,*/*",
                 },
             )
             with urlopen(request, timeout=180) as response:  # noqa: S310
                 data = response.read()
             if not valid_image(data):
                 raise RuntimeError(f"Response is not PNG/JPEG ({len(data)} bytes)")
+            if len(data) < 20_000:
+                raise RuntimeError(f"Image is unexpectedly small ({len(data)} bytes)")
             destination.write_bytes(data)
             print(f"Downloaded {destination.name}: {len(data)} bytes")
             return
         except HTTPError as exc:
             errors.append(f"attempt {attempt}: HTTPError {exc.code}: {exc.reason}")
-            time.sleep((12 if exc.code == 429 else 4) * attempt)
+            time.sleep(5 * attempt)
         except Exception as exc:
             errors.append(f"attempt {attempt}: {type(exc).__name__}: {exc}")
-            time.sleep(4 * attempt)
+            time.sleep(5 * attempt)
     raise RuntimeError(f"Unable to download {url}: {' | '.join(errors)}")
 
 
@@ -106,9 +105,9 @@ def write_sources() -> None:
         "# Photographic football assets",
         "",
         "These real photographs are bundled locally for offline gameplay.",
-        "The run-up and goalkeeper-ready frames are local duplicates animated",
-        "with different crops and camera motion; no additional network request is",
-        "made for those derived frames.",
+        "The additional ready and run frames are local duplicates displayed",
+        "with different crop, pan, zoom and timing. No network is used while",
+        "the game is running.",
         "",
     ]
     for filename, (download_url, credit, page_url) in DOWNLOADS.items():
@@ -116,12 +115,13 @@ def write_sources() -> None:
             [
                 f"- `{filename}` — {credit}",
                 f"  - Source page: {page_url}",
-                f"  - Downloaded from: {download_url}",
+                f"  - Cached/resized through: {download_url}",
             ]
         )
     lines.extend(
         [
-            "- `player_run.png` — local copy of `player_ready.png`, reframed in-app",
+            "- `player_ready.jpg` — local copy of `player_kick.jpg`, reframed in-app",
+            "- `player_run.jpg` — local copy of `player_kick.jpg`, reframed in-app",
             "- `keeper_ready.jpg` — local copy of `keeper_dive.jpg`, reframed in-app",
             "",
         ]
@@ -173,16 +173,16 @@ void main() {
     expect(realisticScene, isNot(contains('_drawKeeperBody')));
 
     expect(frameSource, contains('Image.asset'));
-    expect(frameSource, contains('assets/football/photo/player_ready.png'));
-    expect(frameSource, contains('assets/football/photo/player_run.png'));
+    expect(frameSource, contains('assets/football/photo/player_ready.jpg'));
+    expect(frameSource, contains('assets/football/photo/player_run.jpg'));
     expect(frameSource, contains('assets/football/photo/player_kick.jpg'));
     expect(frameSource, contains('assets/football/photo/keeper_ready.jpg'));
     expect(frameSource, contains('assets/football/photo/keeper_dive.jpg'));
     expect(frameSource, isNot(contains('SvgPicture')));
 
     for (final asset in <String>[
-      'assets/football/photo/player_ready.png',
-      'assets/football/photo/player_run.png',
+      'assets/football/photo/player_ready.jpg',
+      'assets/football/photo/player_run.jpg',
       'assets/football/photo/player_kick.jpg',
       'assets/football/photo/keeper_ready.jpg',
       'assets/football/photo/keeper_dive.jpg',
@@ -206,7 +206,7 @@ def main() -> None:
         if not destination.exists() or not valid_image(destination.read_bytes()[:16]):
             download_image(url, destination)
         if index < len(DOWNLOADS) - 1:
-            time.sleep(7)
+            time.sleep(2)
 
     for destination_name, source_name in DERIVED.items():
         shutil.copyfile(ASSET_DIR / source_name, ASSET_DIR / destination_name)
