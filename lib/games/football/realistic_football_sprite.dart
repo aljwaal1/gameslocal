@@ -71,6 +71,7 @@ class RealisticFootballSprite extends StatelessWidget {
             fit: BoxFit.cover,
             alignment: alignment,
             filterQuality: FilterQuality.high,
+            isAntiAlias: true,
             gaplessPlayback: true,
             errorBuilder: (context, error, stackTrace) {
               return const DecoratedBox(
