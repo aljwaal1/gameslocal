@@ -3,11 +3,12 @@ name: Build Penalty Shootout APK
 on:
   workflow_dispatch:
   push:
-    branches: [feature/penalty-shootout]
+    branches: [feature/penalty-shootout, feature/pro-football-redesign]
     paths:
       - 'lib/games/football/**'
       - 'lib/main.dart'
       - 'test/penalty_shootout_contract_test.dart'
+      - 'test/professional_penalty_visual_contract_test.dart'
       - 'tools/activate_penalty_game.py'
       - '.github/workflows/build-penalty-apk.yml'
 
@@ -45,10 +46,24 @@ jobs:
         run: flutter pub get
 
       - name: Format football sources
-        run: dart format lib/main.dart lib/games/football/penalty_shootout_game.dart test/penalty_shootout_contract_test.dart
+        run: |
+          dart format \
+            lib/main.dart \
+            lib/games/football/penalty_shootout_game.dart \
+            lib/games/football/professional_penalty_game.dart \
+            lib/games/football/professional_penalty_scene.dart \
+            test/penalty_shootout_contract_test.dart \
+            test/professional_penalty_visual_contract_test.dart
 
       - name: Verify football formatting
-        run: dart format --output=none --set-exit-if-changed lib/main.dart lib/games/football/penalty_shootout_game.dart test/penalty_shootout_contract_test.dart
+        run: |
+          dart format --output=none --set-exit-if-changed \
+            lib/main.dart \
+            lib/games/football/penalty_shootout_game.dart \
+            lib/games/football/professional_penalty_game.dart \
+            lib/games/football/professional_penalty_scene.dart \
+            test/penalty_shootout_contract_test.dart \
+            test/professional_penalty_visual_contract_test.dart
 
       - name: Analyze
         run: flutter analyze
@@ -76,6 +91,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/main.dart lib/games/football/penalty_shootout_game.dart test/penalty_shootout_contract_test.dart apk/modern/gameslocal-football.apk
-          git diff --cached --quiet || git commit -m "Build football penalty APK"
+          git add \
+            lib/main.dart \
+            lib/games/football/penalty_shootout_game.dart \
+            lib/games/football/professional_penalty_game.dart \
+            lib/games/football/professional_penalty_scene.dart \
+            test/penalty_shootout_contract_test.dart \
+            test/professional_penalty_visual_contract_test.dart \
+            apk/modern/gameslocal-football.apk
+          git diff --cached --quiet || git commit -m "Build professional football penalty APK"
           git push
