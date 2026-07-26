@@ -7,22 +7,33 @@ import shutil
 import time
 from pathlib import Path
 from urllib.error import HTTPError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "football" / "photo"
+
+
+def cached_image_url(source_url: str) -> str:
+    encoded = quote(source_url, safe="")
+    return f"https://wsrv.nl/?url={encoded}&w=1280&output=jpg&q=88"
+
 
 # The build downloads two cached public-domain photographs. wsrv.nl fetches,
 # resizes and caches the originals, avoiding Wikimedia burst limits. All five
 # gameplay frames are local files inside the APK after the build.
 DOWNLOADS = {
     "player_kick.jpg": (
-        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg&w=1280&output=jpg&q=88",
+        cached_image_url(
+            "https://upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg"
+        ),
         "Zarekkick.jpg — Marcusquincy — Public domain",
         "https://commons.wikimedia.org/wiki/File:Zarekkick.jpg",
     ),
     "keeper_dive.jpg": (
-        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg&w=1280&output=jpg&q=88",
+        cached_image_url(
+            "https://upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg"
+        ),
         "Soccer goalkeeper.jpg — Master Sgt. Lance Cheung, U.S. Air Force — Public domain",
         "https://commons.wikimedia.org/wiki/File:Soccer_goalkeeper.jpg",
     ),
