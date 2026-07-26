@@ -50,9 +50,8 @@ jobs:
             football-import.status
           if-no-files-found: error
 
-      - name: Stop after football import failure
-        if: steps.football_import.outcome == 'failure'
-        run: exit 1
+      - name: Verify football import succeeded
+        run: test "$(cat football-import.status)" = "0"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
