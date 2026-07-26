@@ -12,6 +12,7 @@ import 'games/chess/chess_game.dart';
 import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
 import 'games/football/penalty_shootout_game.dart';
+import 'games/football/professional_penalty_game.dart';
 import 'games/xo/xo_game.dart';
 import 'lan/screens/lan_home_screen.dart';
 import 'network/wifi_lobby_screen.dart';
@@ -55,9 +56,9 @@ class HomeScreen extends StatelessWidget {
       id: 'football_penalties',
       name: 'ركلات الترجيح',
       playersText: 'لاعب ضد روبوت أو لاعبان LAN',
-      status: 'كرة قدم بمنتخبات وحارس آلي',
+      status: 'Penalty Arena Pro بمنظور وحركة دقيقة',
       builder: (_, networkCore) =>
-          PenaltyShootoutGameScreen(networkCore: networkCore),
+          ProPenaltyShootoutGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'xo',
