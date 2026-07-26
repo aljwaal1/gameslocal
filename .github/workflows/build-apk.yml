@@ -26,8 +26,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout source branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
 
       - name: Import real football photographs and timing
         id: football_import
@@ -52,6 +55,22 @@ jobs:
 
       - name: Verify football import succeeded
         run: test "$(cat football-import.status)" = "0"
+
+      - name: Persist imported photos on pull request branch
+        if: github.event_name == 'pull_request'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add \
+            assets/football/photo \
+            lib/games/football/professional_penalty_game.dart \
+            test/professional_penalty_visual_contract_test.dart
+          if git diff --cached --quiet; then
+            echo "Football assets are already committed."
+          else
+            git commit -m "Store offline photographic football assets"
+            git push origin HEAD:${GITHUB_HEAD_REF}
+          fi
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
