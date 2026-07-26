@@ -33,7 +33,7 @@ class RealisticFootballSprite extends StatelessWidget {
     return switch (pose) {
       FootballSpritePose.playerReady =>
         'assets/football/photo/player_ready.png',
-      FootballSpritePose.playerRun => 'assets/football/photo/player_run.jpg',
+      FootballSpritePose.playerRun => 'assets/football/photo/player_run.png',
       FootballSpritePose.playerKick => 'assets/football/photo/player_kick.jpg',
       FootballSpritePose.keeperReady =>
         'assets/football/photo/keeper_ready.jpg',
