@@ -29,7 +29,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Import offline CC0 football artwork and timing
+      - name: Import real football photographs and timing
         run: python3 tools/apply_football_motion_overhaul.py
 
       - name: Setup Java 17
@@ -97,9 +97,9 @@ jobs:
           git add \
             apk/modern/gameslocal-flutter.apk \
             DOWNLOAD_APK.md \
-            assets/football/cc0 \
+            assets/football/photo \
             lib/games/football/professional_penalty_game.dart \
             test/professional_penalty_visual_contract_test.dart
-          git commit -m "Build APK with football motion overhaul" || exit 0
+          git commit -m "Build APK with photographic football overhaul" || exit 0
           git pull --rebase origin main
           git push origin HEAD:main
