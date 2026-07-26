@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
-"""Import CC0 football artwork and enforce the slower motion contract.
-
-This script is intentionally idempotent. It is executed once by a branch-only
-workflow so the downloaded public-domain SVG files become normal repository
-assets and future builds remain fully offline.
-"""
+"""Import CC0 football artwork and enforce the slower motion contract."""
 
 from __future__ import annotations
 
+import json
+import time
 from pathlib import Path
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,41 +14,95 @@ ASSET_DIR = ROOT / "assets" / "football" / "cc0"
 
 ASSETS = {
     "player_ready.svg": (
+        "341701",
         "https://openclipart.org/download/341701",
         "Football player — OpenClipart #341701",
     ),
     "player_run.svg": (
+        "194544",
         "https://openclipart.org/download/194544",
         "Soccer Player (Green/Black) — OpenClipart #194544",
     ),
     "player_kick.svg": (
+        "349151",
         "https://openclipart.org/download/349151",
         "Soccer Player — OpenClipart #349151",
     ),
     "keeper_ready.svg": (
+        "316443",
         "https://openclipart.org/download/316443",
         "Goalkeeper — OpenClipart #316443",
     ),
     "keeper_dive.svg": (
+        "282558",
         "https://openclipart.org/download/282558",
         "The goalkeeper — OpenClipart #282558",
     ),
 }
 
 
-def download_svg(url: str, destination: Path) -> None:
+def request_bytes(url: str, accept: str) -> bytes:
     request = Request(
         url,
         headers={
-            "User-Agent": "gameslocal-football-asset-importer/1.0",
-            "Accept": "image/svg+xml,text/xml,*/*",
+            "User-Agent": "gameslocal-football-asset-importer/2.0",
+            "Accept": accept,
         },
     )
     with urlopen(request, timeout=180) as response:  # noqa: S310 - fixed URLs
-        data = response.read()
-    if b"<svg" not in data[:2000].lower():
-        raise RuntimeError(f"Downloaded file is not SVG: {url}")
-    destination.write_bytes(data)
+        return response.read()
+
+
+def fetch_svg_from_dataset(openclipart_id: str) -> bytes:
+    where = f'"page_url" LIKE \'%/{openclipart_id}/%\''
+    query = urlencode(
+        {
+            "dataset": "kawwaaa/openclipart",
+            "config": "default",
+            "split": "train",
+            "where": where,
+            "offset": 0,
+            "length": 1,
+        }
+    )
+    endpoint = f"https://datasets-server.huggingface.co/filter?{query}"
+    payload = json.loads(request_bytes(endpoint, "application/json"))
+    rows = payload.get("rows") or []
+    if not rows:
+        raise RuntimeError(f"Dataset mirror has no row for OpenClipart #{openclipart_id}")
+    svg = rows[0].get("row", {}).get("svg_content")
+    if not isinstance(svg, str) or "<svg" not in svg[:2000].lower():
+        raise RuntimeError(f"Dataset mirror returned invalid SVG for #{openclipart_id}")
+    return svg.encode("utf-8")
+
+
+def download_svg(openclipart_id: str, url: str, destination: Path) -> None:
+    errors: list[str] = []
+    for attempt in range(1, 4):
+        try:
+            print(f"Fetching OpenClipart #{openclipart_id} from dataset mirror (attempt {attempt})")
+            data = fetch_svg_from_dataset(openclipart_id)
+            destination.write_bytes(data)
+            return
+        except Exception as exc:  # network diagnostics are retained for CI logs
+            errors.append(f"mirror attempt {attempt}: {exc}")
+            time.sleep(attempt * 2)
+
+    for attempt in range(1, 4):
+        try:
+            print(f"Fetching OpenClipart #{openclipart_id} directly (attempt {attempt})")
+            data = request_bytes(url, "image/svg+xml,text/xml,*/*")
+            if b"<svg" not in data[:2000].lower():
+                raise RuntimeError("response is not SVG")
+            destination.write_bytes(data)
+            return
+        except Exception as exc:
+            errors.append(f"direct attempt {attempt}: {exc}")
+            time.sleep(attempt * 2)
+
+    raise RuntimeError(
+        f"Unable to fetch OpenClipart #{openclipart_id}: " + " | ".join(errors)
+    )
 
 
 def replace_once(text: str, old: str, new: str) -> str:
@@ -91,15 +143,16 @@ def write_sources() -> None:
         "",
         "The files in this directory are imported from OpenClipart and are used",
         "under the Creative Commons Zero (CC0) public-domain dedication.",
+        "A stable CC0 dataset mirror is used by the importer when the original",
+        "download server is unavailable.",
         "",
     ]
-    for filename, (url, title) in ASSETS.items():
-        detail_id = url.rsplit("/", 1)[-1]
+    for filename, (openclipart_id, url, title) in ASSETS.items():
         lines.extend(
             [
                 f"- `{filename}` — {title}",
-                f"  - Detail: https://openclipart.org/detail/{detail_id}",
-                f"  - Download: {url}",
+                f"  - Detail: https://openclipart.org/detail/{openclipart_id}",
+                f"  - Original download: {url}",
             ]
         )
     lines.extend(
@@ -181,10 +234,10 @@ void main() {
 
 def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    for filename, (url, _title) in ASSETS.items():
+    for filename, (openclipart_id, url, _title) in ASSETS.items():
         destination = ASSET_DIR / filename
         if not destination.exists() or b"<svg" not in destination.read_bytes()[:2000].lower():
-            download_svg(url, destination)
+            download_svg(openclipart_id, url, destination)
     patch_game_timing()
     write_sources()
     write_contract_test()
