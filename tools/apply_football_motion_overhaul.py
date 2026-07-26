@@ -1,71 +1,39 @@
 #!/usr/bin/env python3
-"""Import real football photographs and enforce the slower motion contract."""
+"""Validate committed football photographs and enforce motion timing offline."""
 
 from __future__ import annotations
 
-import shutil
-import time
 from pathlib import Path
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "football" / "photo"
-
-# The build downloads two cached public-domain photographs. wsrv.nl fetches,
-# resizes and caches the originals. Once imported, all five gameplay frames are
-# committed to the branch and every later build is completely offline.
-DOWNLOADS = {
-    "player_kick.jpg": (
-        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg&w=1280&output=jpg&q=88",
-        "Zarekkick.jpg — Marcusquincy — Public domain",
-        "https://commons.wikimedia.org/wiki/File:Zarekkick.jpg",
-    ),
-    "keeper_dive.jpg": (
-        "https://wsrv.nl/?url=upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg&w=1280&output=jpg&q=88",
-        "Soccer goalkeeper.jpg — Master Sgt. Lance Cheung, U.S. Air Force — Public domain",
-        "https://commons.wikimedia.org/wiki/File:Soccer_goalkeeper.jpg",
-    ),
-}
-
-DERIVED = {
-    "player_ready.jpg": "player_kick.jpg",
-    "player_run.jpg": "player_kick.jpg",
-    "keeper_ready.jpg": "keeper_dive.jpg",
-}
+IMAGE_ASSETS = (
+    "player_ready.jpg",
+    "player_run.jpg",
+    "player_kick.jpg",
+    "keeper_ready.jpg",
+    "keeper_dive.jpg",
+)
 
 
 def valid_image(data: bytes) -> bool:
     return data.startswith(b"\xff\xd8\xff") or data.startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def download_image(url: str, destination: Path) -> None:
-    errors: list[str] = []
-    for attempt in range(1, 5):
-        try:
-            request = Request(
-                url,
-                headers={
-                    "User-Agent": "GamesLocal/1.0 (offline football photo import)",
-                    "Accept": "image/jpeg,image/png,*/*",
-                },
-            )
-            with urlopen(request, timeout=180) as response:  # noqa: S310
-                data = response.read()
-            if not valid_image(data):
-                raise RuntimeError(f"Response is not PNG/JPEG ({len(data)} bytes)")
-            if len(data) < 20_000:
-                raise RuntimeError(f"Image is unexpectedly small ({len(data)} bytes)")
-            destination.write_bytes(data)
-            print(f"Downloaded {destination.name}: {len(data)} bytes")
-            return
-        except HTTPError as exc:
-            errors.append(f"attempt {attempt}: HTTPError {exc.code}: {exc.reason}")
-            time.sleep(5 * attempt)
-        except Exception as exc:
-            errors.append(f"attempt {attempt}: {type(exc).__name__}: {exc}")
-            time.sleep(5 * attempt)
-    raise RuntimeError(f"Unable to download {url}: {' | '.join(errors)}")
+def validate_offline_assets() -> None:
+    for name in IMAGE_ASSETS:
+        path = ASSET_DIR / name
+        if not path.is_file():
+            raise RuntimeError(f"Missing committed football photograph: {path}")
+        data = path.read_bytes()
+        if not valid_image(data[:16]):
+            raise RuntimeError(f"Invalid PNG/JPEG header: {path}")
+        if len(data) <= 20_000:
+            raise RuntimeError(f"Football photograph is too small: {path} ({len(data)} bytes)")
+
+    sources = ASSET_DIR / "SOURCES.md"
+    if not sources.is_file() or sources.stat().st_size < 200:
+        raise RuntimeError("Missing or incomplete football photo attribution file")
 
 
 def replace_once(text: str, old: str, new: str) -> str:
@@ -98,35 +66,6 @@ def patch_game_timing() -> None:
         "await Future<void>.delayed(const Duration(milliseconds: 1250));",
     )
     path.write_text(text, encoding="utf-8")
-
-
-def write_sources() -> None:
-    lines = [
-        "# Photographic football assets",
-        "",
-        "These real photographs are bundled locally for offline gameplay.",
-        "The additional ready and run frames are local duplicates displayed",
-        "with different crop, pan, zoom and timing. No network is used while",
-        "the game is running.",
-        "",
-    ]
-    for filename, (download_url, credit, page_url) in DOWNLOADS.items():
-        lines.extend(
-            [
-                f"- `{filename}` — {credit}",
-                f"  - Source page: {page_url}",
-                f"  - Cached/resized through: {download_url}",
-            ]
-        )
-    lines.extend(
-        [
-            "- `player_ready.jpg` — local copy of `player_kick.jpg`, reframed in-app",
-            "- `player_run.jpg` — local copy of `player_kick.jpg`, reframed in-app",
-            "- `keeper_ready.jpg` — local copy of `keeper_dive.jpg`, reframed in-app",
-            "",
-        ]
-    )
-    (ASSET_DIR / "SOURCES.md").write_text("\n".join(lines), encoding="utf-8")
 
 
 def write_contract_test() -> None:
@@ -186,12 +125,15 @@ void main() {
       'assets/football/photo/player_kick.jpg',
       'assets/football/photo/keeper_ready.jpg',
       'assets/football/photo/keeper_dive.jpg',
-      'assets/football/photo/SOURCES.md',
     ]) {
       final file = File(asset);
       expect(file.existsSync(), isTrue, reason: 'Missing $asset');
       expect(file.lengthSync(), greaterThan(20000), reason: 'Invalid $asset');
     }
+
+    final sources = File('assets/football/photo/SOURCES.md');
+    expect(sources.existsSync(), isTrue);
+    expect(sources.lengthSync(), greaterThan(200));
   });
 }
 """,
@@ -200,21 +142,10 @@ void main() {
 
 
 def main() -> None:
-    ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    for index, (filename, (url, _credit, _page_url)) in enumerate(DOWNLOADS.items()):
-        destination = ASSET_DIR / filename
-        if not destination.exists() or not valid_image(destination.read_bytes()[:16]):
-            download_image(url, destination)
-        if index < len(DOWNLOADS) - 1:
-            time.sleep(2)
-
-    for destination_name, source_name in DERIVED.items():
-        shutil.copyfile(ASSET_DIR / source_name, ASSET_DIR / destination_name)
-
+    validate_offline_assets()
     patch_game_timing()
-    write_sources()
     write_contract_test()
-    print("Photographic football overhaul applied successfully.")
+    print("Offline photographic football overhaul verified successfully.")
 
 
 if __name__ == "__main__":
