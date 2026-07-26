@@ -33,15 +33,11 @@ class RealisticPenaltyScene extends StatelessWidget {
   final bool enabled;
   final void Function(double x, double y) onShoot;
 
-  double _phase(
-    double start,
-    double end, [
-    Curve curve = Curves.linear,
-  ]) {
-    final raw = ((shotProgress - start) / (end - start))
+  double _phase(double start, double end, [Curve curve = Curves.linear]) {
+    final value = ((shotProgress - start) / (end - start))
         .clamp(0.0, 1.0)
         .toDouble();
-    return curve.transform(raw);
+    return curve.transform(value);
   }
 
   @override
@@ -51,8 +47,9 @@ class RealisticPenaltyScene extends StatelessWidget {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final goalRect = _goalRect(size);
 
-        // A complete kick is deliberately split into human-readable phases:
-        // settle -> run-up -> plant -> strike -> ball flight -> recovery.
+        // Human-paced sequence: settle, approach, plant, strike, flight,
+        // goalkeeper reaction and recovery. The goalkeeper deliberately reacts
+        // only after the ball has left the foot.
         final runT = _phase(0.12, 0.47, Curves.easeInOutCubic);
         final plantT = _phase(0.43, 0.55, Curves.easeOutCubic);
         final strikeT = _phase(0.52, 0.67, Curves.easeInOutCubic);
@@ -61,55 +58,37 @@ class RealisticPenaltyScene extends StatelessWidget {
         final recoveryT = _phase(0.90, 1.00, Curves.easeOutCubic);
         final impactT = _phase(0.82, 0.91, Curves.easeOutCubic);
 
-        final shakeStrength = sin(impactT * pi * 7) *
-            (1 - impactT) *
-            (1.5 + shotPower * 1.5);
-
-        final shooterPose = shotProgress < 0.12
+        final pose = shotProgress < 0.12
             ? FootballSpritePose.playerReady
-            : shotProgress < 0.52
+            : shotProgress < 0.48
                 ? FootballSpritePose.playerRun
-                : FootballSpritePose.playerKick;
+                : shotProgress < 0.68
+                    ? FootballSpritePose.playerKick
+                    : keeperDiveT < 0.08
+                        ? FootballSpritePose.keeperReady
+                        : FootballSpritePose.keeperDive;
 
-        final runBounce = sin(runT * pi * 5) * (1 - plantT) * size.height * 0.007;
-        final shooterLeft = _lerp(
-          -size.width * 0.04,
-          size.width * 0.28,
-          runT,
-        );
-        final shooterBottom = size.height * 0.025 + runBounce;
-        final followThrough = strikeT * size.width * 0.035;
-        final shooterRotation = _lerp(-0.035, 0.025, runT) - strikeT * 0.045;
-        final shooterScaleY = 1.0 - plantT * 0.025 + recoveryT * 0.018;
+        final photoAlignment = switch (pose) {
+          FootballSpritePose.playerReady => const Alignment(0.15, 0.05),
+          FootballSpritePose.playerRun => const Alignment(0.10, -0.04),
+          FootballSpritePose.playerKick => const Alignment(-0.08, -0.02),
+          FootballSpritePose.keeperReady => const Alignment(0.05, -0.05),
+          FootballSpritePose.keeperDive => const Alignment(-0.05, -0.10),
+        };
 
-        final keeperStart = Offset(
-          goalRect.center.dx,
-          goalRect.bottom - goalRect.height * 0.04,
-        );
-        final keeperTarget = Offset(
-          goalRect.left + goalRect.width * keeperX,
-          goalRect.top + goalRect.height * keeperY,
-        );
-        var keeperCenter = Offset.lerp(
-          keeperStart,
-          keeperTarget,
-          keeperDiveT,
-        )!;
-        keeperCenter = keeperCenter.translate(
-          0,
-          recoveryT * goalRect.height * 0.08,
-        );
+        final photoScale = 1.04 + runT * 0.045 + strikeT * 0.035;
+        final panX = -runT * 0.045 + keeperDiveT * (keeperX - 0.5) * 0.07;
+        final panY = plantT * 0.018 - keeperDiveT * 0.025 + recoveryT * 0.02;
+        final photoOpacity = shotProgress == 0
+            ? 0.42
+            : _lerp(0.62, 0.88, min(1.0, runT + strikeT + keeperDiveT));
 
-        final diving = keeperDiveT > 0.015;
-        final keeperDirection = (keeperX - 0.5).sign;
-        final keeperRotation = diving
-            ? keeperDirection * (0.18 + keeperDiveT * 0.78) * (1 - recoveryT * 0.35)
-            : sin(ambientProgress * pi * 2) * 0.012;
-        final keeperWidth = diving ? size.width * 0.48 : size.width * 0.27;
-        final keeperHeight = diving ? size.height * 0.22 : size.height * 0.27;
+        final shake = sin(impactT * pi * 7) *
+            (1 - impactT) *
+            (1.2 + shotPower * 1.8);
 
         return Transform.translate(
-          offset: Offset(shakeStrength, -shakeStrength * 0.18),
+          offset: Offset(shake, -shake * 0.18),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(26),
             child: GestureDetector(
@@ -132,7 +111,48 @@ class RealisticPenaltyScene extends StatelessWidget {
                 fit: StackFit.expand,
                 children: <Widget>[
                   CustomPaint(
-                    painter: _ArenaPainter(
+                    painter: _ArenaBackgroundPainter(
+                      ambientProgress: ambientProgress,
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Transform.translate(
+                      offset: Offset(size.width * panX, size.height * panY),
+                      child: Transform.scale(
+                        scale: photoScale,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 360),
+                          switchInCurve: Curves.easeOutCubic,
+                          switchOutCurve: Curves.easeInCubic,
+                          transitionBuilder: (child, animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: ScaleTransition(
+                                scale: Tween<double>(begin: 1.035, end: 1.0)
+                                    .animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Opacity(
+                            key: ValueKey<FootballSpritePose>(pose),
+                            opacity: photoOpacity,
+                            child: RealisticFootballSprite(
+                              pose: pose,
+                              primary: shootingTeam.primary,
+                              secondary: shootingTeam.secondary,
+                              mirror: pose == FootballSpritePose.keeperDive &&
+                                  keeperX < 0.5,
+                              alignment: photoAlignment,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Positioned.fill(child: _BroadcastGrade()),
+                  CustomPaint(
+                    painter: _ArenaForegroundPainter(
                       shotProgress: shotProgress,
                       ambientProgress: ambientProgress,
                       targetX: targetX,
@@ -142,69 +162,6 @@ class RealisticPenaltyScene extends StatelessWidget {
                       showTarget: enabled,
                       flightT: flightT,
                       impactT: impactT,
-                    ),
-                  ),
-                  Positioned(
-                    left: keeperCenter.dx - keeperWidth / 2,
-                    top: keeperCenter.dy - keeperHeight * 0.69,
-                    width: keeperWidth,
-                    height: keeperHeight,
-                    child: Transform.rotate(
-                      angle: keeperRotation,
-                      alignment: Alignment.center,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 260),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        child: RealisticFootballSprite(
-                          key: ValueKey<bool>(diving),
-                          pose: diving
-                              ? FootballSpritePose.keeperDive
-                              : FootballSpritePose.keeperReady,
-                          primary: const Color(0xFFFFA000),
-                          secondary: const Color(0xFF18232D),
-                          mirror: keeperDirection < 0,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: shooterLeft + followThrough,
-                    bottom: shooterBottom,
-                    width: size.width *
-                        (shooterPose == FootballSpritePose.playerKick
-                            ? 0.56
-                            : 0.39),
-                    height: size.height * 0.46,
-                    child: Transform.rotate(
-                      angle: shooterRotation,
-                      alignment: Alignment.bottomCenter,
-                      child: Transform.scale(
-                        scaleY: shooterScaleY,
-                        alignment: Alignment.bottomCenter,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 280),
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeInCubic,
-                          transitionBuilder: (child, animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: ScaleTransition(
-                                scale: Tween<double>(begin: 0.96, end: 1.0)
-                                    .animate(animation),
-                                alignment: Alignment.bottomCenter,
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: RealisticFootballSprite(
-                            key: ValueKey<FootballSpritePose>(shooterPose),
-                            pose: shooterPose,
-                            primary: shootingTeam.primary,
-                            secondary: shootingTeam.secondary,
-                          ),
-                        ),
-                      ),
                     ),
                   ),
                   if (enabled && shotProgress == 0)
@@ -217,8 +174,10 @@ class RealisticPenaltyScene extends StatelessWidget {
                             padding: EdgeInsets.only(top: 12),
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                color: Color(0xA6000000),
-                                borderRadius: BorderRadius.all(Radius.circular(14)),
+                                color: Color(0xB0000000),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(14),
+                                ),
                               ),
                               child: Padding(
                                 padding: EdgeInsets.symmetric(
@@ -250,6 +209,31 @@ class RealisticPenaltyScene extends StatelessWidget {
   }
 }
 
+class _BroadcastGrade extends StatelessWidget {
+  const _BroadcastGrade();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[
+              const Color(0xFF020710).withOpacity(0.18),
+              Colors.transparent,
+              const Color(0xFF020710).withOpacity(0.22),
+              const Color(0xFF020710).withOpacity(0.62),
+            ],
+            stops: const <double>[0, 0.36, 0.68, 1],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 Rect _goalRect(Size size) {
   return Rect.fromLTWH(
     size.width * 0.105,
@@ -269,8 +253,57 @@ Offset _quadraticBezier(Offset a, Offset b, Offset c, double t) {
   );
 }
 
-class _ArenaPainter extends CustomPainter {
-  const _ArenaPainter({
+class _ArenaBackgroundPainter extends CustomPainter {
+  const _ArenaBackgroundPainter({required this.ambientProgress});
+
+  final double ambientProgress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color(0xFF02050B),
+            Color(0xFF0A2535),
+            Color(0xFF0A5935),
+            Color(0xFF023D21),
+          ],
+          stops: <double>[0, 0.34, 0.54, 1],
+        ).createShader(rect),
+    );
+
+    final glow = 0.18 + sin(ambientProgress * pi * 2) * 0.025;
+    for (final x in <double>[0.08, 0.92]) {
+      final center = Offset(size.width * x, size.height * 0.045);
+      canvas.drawCircle(
+        center,
+        size.width * 0.18,
+        Paint()
+          ..shader = RadialGradient(
+            colors: <Color>[
+              Colors.white.withOpacity(glow),
+              Colors.transparent,
+            ],
+          ).createShader(
+            Rect.fromCircle(center: center, radius: size.width * 0.18),
+          ),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArenaBackgroundPainter oldDelegate) {
+    return oldDelegate.ambientProgress != ambientProgress;
+  }
+}
+
+class _ArenaForegroundPainter extends CustomPainter {
+  const _ArenaForegroundPainter({
     required this.shotProgress,
     required this.ambientProgress,
     required this.targetX,
@@ -295,12 +328,8 @@ class _ArenaPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final goalRect = _goalRect(size);
-    _drawSky(canvas, size);
-    _drawStadium(canvas, size);
-    _drawPitch(canvas, size);
+    _drawPitchPerspective(canvas, size);
     _drawGoal(canvas, goalRect);
-    _drawPlayerAndKeeperShadows(canvas, size, goalRect);
-
     if (showTarget && shotProgress == 0) {
       _drawTarget(
         canvas,
@@ -310,200 +339,47 @@ class _ArenaPainter extends CustomPainter {
         ),
       );
     }
-
     _drawBall(canvas, size, goalRect);
     if (goal && impactT > 0) {
       _drawNetImpact(canvas, goalRect);
     }
+    _drawVignette(canvas, size);
   }
 
-  void _drawSky(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color(0xFF02050B),
-            Color(0xFF071A2B),
-            Color(0xFF123D50),
-          ],
-          stops: <double>[0, 0.36, 0.64],
-        ).createShader(rect),
-    );
-
-    for (final x in <double>[0.08, 0.92]) {
-      final center = Offset(size.width * x, size.height * 0.045);
-      canvas.drawCircle(
-        center,
-        size.width * 0.17,
-        Paint()
-          ..shader = RadialGradient(
-            colors: <Color>[
-              Colors.white.withOpacity(0.28),
-              Colors.transparent,
-            ],
-          ).createShader(
-            Rect.fromCircle(center: center, radius: size.width * 0.17),
-          ),
-      );
-    }
-  }
-
-  void _drawStadium(Canvas canvas, Size size) {
-    final stands = Rect.fromLTWH(
-      0,
-      size.height * 0.12,
-      size.width,
-      size.height * 0.27,
-    );
-    canvas.drawRect(stands, Paint()..color = const Color(0xFF07111C));
-
-    for (var row = 0; row < 5; row++) {
-      canvas.drawRect(
-        Rect.fromLTWH(
-          0,
-          size.height * (0.14 + row * 0.047),
-          size.width,
-          size.height * 0.036,
-        ),
-        Paint()
-          ..color = row.isEven
-              ? const Color(0xFF142435)
-              : const Color(0xFF0D1925),
-      );
-    }
-
-    final random = Random(93);
-    final pulse = 0.55 + sin(ambientProgress * pi * 2) * 0.07;
-    const colors = <Color>[
-      Color(0xFFFFE5A0),
-      Color(0xFF9ED9FF),
-      Color(0xFFFF8B8B),
-      Color(0xFFB4F0C5),
-    ];
-    for (var i = 0; i < 500; i++) {
-      canvas.drawCircle(
-        Offset(
-          random.nextDouble() * size.width,
-          size.height * 0.145 + random.nextDouble() * size.height * 0.20,
-        ),
-        0.55 + random.nextDouble() * 0.8,
-        Paint()..color = colors[i % colors.length].withOpacity(pulse),
-      );
-    }
-
-    canvas.drawRect(
-      Rect.fromLTWH(0, size.height * 0.355, size.width, size.height * 0.033),
-      Paint()..color = const Color(0xFF020810),
-    );
-    final banner = TextPainter(
-      text: const TextSpan(
-        text: 'GAMESLOCAL   •   PENALTY NIGHT   •   PLAY LOCAL',
-        style: TextStyle(
-          color: Color(0xFFFFD25A),
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.1,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-      maxLines: 1,
-    )..layout(maxWidth: size.width - 20);
-    banner.paint(canvas, Offset(10, size.height * 0.36));
-  }
-
-  void _drawPitch(Canvas canvas, Size size) {
-    final pitch = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width * 0.84, size.height * 0.37)
-      ..lineTo(size.width * 0.16, size.height * 0.37)
-      ..close();
-    canvas.drawPath(
-      pitch,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color(0xFF1B9250),
-            Color(0xFF08713A),
-            Color(0xFF034923),
-          ],
-        ).createShader(
-          Rect.fromLTWH(0, size.height * 0.35, size.width, size.height * 0.65),
-        ),
-    );
-
-    for (var stripe = 0; stripe < 9; stripe++) {
-      final t0 = stripe / 9;
-      final t1 = (stripe + 1) / 9;
-      final path = Path()
-        ..moveTo(
-          _lerp(size.width * 0.16, 0, t0),
-          _lerp(size.height * 0.37, size.height, t0),
-        )
-        ..lineTo(
-          _lerp(size.width * 0.84, size.width, t0),
-          _lerp(size.height * 0.37, size.height, t0),
-        )
-        ..lineTo(
-          _lerp(size.width * 0.84, size.width, t1),
-          _lerp(size.height * 0.37, size.height, t1),
-        )
-        ..lineTo(
-          _lerp(size.width * 0.16, 0, t1),
-          _lerp(size.height * 0.37, size.height, t1),
-        )
-        ..close();
-      canvas.drawPath(
-        path,
-        Paint()
-          ..color = stripe.isEven
-              ? Colors.white.withOpacity(0.025)
-              : Colors.black.withOpacity(0.055),
-      );
-    }
-
+  void _drawPitchPerspective(Canvas canvas, Size size) {
     final line = Paint()
-      ..color = Colors.white.withOpacity(0.75)
+      ..color = Colors.white.withOpacity(0.48)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 1.7;
     final box = Path()
-      ..moveTo(size.width * 0.18, size.height * 0.42)
-      ..lineTo(size.width * 0.82, size.height * 0.42)
-      ..lineTo(size.width * 0.95, size.height * 0.74)
-      ..lineTo(size.width * 0.05, size.height * 0.74)
+      ..moveTo(size.width * 0.18, size.height * 0.43)
+      ..lineTo(size.width * 0.82, size.height * 0.43)
+      ..lineTo(size.width * 0.95, size.height * 0.76)
+      ..lineTo(size.width * 0.05, size.height * 0.76)
       ..close();
     canvas.drawPath(box, line);
     canvas.drawCircle(
-      Offset(size.width * 0.5, size.height * 0.79),
-      4,
-      Paint()..color = Colors.white,
+      Offset(size.width * 0.5, size.height * 0.80),
+      3.5,
+      Paint()..color = Colors.white.withOpacity(0.8),
     );
   }
 
   void _drawGoal(Canvas canvas, Rect rect) {
-    final shadow = Paint()
-      ..color = Colors.black.withOpacity(0.42)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 10
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7);
-    canvas.drawRect(rect.shift(const Offset(2, 5)), shadow);
-
     final net = Paint()
-      ..color = Colors.white.withOpacity(0.28)
+      ..color = Colors.white.withOpacity(0.30)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 0.9;
     for (var i = 0; i <= 14; i++) {
       final t = i / 14;
       canvas.drawLine(
         Offset(_lerp(rect.left, rect.right, t), rect.top),
         Offset(
-          _lerp(rect.left + rect.width * 0.035, rect.right - rect.width * 0.035, t),
+          _lerp(
+            rect.left + rect.width * 0.035,
+            rect.right - rect.width * 0.035,
+            t,
+          ),
           rect.bottom,
         ),
         net,
@@ -520,12 +396,20 @@ class _ArenaPainter extends CustomPainter {
     }
 
     canvas.drawRect(
+      rect.shift(const Offset(2, 4)),
+      Paint()
+        ..color = Colors.black.withOpacity(0.42)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 9
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    canvas.drawRect(
       rect,
       Paint()
         ..shader = const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Colors.white, Color(0xFFB9C5D0), Colors.white],
+          colors: <Color>[Colors.white, Color(0xFFB7C3CF), Colors.white],
         ).createShader(rect)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 6.5
@@ -533,33 +417,11 @@ class _ArenaPainter extends CustomPainter {
     );
   }
 
-  void _drawPlayerAndKeeperShadows(Canvas canvas, Size size, Rect goalRect) {
-    final shadow = Paint()
-      ..color = Colors.black.withOpacity(0.30)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.42, size.height * 0.91),
-        width: size.width * 0.28,
-        height: size.height * 0.035,
-      ),
-      shadow,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(goalRect.center.dx, goalRect.bottom + 8),
-        width: goalRect.width * 0.26,
-        height: 12,
-      ),
-      shadow,
-    );
-  }
-
   void _drawTarget(Canvas canvas, Offset center) {
     final pulse = 1 + sin(ambientProgress * pi * 2) * 0.08;
     final radius = 17.0 * pulse;
     final paint = Paint()
-      ..color = const Color(0xFFFFD25A).withOpacity(0.92)
+      ..color = const Color(0xFFFFD25A).withOpacity(0.94)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.4;
     canvas.drawCircle(center, radius, paint);
@@ -584,29 +446,33 @@ class _ArenaPainter extends CustomPainter {
     );
 
     Offset center;
-    double ballScale;
+    double scale;
     if (shotProgress < 0.60) {
       center = start;
-      ballScale = 1;
+      scale = 1;
     } else {
-      final sideBend = (targetX - 0.5) * size.width * 0.12;
-      final lift = size.height * (0.22 + shotPower * 0.08);
+      final sideBend = (targetX - 0.5) * size.width * 0.13;
+      final lift = size.height * (0.21 + shotPower * 0.09);
       final control = Offset(
         (start.dx + end.dx) / 2 + sideBend,
         min(start.dy, end.dy) - lift,
       );
       center = _quadraticBezier(start, control, end, flightT);
-      ballScale = _lerp(1.0, 0.43, flightT);
+      scale = _lerp(1.0, 0.42, flightT);
 
       if (shotPower > 0.82 && flightT > 0.08 && flightT < 0.92) {
-        final previousT = max(0.0, flightT - 0.075);
-        final previous = _quadraticBezier(start, control, end, previousT);
+        final previous = _quadraticBezier(
+          start,
+          control,
+          end,
+          max(0, flightT - 0.07),
+        );
         canvas.drawLine(
           previous,
           center,
           Paint()
-            ..color = Colors.white.withOpacity(0.18 * shotPower)
-            ..strokeWidth = 3.5 * ballScale
+            ..color = Colors.white.withOpacity(0.20 * shotPower)
+            ..strokeWidth = 3.2 * scale
             ..strokeCap = StrokeCap.round,
         );
       }
@@ -616,18 +482,18 @@ class _ArenaPainter extends CustomPainter {
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(center.dx, groundY),
-        width: 38 * ballScale * (1 - flightT * 0.3),
-        height: 11 * ballScale,
+        width: 38 * scale * (1 - flightT * 0.3),
+        height: 11 * scale,
       ),
       Paint()
-        ..color = Colors.black.withOpacity(0.32 * (1 - flightT * 0.25))
+        ..color = Colors.black.withOpacity(0.34)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
 
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(flightT * pi * (5 + shotPower * 5));
-    final radius = 14.5 * ballScale;
+    final radius = 14.5 * scale;
     canvas.drawCircle(
       Offset.zero,
       radius,
@@ -641,7 +507,6 @@ class _ArenaPainter extends CustomPainter {
           ],
         ).createShader(Rect.fromCircle(center: Offset.zero, radius: radius)),
     );
-    final patch = Paint()..color = const Color(0xFF151A20);
     canvas.drawPath(
       Path()
         ..moveTo(0, -radius * 0.45)
@@ -650,7 +515,7 @@ class _ArenaPainter extends CustomPainter {
         ..lineTo(-radius * 0.26, radius * 0.38)
         ..lineTo(-radius * 0.42, -radius * 0.12)
         ..close(),
-      patch,
+      Paint()..color = const Color(0xFF151A20),
     );
     canvas.restore();
   }
@@ -662,7 +527,7 @@ class _ArenaPainter extends CustomPainter {
       rect.top + rect.height * targetY,
     );
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.42 * impact)
+      ..color = Colors.white.withOpacity(0.44 * impact)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.4;
     for (var ring = 1; ring <= 4; ring++) {
@@ -677,8 +542,25 @@ class _ArenaPainter extends CustomPainter {
     }
   }
 
+  void _drawVignette(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          radius: 0.88,
+          colors: <Color>[
+            Colors.transparent,
+            Colors.black.withOpacity(0.06),
+            Colors.black.withOpacity(0.44),
+          ],
+          stops: const <double>[0.56, 0.80, 1.0],
+        ).createShader(rect),
+    );
+  }
+
   @override
-  bool shouldRepaint(covariant _ArenaPainter oldDelegate) {
+  bool shouldRepaint(covariant _ArenaForegroundPainter oldDelegate) {
     return oldDelegate.shotProgress != shotProgress ||
         oldDelegate.ambientProgress != ambientProgress ||
         oldDelegate.targetX != targetX ||
