@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import shutil
 import time
 from pathlib import Path
 from urllib.error import HTTPError
@@ -11,34 +12,29 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_DIR = ROOT / "assets" / "football" / "photo"
 
-# Real photographs only. Each file is CC0 or public domain and is stored in the
-# APK after the first successful main-branch build, so gameplay is fully offline.
-ASSETS = {
+# Only three original requests are made. The ready/run and keeper ready/dive
+# pairs reuse local photographs with different crop, pan, scale and timing.
+DOWNLOADS = {
     "player_ready.png": (
         "https://upload.wikimedia.org/wikipedia/commons/2/23/Best_player.png",
         "Best player.png — Bouakez Moez — CC0",
         "https://commons.wikimedia.org/wiki/File:Best_player.png",
-    ),
-    "player_run.jpg": (
-        "https://upload.wikimedia.org/wikipedia/commons/5/53/Flamengo_v_Vasco_September_2018_IMG_4466_Par%C3%A1_%28cropped%29.jpg",
-        "Flamengo v Vasco September 2018 IMG 4466 Pará (cropped).jpg — Nadine Oliverr — CC0",
-        "https://commons.wikimedia.org/wiki/File:Flamengo_v_Vasco_September_2018_IMG_4466_Par%C3%A1_(cropped).jpg",
     ),
     "player_kick.jpg": (
         "https://upload.wikimedia.org/wikipedia/commons/d/dd/Zarekkick.jpg",
         "Zarekkick.jpg — Marcusquincy — Public domain",
         "https://commons.wikimedia.org/wiki/File:Zarekkick.jpg",
     ),
-    "keeper_ready.jpg": (
-        "https://upload.wikimedia.org/wikipedia/commons/1/19/Goal_keeper_during_a_football_game.jpg",
-        "Goal keeper during a football game.jpg — Samson Ssemakadde — CC0",
-        "https://commons.wikimedia.org/wiki/File:Goal_keeper_during_a_football_game.jpg",
-    ),
     "keeper_dive.jpg": (
         "https://upload.wikimedia.org/wikipedia/commons/d/d3/Soccer_goalkeeper.jpg",
         "Soccer goalkeeper.jpg — Master Sgt. Lance Cheung, U.S. Air Force — Public domain",
         "https://commons.wikimedia.org/wiki/File:Soccer_goalkeeper.jpg",
     ),
+}
+
+DERIVED = {
+    "player_run.png": "player_ready.png",
+    "keeper_ready.jpg": "keeper_dive.jpg",
 }
 
 
@@ -48,12 +44,12 @@ def valid_image(data: bytes) -> bool:
 
 def download_image(url: str, destination: Path) -> None:
     errors: list[str] = []
-    for attempt in range(1, 6):
+    for attempt in range(1, 5):
         try:
             request = Request(
                 url,
                 headers={
-                    "User-Agent": "GamesLocal/1.0 (offline football asset import; contact via GitHub aljwaal1/gameslocal)",
+                    "User-Agent": "GamesLocal/1.0 (offline football asset import; GitHub aljwaal1/gameslocal)",
                     "Accept": "image/png,image/jpeg,*/*",
                 },
             )
@@ -66,15 +62,10 @@ def download_image(url: str, destination: Path) -> None:
             return
         except HTTPError as exc:
             errors.append(f"attempt {attempt}: HTTPError {exc.code}: {exc.reason}")
-            # Wikimedia returns 429 when several originals are requested in a
-            # burst. Back off substantially before the next request.
-            if exc.code == 429:
-                time.sleep(15 * attempt)
-            else:
-                time.sleep(5 * attempt)
-        except Exception as exc:  # Keep complete diagnostics in GitHub logs.
+            time.sleep((12 if exc.code == 429 else 4) * attempt)
+        except Exception as exc:
             errors.append(f"attempt {attempt}: {type(exc).__name__}: {exc}")
-            time.sleep(5 * attempt)
+            time.sleep(4 * attempt)
     raise RuntimeError(f"Unable to download {url}: {' | '.join(errors)}")
 
 
@@ -114,12 +105,13 @@ def write_sources() -> None:
     lines = [
         "# Photographic football assets",
         "",
-        "These photographs are bundled locally for offline gameplay. GamesLocal",
-        "uses them as full-screen cinematic action frames and does not claim",
-        "endorsement by the photographed players or photographers.",
+        "These real photographs are bundled locally for offline gameplay.",
+        "The run-up and goalkeeper-ready frames are local duplicates animated",
+        "with different crops and camera motion; no additional network request is",
+        "made for those derived frames.",
         "",
     ]
-    for filename, (download_url, credit, page_url) in ASSETS.items():
+    for filename, (download_url, credit, page_url) in DOWNLOADS.items():
         lines.extend(
             [
                 f"- `{filename}` — {credit}",
@@ -127,7 +119,13 @@ def write_sources() -> None:
                 f"  - Downloaded from: {download_url}",
             ]
         )
-    lines.append("")
+    lines.extend(
+        [
+            "- `player_run.png` — local copy of `player_ready.png`, reframed in-app",
+            "- `keeper_ready.jpg` — local copy of `keeper_dive.jpg`, reframed in-app",
+            "",
+        ]
+    )
     (ASSET_DIR / "SOURCES.md").write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -176,7 +174,7 @@ void main() {
 
     expect(frameSource, contains('Image.asset'));
     expect(frameSource, contains('assets/football/photo/player_ready.png'));
-    expect(frameSource, contains('assets/football/photo/player_run.jpg'));
+    expect(frameSource, contains('assets/football/photo/player_run.png'));
     expect(frameSource, contains('assets/football/photo/player_kick.jpg'));
     expect(frameSource, contains('assets/football/photo/keeper_ready.jpg'));
     expect(frameSource, contains('assets/football/photo/keeper_dive.jpg'));
@@ -184,7 +182,7 @@ void main() {
 
     for (final asset in <String>[
       'assets/football/photo/player_ready.png',
-      'assets/football/photo/player_run.jpg',
+      'assets/football/photo/player_run.png',
       'assets/football/photo/player_kick.jpg',
       'assets/football/photo/keeper_ready.jpg',
       'assets/football/photo/keeper_dive.jpg',
@@ -203,13 +201,16 @@ void main() {
 
 def main() -> None:
     ASSET_DIR.mkdir(parents=True, exist_ok=True)
-    for index, (filename, (url, _credit, _page_url)) in enumerate(ASSETS.items()):
+    for index, (filename, (url, _credit, _page_url)) in enumerate(DOWNLOADS.items()):
         destination = ASSET_DIR / filename
         if not destination.exists() or not valid_image(destination.read_bytes()[:16]):
             download_image(url, destination)
-        # Avoid Wikimedia's burst rate limiter between original-file requests.
-        if index < len(ASSETS) - 1:
+        if index < len(DOWNLOADS) - 1:
             time.sleep(7)
+
+    for destination_name, source_name in DERIVED.items():
+        shutil.copyfile(ASSET_DIR / source_name, ASSET_DIR / destination_name)
+
     patch_game_timing()
     write_sources()
     write_contract_test()
