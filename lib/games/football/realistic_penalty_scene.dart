@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'penalty_shootout_game.dart' show FootballTeam;
-import 'realistic_football_sprite.dart';
 
 class RealisticPenaltyScene extends StatelessWidget {
   const RealisticPenaltyScene({
@@ -47,9 +46,6 @@ class RealisticPenaltyScene extends StatelessWidget {
         final size = Size(constraints.maxWidth, constraints.maxHeight);
         final goalRect = _goalRect(size);
 
-        // Human-paced sequence: settle, approach, plant, strike, flight,
-        // goalkeeper reaction and recovery. The goalkeeper deliberately reacts
-        // only after the ball has left the foot.
         final runT = _phase(0.12, 0.47, Curves.easeInOutCubic);
         final plantT = _phase(0.43, 0.55, Curves.easeOutCubic);
         final strikeT = _phase(0.52, 0.67, Curves.easeInOutCubic);
@@ -58,34 +54,10 @@ class RealisticPenaltyScene extends StatelessWidget {
         final recoveryT = _phase(0.90, 1.00, Curves.easeOutCubic);
         final impactT = _phase(0.82, 0.91, Curves.easeOutCubic);
 
-        final pose = shotProgress < 0.12
-            ? FootballSpritePose.playerReady
-            : shotProgress < 0.48
-                ? FootballSpritePose.playerRun
-                : shotProgress < 0.68
-                    ? FootballSpritePose.playerKick
-                    : keeperDiveT < 0.08
-                        ? FootballSpritePose.keeperReady
-                        : FootballSpritePose.keeperDive;
-
-        final photoAlignment = switch (pose) {
-          FootballSpritePose.playerReady => const Alignment(0.15, 0.05),
-          FootballSpritePose.playerRun => const Alignment(0.10, -0.04),
-          FootballSpritePose.playerKick => const Alignment(-0.08, -0.02),
-          FootballSpritePose.keeperReady => const Alignment(0.05, -0.05),
-          FootballSpritePose.keeperDive => const Alignment(-0.05, -0.10),
-        };
-
-        final photoScale = 1.04 + runT * 0.045 + strikeT * 0.035;
-        final panX = -runT * 0.045 + keeperDiveT * (keeperX - 0.5) * 0.07;
-        final panY = plantT * 0.018 - keeperDiveT * 0.025 + recoveryT * 0.02;
-        final photoOpacity = shotProgress == 0
-            ? 0.42
-            : _lerp(0.62, 0.88, min(1.0, runT + strikeT + keeperDiveT));
-
-        final shake = sin(impactT * pi * 7) *
-            (1 - impactT) *
-            (1.2 + shotPower * 1.8);
+        final zoom = 1.02 + runT * 0.025 + strikeT * 0.035;
+        final panX = (targetX - 0.5) * flightT * -18;
+        final panY = -runT * 5 + recoveryT * 4;
+        final shake = sin(impactT * pi * 8) * (1 - impactT) * 3.2;
 
         return Transform.translate(
           offset: Offset(shake, -shake * 0.18),
@@ -110,95 +82,74 @@ class RealisticPenaltyScene extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: <Widget>[
-                  CustomPaint(
-                    painter: _ArenaBackgroundPainter(
-                      ambientProgress: ambientProgress,
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Transform.translate(
-                      offset: Offset(size.width * panX, size.height * panY),
-                      child: Transform.scale(
-                        scale: photoScale,
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 360),
-                          switchInCurve: Curves.easeOutCubic,
-                          switchOutCurve: Curves.easeInCubic,
-                          transitionBuilder: (child, animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: ScaleTransition(
-                                scale: Tween<double>(begin: 1.035, end: 1.0)
-                                    .animate(animation),
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: Opacity(
-                            key: ValueKey<FootballSpritePose>(pose),
-                            opacity: photoOpacity,
-                            child: RealisticFootballSprite(
-                              pose: pose,
-                              primary: shootingTeam.primary,
-                              secondary: shootingTeam.secondary,
-                              mirror: pose == FootballSpritePose.keeperDive &&
-                                  keeperX < 0.5,
-                              alignment: photoAlignment,
-                            ),
-                          ),
-                        ),
+                  const ColoredBox(color: Color(0xFF03111E)),
+                  Transform.translate(
+                    offset: Offset(panX, panY),
+                    child: Transform.scale(
+                      scale: zoom,
+                      child: Image.asset(
+                        'assets/football/pro_penalty_arena.jpg',
+                        fit: BoxFit.cover,
+                        alignment: const Alignment(0.08, -0.06),
+                        filterQuality: FilterQuality.high,
+                        isAntiAlias: true,
+                        gaplessPlayback: true,
                       ),
                     ),
                   ),
-                  const Positioned.fill(child: _BroadcastGrade()),
-                  CustomPaint(
-                    painter: _ArenaForegroundPainter(
-                      shotProgress: shotProgress,
-                      ambientProgress: ambientProgress,
-                      targetX: targetX,
-                      targetY: targetY,
-                      shotPower: shotPower,
-                      goal: goal,
-                      showTarget: enabled,
-                      flightT: flightT,
-                      impactT: impactT,
-                    ),
-                  ),
+                  const _CinematicGrade(),
                   if (enabled && shotProgress == 0)
                     Positioned.fromRect(
                       rect: goalRect,
-                      child: const IgnorePointer(
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: Color(0xB0000000),
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(14),
-                                ),
+                      child: const IgnorePointer(child: _GoalAimGrid()),
+                    ),
+                  if (enabled && shotProgress == 0)
+                    Positioned(
+                      left: goalRect.left + goalRect.width * targetX - 25,
+                      top: goalRect.top + goalRect.height * targetY - 25,
+                      child: const IgnorePointer(child: _AimReticle()),
+                    ),
+                  CustomPaint(
+                    painter: _LiveShotPainter(
+                      shotProgress: shotProgress,
+                      ambientProgress: ambientProgress,
+                      goalRect: goalRect,
+                      targetX: targetX,
+                      targetY: targetY,
+                      keeperX: keeperX,
+                      keeperY: keeperY,
+                      shotPower: shotPower,
+                      goal: goal,
+                      flightT: flightT,
+                      keeperDiveT: keeperDiveT,
+                      impactT: impactT,
+                      teamColor: shootingTeam.primary,
+                    ),
+                  ),
+                  Positioned(
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
+                    child: IgnorePointer(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 260),
+                        child: shotProgress == 0
+                            ? _InstructionBar(
+                                key: const ValueKey<String>('aim'),
+                                enabled: enabled,
+                              )
+                            : _InstructionBar(
+                                key: const ValueKey<String>('shot'),
+                                enabled: false,
+                                text: keeperDiveT < 0.08
+                                    ? 'الكرة انطلقت...'
+                                    : goal
+                                        ? 'نحو الزاوية!'
+                                        : 'الحارس قرأ التسديدة',
                               ),
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 7,
-                                ),
-                                child: Text(
-                                  'المس الموضع الذي تريد تسديد الكرة إليه',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -209,8 +160,8 @@ class RealisticPenaltyScene extends StatelessWidget {
   }
 }
 
-class _BroadcastGrade extends StatelessWidget {
-  const _BroadcastGrade();
+class _CinematicGrade extends StatelessWidget {
+  const _CinematicGrade();
 
   @override
   Widget build(BuildContext context) {
@@ -221,12 +172,12 @@ class _BroadcastGrade extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: <Color>[
-              const Color(0xFF020710).withOpacity(0.18),
+              const Color(0xFF020713).withOpacity(0.50),
               Colors.transparent,
-              const Color(0xFF020710).withOpacity(0.22),
-              const Color(0xFF020710).withOpacity(0.62),
+              Colors.transparent,
+              const Color(0xFF01040A).withOpacity(0.72),
             ],
-            stops: const <double>[0, 0.36, 0.68, 1],
+            stops: const <double>[0, 0.24, 0.68, 1],
           ),
         ),
       ),
@@ -234,16 +185,275 @@ class _BroadcastGrade extends StatelessWidget {
   }
 }
 
-Rect _goalRect(Size size) {
-  return Rect.fromLTWH(
-    size.width * 0.105,
-    size.height * 0.105,
-    size.width * 0.79,
-    size.height * 0.31,
-  );
+class _GoalAimGrid extends StatelessWidget {
+  const _GoalAimGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.30), width: 1.3),
+        gradient: LinearGradient(
+          colors: <Color>[
+            Colors.transparent,
+            const Color(0xFF1BD6A8).withOpacity(0.05),
+          ],
+        ),
+      ),
+      child: CustomPaint(painter: _AimGridPainter()),
+    );
+  }
 }
 
-double _lerp(double a, double b, double t) => a + (b - a) * t;
+class _AimGridPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.16)
+      ..strokeWidth = 1;
+    for (var i = 1; i < 3; i++) {
+      canvas.drawLine(
+        Offset(size.width * i / 3, 0),
+        Offset(size.width * i / 3, size.height),
+        paint,
+      );
+      canvas.drawLine(
+        Offset(0, size.height * i / 3),
+        Offset(size.width, size.height * i / 3),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _AimReticle extends StatelessWidget {
+  const _AimReticle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFFE51B32).withOpacity(0.18),
+        border: Border.all(color: Colors.white, width: 2),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Color(0xFFE51B32), blurRadius: 14),
+        ],
+      ),
+      child: const Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFFE51B32),
+          ),
+          child: SizedBox(width: 10, height: 10),
+        ),
+      ),
+    );
+  }
+}
+
+class _InstructionBar extends StatelessWidget {
+  const _InstructionBar({
+    super.key,
+    required this.enabled,
+    this.text,
+  });
+
+  final bool enabled;
+  final String? text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xDD06101A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white24),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Colors.black54, blurRadius: 16),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Icon(
+            enabled ? Icons.ads_click : Icons.sports_soccer,
+            color: const Color(0xFFFFD54F),
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text ??
+                  (enabled
+                      ? 'المس أي نقطة داخل المرمى لتنفيذ التسديدة'
+                      : 'بانتظار دورك'),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LiveShotPainter extends CustomPainter {
+  const _LiveShotPainter({
+    required this.shotProgress,
+    required this.ambientProgress,
+    required this.goalRect,
+    required this.targetX,
+    required this.targetY,
+    required this.keeperX,
+    required this.keeperY,
+    required this.shotPower,
+    required this.goal,
+    required this.flightT,
+    required this.keeperDiveT,
+    required this.impactT,
+    required this.teamColor,
+  });
+
+  final double shotProgress;
+  final double ambientProgress;
+  final Rect goalRect;
+  final double targetX;
+  final double targetY;
+  final double keeperX;
+  final double keeperY;
+  final double shotPower;
+  final bool goal;
+  final double flightT;
+  final double keeperDiveT;
+  final double impactT;
+  final Color teamColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (shotProgress == 0) return;
+
+    final start = Offset(size.width * 0.54, size.height * 0.72);
+    final end = Offset(
+      goalRect.left + goalRect.width * targetX,
+      goalRect.top + goalRect.height * targetY,
+    );
+    final control = Offset(
+      (start.dx + end.dx) / 2 + (targetX - 0.5) * 45,
+      min(start.dy, end.dy) - size.height * (0.16 + shotPower * 0.06),
+    );
+    final ball = _quadraticBezier(start, control, end, flightT);
+
+    if (flightT > 0) {
+      final trailStart = _quadraticBezier(
+        start,
+        control,
+        end,
+        max(0, flightT - 0.14),
+      );
+      final trailPaint = Paint()
+        ..shader = LinearGradient(
+          colors: <Color>[
+            Colors.transparent,
+            teamColor.withOpacity(0.48),
+            Colors.white.withOpacity(0.88),
+          ],
+        ).createShader(Rect.fromPoints(trailStart, ball))
+        ..strokeWidth = 9 - flightT * 5
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(trailStart, ball, trailPaint);
+
+      final radius = 15 - flightT * 7;
+      canvas.drawCircle(
+        ball + Offset(4, 6 + flightT * 3),
+        radius * 0.82,
+        Paint()..color = Colors.black.withOpacity(0.28),
+      );
+      canvas.drawCircle(
+        ball,
+        radius,
+        Paint()
+          ..shader = const RadialGradient(
+            center: Alignment(-0.35, -0.35),
+            colors: <Color>[Colors.white, Color(0xFFD8DCE2), Color(0xFF272C34)],
+            stops: <double>[0, 0.68, 1],
+          ).createShader(Rect.fromCircle(center: ball, radius: radius)),
+      );
+      canvas.drawCircle(
+        ball + Offset(radius * 0.22, -radius * 0.18),
+        radius * 0.24,
+        Paint()..color = const Color(0xFF14171C),
+      );
+    }
+
+    if (keeperDiveT > 0) {
+      final keeperPoint = Offset(
+        goalRect.left + goalRect.width * keeperX,
+        goalRect.top + goalRect.height * keeperY,
+      );
+      canvas.drawCircle(
+        keeperPoint,
+        24 + keeperDiveT * 8,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2
+          ..color = const Color(0xFF38E29B).withOpacity(0.55 * (1 - impactT)),
+      );
+    }
+
+    if (goal && impactT > 0) {
+      _drawNetImpact(canvas, goalRect);
+    }
+  }
+
+  void _drawNetImpact(Canvas canvas, Rect rect) {
+    final center = Offset(
+      rect.left + rect.width * targetX,
+      rect.top + rect.height * targetY,
+    );
+    final ripple = 18 + impactT * 52;
+    for (var i = 0; i < 3; i++) {
+      canvas.drawCircle(
+        center,
+        ripple + i * 10,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2 - i * 0.35
+          ..color = Colors.white.withOpacity((1 - impactT) * (0.48 - i * 0.1)),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LiveShotPainter oldDelegate) {
+    return oldDelegate.shotProgress != shotProgress ||
+        oldDelegate.ambientProgress != ambientProgress ||
+        oldDelegate.targetX != targetX ||
+        oldDelegate.targetY != targetY ||
+        oldDelegate.goal != goal;
+  }
+}
+
+Rect _goalRect(Size size) {
+  return Rect.fromLTWH(
+    size.width * 0.13,
+    size.height * 0.29,
+    size.width * 0.78,
+    size.height * 0.25,
+  );
+}
 
 Offset _quadraticBezier(Offset a, Offset b, Offset c, double t) {
   final inv = 1 - t;
@@ -251,322 +461,4 @@ Offset _quadraticBezier(Offset a, Offset b, Offset c, double t) {
     inv * inv * a.dx + 2 * inv * t * b.dx + t * t * c.dx,
     inv * inv * a.dy + 2 * inv * t * b.dy + t * t * c.dy,
   );
-}
-
-class _ArenaBackgroundPainter extends CustomPainter {
-  const _ArenaBackgroundPainter({required this.ambientProgress});
-
-  final double ambientProgress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color(0xFF02050B),
-            Color(0xFF0A2535),
-            Color(0xFF0A5935),
-            Color(0xFF023D21),
-          ],
-          stops: <double>[0, 0.34, 0.54, 1],
-        ).createShader(rect),
-    );
-
-    final glow = 0.18 + sin(ambientProgress * pi * 2) * 0.025;
-    for (final x in <double>[0.08, 0.92]) {
-      final center = Offset(size.width * x, size.height * 0.045);
-      canvas.drawCircle(
-        center,
-        size.width * 0.18,
-        Paint()
-          ..shader = RadialGradient(
-            colors: <Color>[
-              Colors.white.withOpacity(glow),
-              Colors.transparent,
-            ],
-          ).createShader(
-            Rect.fromCircle(center: center, radius: size.width * 0.18),
-          ),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ArenaBackgroundPainter oldDelegate) {
-    return oldDelegate.ambientProgress != ambientProgress;
-  }
-}
-
-class _ArenaForegroundPainter extends CustomPainter {
-  const _ArenaForegroundPainter({
-    required this.shotProgress,
-    required this.ambientProgress,
-    required this.targetX,
-    required this.targetY,
-    required this.shotPower,
-    required this.goal,
-    required this.showTarget,
-    required this.flightT,
-    required this.impactT,
-  });
-
-  final double shotProgress;
-  final double ambientProgress;
-  final double targetX;
-  final double targetY;
-  final double shotPower;
-  final bool goal;
-  final bool showTarget;
-  final double flightT;
-  final double impactT;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final goalRect = _goalRect(size);
-    _drawPitchPerspective(canvas, size);
-    _drawGoal(canvas, goalRect);
-    if (showTarget && shotProgress == 0) {
-      _drawTarget(
-        canvas,
-        Offset(
-          goalRect.left + goalRect.width * targetX,
-          goalRect.top + goalRect.height * targetY,
-        ),
-      );
-    }
-    _drawBall(canvas, size, goalRect);
-    if (goal && impactT > 0) {
-      _drawNetImpact(canvas, goalRect);
-    }
-    _drawVignette(canvas, size);
-  }
-
-  void _drawPitchPerspective(Canvas canvas, Size size) {
-    final line = Paint()
-      ..color = Colors.white.withOpacity(0.48)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.7;
-    final box = Path()
-      ..moveTo(size.width * 0.18, size.height * 0.43)
-      ..lineTo(size.width * 0.82, size.height * 0.43)
-      ..lineTo(size.width * 0.95, size.height * 0.76)
-      ..lineTo(size.width * 0.05, size.height * 0.76)
-      ..close();
-    canvas.drawPath(box, line);
-    canvas.drawCircle(
-      Offset(size.width * 0.5, size.height * 0.80),
-      3.5,
-      Paint()..color = Colors.white.withOpacity(0.8),
-    );
-  }
-
-  void _drawGoal(Canvas canvas, Rect rect) {
-    final net = Paint()
-      ..color = Colors.white.withOpacity(0.30)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.9;
-    for (var i = 0; i <= 14; i++) {
-      final t = i / 14;
-      canvas.drawLine(
-        Offset(_lerp(rect.left, rect.right, t), rect.top),
-        Offset(
-          _lerp(
-            rect.left + rect.width * 0.035,
-            rect.right - rect.width * 0.035,
-            t,
-          ),
-          rect.bottom,
-        ),
-        net,
-      );
-    }
-    for (var i = 0; i <= 9; i++) {
-      final t = i / 9;
-      final inset = rect.width * 0.035 * t;
-      canvas.drawLine(
-        Offset(rect.left + inset, _lerp(rect.top, rect.bottom, t)),
-        Offset(rect.right - inset, _lerp(rect.top, rect.bottom, t)),
-        net,
-      );
-    }
-
-    canvas.drawRect(
-      rect.shift(const Offset(2, 4)),
-      Paint()
-        ..color = Colors.black.withOpacity(0.42)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 9
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-    );
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[Colors.white, Color(0xFFB7C3CF), Colors.white],
-        ).createShader(rect)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 6.5
-        ..strokeJoin = StrokeJoin.round,
-    );
-  }
-
-  void _drawTarget(Canvas canvas, Offset center) {
-    final pulse = 1 + sin(ambientProgress * pi * 2) * 0.08;
-    final radius = 17.0 * pulse;
-    final paint = Paint()
-      ..color = const Color(0xFFFFD25A).withOpacity(0.94)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4;
-    canvas.drawCircle(center, radius, paint);
-    canvas.drawCircle(center, radius * 0.5, paint);
-    canvas.drawLine(
-      Offset(center.dx - radius - 7, center.dy),
-      Offset(center.dx + radius + 7, center.dy),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(center.dx, center.dy - radius - 7),
-      Offset(center.dx, center.dy + radius + 7),
-      paint,
-    );
-  }
-
-  void _drawBall(Canvas canvas, Size size, Rect goalRect) {
-    final start = Offset(size.width * 0.515, size.height * 0.815);
-    final end = Offset(
-      goalRect.left + goalRect.width * targetX,
-      goalRect.top + goalRect.height * targetY,
-    );
-
-    Offset center;
-    double scale;
-    if (shotProgress < 0.60) {
-      center = start;
-      scale = 1;
-    } else {
-      final sideBend = (targetX - 0.5) * size.width * 0.13;
-      final lift = size.height * (0.21 + shotPower * 0.09);
-      final control = Offset(
-        (start.dx + end.dx) / 2 + sideBend,
-        min(start.dy, end.dy) - lift,
-      );
-      center = _quadraticBezier(start, control, end, flightT);
-      scale = _lerp(1.0, 0.42, flightT);
-
-      if (shotPower > 0.82 && flightT > 0.08 && flightT < 0.92) {
-        final previous = _quadraticBezier(
-          start,
-          control,
-          end,
-          max(0, flightT - 0.07),
-        );
-        canvas.drawLine(
-          previous,
-          center,
-          Paint()
-            ..color = Colors.white.withOpacity(0.20 * shotPower)
-            ..strokeWidth = 3.2 * scale
-            ..strokeCap = StrokeCap.round,
-        );
-      }
-    }
-
-    final groundY = _lerp(start.dy + 15, goalRect.bottom + 8, flightT);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.dx, groundY),
-        width: 38 * scale * (1 - flightT * 0.3),
-        height: 11 * scale,
-      ),
-      Paint()
-        ..color = Colors.black.withOpacity(0.34)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
-
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(flightT * pi * (5 + shotPower * 5));
-    final radius = 14.5 * scale;
-    canvas.drawCircle(
-      Offset.zero,
-      radius,
-      Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.35, -0.4),
-          colors: <Color>[
-            Colors.white,
-            Color(0xFFF0F2F4),
-            Color(0xFF9CA7B2),
-          ],
-        ).createShader(Rect.fromCircle(center: Offset.zero, radius: radius)),
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, -radius * 0.45)
-        ..lineTo(radius * 0.42, -radius * 0.12)
-        ..lineTo(radius * 0.26, radius * 0.38)
-        ..lineTo(-radius * 0.26, radius * 0.38)
-        ..lineTo(-radius * 0.42, -radius * 0.12)
-        ..close(),
-      Paint()..color = const Color(0xFF151A20),
-    );
-    canvas.restore();
-  }
-
-  void _drawNetImpact(Canvas canvas, Rect rect) {
-    final impact = sin(impactT * pi).abs();
-    final center = Offset(
-      rect.left + rect.width * targetX,
-      rect.top + rect.height * targetY,
-    );
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.44 * impact)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.4;
-    for (var ring = 1; ring <= 4; ring++) {
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: center,
-          width: ring * 28.0 * impact,
-          height: ring * 18.0 * impact,
-        ),
-        paint,
-      );
-    }
-  }
-
-  void _drawVignette(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..shader = RadialGradient(
-          radius: 0.88,
-          colors: <Color>[
-            Colors.transparent,
-            Colors.black.withOpacity(0.06),
-            Colors.black.withOpacity(0.44),
-          ],
-          stops: const <double>[0.56, 0.80, 1.0],
-        ).createShader(rect),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _ArenaForegroundPainter oldDelegate) {
-    return oldDelegate.shotProgress != shotProgress ||
-        oldDelegate.ambientProgress != ambientProgress ||
-        oldDelegate.targetX != targetX ||
-        oldDelegate.targetY != targetY ||
-        oldDelegate.shotPower != shotPower ||
-        oldDelegate.goal != goal ||
-        oldDelegate.showTarget != showTarget;
-  }
 }
