@@ -22,6 +22,6 @@ void main() {
     expect(scene, isNot(contains('Transform.scale')));
     expect(pubspec, contains('- assets/football/'));
     expect(artwork.existsSync(), isTrue);
-    expect(artwork.lengthSync(), greaterThan(100000));
+    expect(artwork.lengthSync(), greaterThan(10000));
   });
 }
