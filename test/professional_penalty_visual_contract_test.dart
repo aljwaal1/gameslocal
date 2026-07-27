@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('penalty mode keeps slow staged motion and stable full composition', () {
+  test('penalty mode renders complete actors without fragile bitmap assets', () {
     final gameSource = File(
       'lib/games/football/professional_penalty_game.dart',
     ).readAsStringSync();
@@ -16,8 +16,6 @@ void main() {
 
     expect(gameSource, contains('class ProPenaltyShootoutGameScreen'));
     expect(gameSource, contains('Duration(milliseconds: 3000)'));
-    expect(gameSource, contains('Duration(milliseconds: 1350)'));
-    expect(gameSource, contains('Duration(milliseconds: 1250)'));
     expect(gameSource, contains("'targetX': targetX"));
     expect(gameSource, contains("'power': _shotPower"));
     expect(gameSource, contains('_robotShot()'));
@@ -26,11 +24,16 @@ void main() {
     expect(compatibilityScene, contains('class ProfessionalPenaltyScene'));
     expect(compatibilityScene, contains('StablePenaltyScene'));
     expect(stableScene, contains('class StablePenaltyScene'));
-    expect(stableScene, contains('fit: BoxFit.contain'));
-    expect(stableScene, contains("'stable-full-player-keeper-scene'"));
-    expect(stableScene, contains('_ShotOverlayPainter'));
-    expect(stableScene, contains('_TargetReticle'));
-    expect(stableScene, isNot(contains('fit: BoxFit.cover')));
-    expect(stableScene, isNot(contains('Transform.scale')));
+    expect(stableScene, contains('class _ArenaPainter'));
+    expect(stableScene, contains('_drawStriker'));
+    expect(stableScene, contains('_drawKeeper'));
+    expect(stableScene, contains('_drawGoalBack'));
+    expect(stableScene, contains('_drawGoalFront'));
+    expect(stableScene, contains('_drawBall'));
+    expect(stableScene, contains("'procedural-professional-penalty-scene'"));
+    expect(stableScene, contains("'always-visible-football-actors'"));
+    expect(stableScene, isNot(contains('Image.asset')));
+    expect(stableScene, isNot(contains('تعذر تحميل مشهد كرة القدم')));
+    expect(stableScene, isNot(contains('BoxFit.cover')));
   });
 }
