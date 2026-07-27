@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'penalty_shootout_game.dart' show FootballTeam;
-import 'realistic_penalty_scene.dart';
+import 'stable_penalty_scene.dart';
 
 /// Compatibility entry point used by the penalty game.
 ///
-/// The previous implementation painted the player and goalkeeper directly on
-/// a Canvas. The new implementation delegates to image-based SVG sprites with
-/// separate animation poses while preserving the public scene contract.
+/// Delegates to a stable full-composition scene that never crops, zooms or
+/// pans the player and goalkeeper outside the visible area.
 class ProfessionalPenaltyScene extends StatelessWidget {
   const ProfessionalPenaltyScene({
     super.key,
@@ -38,7 +37,7 @@ class ProfessionalPenaltyScene extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RealisticPenaltyScene(
+    return StablePenaltyScene(
       shotProgress: shotProgress,
       ambientProgress: ambientProgress,
       shootingTeam: shootingTeam,
