@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('penalty mode keeps slow staged motion and professional arena art', () {
+  test('penalty mode keeps slow staged motion and real photo frames', () {
     final gameSource = File(
       'lib/games/football/professional_penalty_game.dart',
     ).readAsStringSync();
@@ -12,6 +12,9 @@ void main() {
     ).readAsStringSync();
     final realisticScene = File(
       'lib/games/football/realistic_penalty_scene.dart',
+    ).readAsStringSync();
+    final frameSource = File(
+      'lib/games/football/realistic_football_sprite.dart',
     ).readAsStringSync();
 
     expect(gameSource, contains('class ProPenaltyShootoutGameScreen'));
@@ -32,18 +35,16 @@ void main() {
     expect(realisticScene, contains('AnimatedSwitcher'));
     expect(realisticScene, contains('_quadraticBezier'));
     expect(realisticScene, contains('_drawNetImpact'));
-    expect(
-      realisticScene,
-      contains("Image.asset(\n                        'assets/football/pro_penalty_arena.jpg'"),
-    );
-    expect(realisticScene, contains('class _AimReticle'));
-    expect(realisticScene, contains('class _GoalAimGrid'));
     expect(realisticScene, isNot(contains('_drawFootballerBody')));
     expect(realisticScene, isNot(contains('_drawKeeperBody')));
 
-    final arena = File('assets/football/pro_penalty_arena.jpg');
-    expect(arena.existsSync(), isTrue);
-    expect(arena.lengthSync(), greaterThan(50000));
+    expect(frameSource, contains('Image.asset'));
+    expect(frameSource, contains('assets/football/photo/player_ready.jpg'));
+    expect(frameSource, contains('assets/football/photo/player_run.jpg'));
+    expect(frameSource, contains('assets/football/photo/player_kick.jpg'));
+    expect(frameSource, contains('assets/football/photo/keeper_ready.jpg'));
+    expect(frameSource, contains('assets/football/photo/keeper_dive.jpg'));
+    expect(frameSource, isNot(contains('SvgPicture')));
 
     for (final asset in <String>[
       'assets/football/photo/player_ready.jpg',
