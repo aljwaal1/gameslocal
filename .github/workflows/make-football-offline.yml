@@ -1,0 +1,110 @@
+name: Make Football Offline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/make-football-offline.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Convert football to direct offline mode
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('lib/main.dart')
+          text = path.read_text(encoding='utf-8')
+
+          text = text.replace(
+              "playersText: 'لاعب ضد روبوت أو لاعبان LAN',",
+              "playersText: 'لاعب ضد الروبوت على نفس الجهاز',",
+          )
+          text = text.replace(
+              "status: 'Penalty Arena Pro بمنظور وحركة دقيقة',",
+              "status: 'تعمل محليًا بالكامل دون Wi-Fi أو إنترنت',",
+          )
+          text = text.replace(
+              "builder: (_, networkCore) =>\n          ProPenaltyShootoutGameScreen(networkCore: networkCore),",
+              "builder: (_, __) => const ProPenaltyShootoutGameScreen(),",
+          )
+
+          old = """      onTap: () {
+        GameFeedback.tap();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => Directionality(
+              textDirection: TextDirection.rtl,
+              child: GameRoomScreen(game: game),
+            ),
+          ),
+        );
+      },"""
+          new = """      onTap: () {
+        GameFeedback.tap();
+        if (game.id == 'football_penalties') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const Directionality(
+                textDirection: TextDirection.rtl,
+                child: ProPenaltyShootoutGameScreen(),
+              ),
+            ),
+          );
+          return;
+        }
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => Directionality(
+              textDirection: TextDirection.rtl,
+              child: GameRoomScreen(game: game),
+            ),
+          ),
+        );
+      },"""
+          if old not in text:
+              raise SystemExit('Game card launch block not found')
+          text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+
+          pubspec = Path('pubspec.yaml')
+          p = pubspec.read_text(encoding='utf-8')
+          p = p.replace('version: 1.0.0+3', 'version: 1.0.0+4')
+          pubspec.write_text(p, encoding='utf-8')
+
+          test = Path('test/football_offline_launch_test.dart')
+          test.write_text("""import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('football launches directly in offline robot mode', () {
+    final source = File('lib/main.dart').readAsStringSync();
+    expect(source, contains("game.id == 'football_penalties'"));
+    expect(source, contains('const ProPenaltyShootoutGameScreen()'));
+    expect(source, contains('تعمل محليًا بالكامل دون Wi-Fi أو إنترنت'));
+  });
+}
+""", encoding='utf-8')
+          PY
+
+      - name: Commit offline football mode
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart pubspec.yaml test/football_offline_launch_test.dart
+          git commit -m "تشغيل كرة القدم محليًا دون واي فاي"
+          git push origin main
