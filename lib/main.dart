@@ -13,6 +13,7 @@ import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
 import 'games/football/penalty_shootout_game.dart';
 import 'games/football/professional_penalty_game.dart';
+import 'games/name_animal_object/name_animal_object_game.dart';
 import 'games/xo/xo_game.dart';
 import 'lan/screens/lan_home_screen.dart';
 import 'network/wifi_lobby_screen.dart';
@@ -59,6 +60,13 @@ class HomeScreen extends StatelessWidget {
       status: 'Penalty Arena Pro بمنظور وحركة دقيقة',
       builder: (_, networkCore) =>
           ProPenaltyShootoutGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
+      id: 'name_animal_object',
+      name: 'اسم حيوان جماد',
+      playersText: '2–6 لاعبين محليًا',
+      status: 'حرف عشوائي ومؤقت ونقاط للجولات',
+      builder: (_, __) => const NameAnimalObjectGameScreen(),
     ),
     GameDefinition(
       id: 'xo',
@@ -341,6 +349,7 @@ class _GameCard extends StatelessWidget {
         'checkers',
         'domino',
         'football_penalties',
+        'name_animal_object',
       }.contains(game.id);
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
   Color get releaseColor =>
@@ -352,6 +361,8 @@ class _GameCard extends StatelessWidget {
         return Icons.sports_martial_arts;
       case 'football_penalties':
         return Icons.sports_soccer;
+      case 'name_animal_object':
+        return Icons.edit_note;
       case 'xo':
         return Icons.close;
       case 'checkers':
@@ -373,6 +384,8 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFD62828);
       case 'football_penalties':
         return const Color(0xFF0B7A3B);
+      case 'name_animal_object':
+        return const Color(0xFF7B2CBF);
       case 'xo':
         return const Color(0xFFE63946);
       case 'checkers':
