@@ -62,13 +62,6 @@ class HomeScreen extends StatelessWidget {
           ProPenaltyShootoutGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
-      id: 'name_animal_object',
-      name: 'اسم حيوان جماد',
-      playersText: '2–6 لاعبين محليًا',
-      status: 'حرف عشوائي ومؤقت ونقاط للجولات',
-      builder: (_, __) => const NameAnimalObjectGameScreen(),
-    ),
-    GameDefinition(
       id: 'xo',
       name: 'إكس أو',
       playersText: 'لاعبان',
@@ -111,6 +104,13 @@ class HomeScreen extends StatelessWidget {
       playersText: 'لاعبان',
       status: 'السراقة ضد الروبوت أو لاعب عبر الشبكة',
       builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
+      id: 'name_animal_object',
+      name: 'اسم حيوان جماد',
+      playersText: 'عدة لاعبين عبر LAN',
+      status: 'كل لاعب على هاتفه ضمن نفس Wi-Fi أو Hotspot',
+      builder: (_, __) => const NameAnimalObjectGameScreen(),
     ),
   ];
 
@@ -361,8 +361,6 @@ class _GameCard extends StatelessWidget {
         return Icons.sports_martial_arts;
       case 'football_penalties':
         return Icons.sports_soccer;
-      case 'name_animal_object':
-        return Icons.edit_note;
       case 'xo':
         return Icons.close;
       case 'checkers':
@@ -373,6 +371,8 @@ class _GameCard extends StatelessWidget {
         return Icons.dashboard_customize;
       case 'chicken':
         return Icons.egg_alt;
+      case 'name_animal_object':
+        return Icons.edit_note;
       default:
         return Icons.style;
     }
@@ -384,8 +384,6 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFD62828);
       case 'football_penalties':
         return const Color(0xFF0B7A3B);
-      case 'name_animal_object':
-        return const Color(0xFF7B2CBF);
       case 'xo':
         return const Color(0xFFE63946);
       case 'checkers':
@@ -396,6 +394,8 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFF264653);
       case 'chicken':
         return const Color(0xFFFF9F1C);
+      case 'name_animal_object':
+        return const Color(0xFF7B2CBF);
       default:
         return const Color(0xFF7B2CBF);
     }
