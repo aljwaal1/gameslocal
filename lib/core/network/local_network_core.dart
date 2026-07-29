@@ -28,7 +28,14 @@ class LocalPlayer {
 
 enum LocalNetworkMode { idle, host, client }
 
-enum LocalNetworkStatus { idle, preparing, ready, connected, disconnected, error }
+enum LocalNetworkStatus {
+  idle,
+  preparing,
+  ready,
+  connected,
+  disconnected,
+  error,
+}
 
 class LocalNetworkState {
   const LocalNetworkState({
@@ -80,16 +87,24 @@ class LocalNetworkState {
 
 class LocalNetworkCore {
   LocalNetworkCore({required this.gameId}) {
+    _activeCores[gameId] = this;
     _transportStatusSubscription = _transport.status.listen((statusMessage) {
       _emit(_state.copyWith(message: statusMessage));
     });
-
-    _transportMessageSubscription = _transport.messages.listen(_handleIncomingMessage);
+    _transportMessageSubscription =
+        _transport.messages.listen(_handleIncomingMessage);
   }
 
+  static final Map<String, LocalNetworkCore> _activeCores =
+      <String, LocalNetworkCore>{};
+
+  static LocalNetworkCore? activeFor(String gameId) => _activeCores[gameId];
+
   final String gameId;
-  final StreamController<LocalNetworkState> _stateController = StreamController<LocalNetworkState>.broadcast();
-  final StreamController<NetworkMessage> _messageController = StreamController<NetworkMessage>.broadcast();
+  final StreamController<LocalNetworkState> _stateController =
+      StreamController<LocalNetworkState>.broadcast();
+  final StreamController<NetworkMessage> _messageController =
+      StreamController<NetworkMessage>.broadcast();
   late final LocalWifiTransport _transport = LocalWifiTransport(gameId: gameId);
   StreamSubscription<String>? _transportStatusSubscription;
   StreamSubscription<NetworkMessage>? _transportMessageSubscription;
@@ -99,6 +114,9 @@ class LocalNetworkCore {
   LocalNetworkState get state => _state;
   Stream<LocalNetworkState> get stateStream => _stateController.stream;
   Stream<NetworkMessage> get messages => _messageController.stream;
+
+  String get localPlayerId =>
+      _state.players.isEmpty ? 'system' : _state.players.first.id;
 
   Future<void> createRoom() async {
     _emit(_state.copyWith(
@@ -111,12 +129,15 @@ class LocalNetworkCore {
     try {
       final String endpoint = await _transport.startHost();
       final List<String> endpointParts = endpoint.split(':');
-      final String hostAddress = endpointParts.isNotEmpty ? endpointParts.first : '';
-      final int port = endpointParts.length > 1 ? int.tryParse(endpointParts.last) ?? LocalWifiTransport.defaultPort : LocalWifiTransport.defaultPort;
+      final String hostAddress =
+          endpointParts.isNotEmpty ? endpointParts.first : '';
+      final int port = endpointParts.length > 1
+          ? int.tryParse(endpointParts.last) ?? LocalWifiTransport.defaultPort
+          : LocalWifiTransport.defaultPort;
       final String roomCode = _buildRoomCode();
       final LocalPlayer host = LocalPlayer(
         id: 'host-$roomCode',
-        name: 'اللاعب 1',
+        name: 'المضيف',
         isHost: true,
         isReady: true,
       );
@@ -128,27 +149,38 @@ class LocalNetworkCore {
         hostAddress: hostAddress,
         port: port,
         players: <LocalPlayer>[host],
-        message: 'الغرفة تعمل الآن. أدخل IP في جهاز اللاعب الثاني للانضمام.',
+        message: 'الغرفة تعمل. يمكن لعدة لاعبين الانضمام إلى نفس IP.',
       ));
 
       _publish(NetworkMessage(
         type: NetworkMessageType.roomCreated,
         gameId: gameId,
         senderId: host.id,
-        payload: <String, dynamic>{'roomCode': roomCode, 'hostAddress': hostAddress, 'port': port},
+        payload: <String, dynamic>{
+          'roomCode': roomCode,
+          'hostAddress': hostAddress,
+          'port': port,
+        },
       ));
-    } catch (error) {
+    } catch (_) {
       _emit(_state.copyWith(
         status: LocalNetworkStatus.error,
-        message: 'تعذر تشغيل الغرفة. تأكد أن الجهاز على Wi-Fi أو Hotspot ثم جرّب مرة أخرى.',
+        message: 'تعذر تشغيل الغرفة. تأكد من Wi-Fi أو Hotspot.',
       ));
     }
   }
 
-  Future<void> joinRoom({required String hostAddress, int port = LocalWifiTransport.defaultPort, String roomCode = ''}) async {
+  Future<void> joinRoom({
+    required String hostAddress,
+    int port = LocalWifiTransport.defaultPort,
+    String roomCode = '',
+  }) async {
     final String cleanedHost = hostAddress.trim();
     if (cleanedHost.isEmpty) {
-      _emit(_state.copyWith(status: LocalNetworkStatus.error, message: 'أدخل IP جهاز اللاعب الأول للانضمام.'));
+      _emit(_state.copyWith(
+        status: LocalNetworkStatus.error,
+        message: 'أدخل IP جهاز المضيف.',
+      ));
       return;
     }
 
@@ -157,14 +189,15 @@ class LocalNetworkCore {
       status: LocalNetworkStatus.preparing,
       hostAddress: cleanedHost,
       port: port,
-      message: 'جاري الاتصال بالغرفة عبر Wi-Fi / Hotspot...',
+      message: 'جاري الاتصال بالغرفة...',
     ));
 
     try {
       await _transport.connectToHost(host: cleanedHost, port: port);
+      final String suffix = DateTime.now().microsecondsSinceEpoch.toString();
       final LocalPlayer guest = LocalPlayer(
-        id: 'client-${roomCode.isEmpty ? cleanedHost : roomCode}',
-        name: 'اللاعب 2',
+        id: 'client-$suffix',
+        name: 'لاعب جديد',
         isHost: false,
         isReady: true,
       );
@@ -176,29 +209,47 @@ class LocalNetworkCore {
         hostAddress: cleanedHost,
         port: port,
         players: <LocalPlayer>[guest],
-        message: 'تم الاتصال بالغرفة. انتظر اللاعب الأول لبدء اللعبة.',
+        message: 'تم الاتصال بالغرفة. انتظر المضيف لبدء اللعبة.',
       ));
 
       _transport.send(NetworkMessage(
         type: NetworkMessageType.playerJoined,
         gameId: gameId,
         senderId: guest.id,
-        payload: <String, dynamic>{'roomCode': roomCode, 'hostAddress': cleanedHost, 'port': port},
+        payload: <String, dynamic>{
+          'roomCode': roomCode,
+          'hostAddress': cleanedHost,
+          'port': port,
+          'name': guest.name,
+        },
       ));
-    } catch (error) {
+    } catch (_) {
       _emit(_state.copyWith(
         status: LocalNetworkStatus.error,
-        message: 'فشل الاتصال. تأكد أن الجهازين على نفس Wi-Fi / Hotspot وأن IP صحيح.',
+        message: 'فشل الاتصال. تأكد أن الأجهزة على نفس الشبكة وأن IP صحيح.',
       ));
     }
   }
 
+  void updateLocalPlayerName(String name) {
+    final String cleaned = name.trim();
+    if (cleaned.isEmpty || _state.players.isEmpty) return;
+    final LocalPlayer local = _state.players.first.copyWith(name: cleaned);
+    _emit(_state.copyWith(players: <LocalPlayer>[local, ..._state.players.skip(1)]));
+    _sendAndPublish(NetworkMessage(
+      type: NetworkMessageType.hello,
+      gameId: gameId,
+      senderId: local.id,
+      payload: <String, dynamic>{'name': cleaned},
+    ));
+  }
+
   void markReady(String playerId, bool ready) {
     final List<LocalPlayer> updatedPlayers = _state.players
-        .map((player) => player.id == playerId ? player.copyWith(isReady: ready) : player)
+        .map((player) =>
+            player.id == playerId ? player.copyWith(isReady: ready) : player)
         .toList(growable: false);
-
-    _emit(_state.copyWith(players: updatedPlayers, message: 'تم تحديث جاهزية اللاعب.'));
+    _emit(_state.copyWith(players: updatedPlayers));
     _sendAndPublish(NetworkMessage(
       type: NetworkMessageType.playerReady,
       gameId: gameId,
@@ -208,11 +259,10 @@ class LocalNetworkCore {
   }
 
   void startGame() {
-    final String senderId = _state.players.isEmpty ? 'system' : _state.players.first.id;
     _sendAndPublish(NetworkMessage(
       type: NetworkMessageType.startGame,
       gameId: gameId,
-      senderId: senderId,
+      senderId: localPlayerId,
       payload: <String, dynamic>{'roomCode': _state.roomCode},
     ));
   }
@@ -227,50 +277,72 @@ class LocalNetworkCore {
   }
 
   Future<void> reconnect() async {
-    final previous = _state;
-    _transport.close();
+    final LocalNetworkState previous = _state;
+    await _transport.close();
     if (previous.mode == LocalNetworkMode.host) {
       await createRoom();
-      return;
-    }
-    if (previous.mode == LocalNetworkMode.client && previous.hostAddress.isNotEmpty) {
+    } else if (previous.mode == LocalNetworkMode.client &&
+        previous.hostAddress.isNotEmpty) {
       await joinRoom(
         hostAddress: previous.hostAddress,
         port: previous.port,
         roomCode: previous.roomCode,
       );
-      return;
+    } else {
+      _emit(_state.copyWith(
+        status: LocalNetworkStatus.error,
+        message: 'لا توجد بيانات اتصال سابقة.',
+      ));
     }
-    _emit(_state.copyWith(
-      status: LocalNetworkStatus.error,
-      message: 'لا توجد بيانات اتصال سابقة لإعادة المحاولة.',
-    ));
   }
 
   void disconnect() {
     _sendAndPublish(NetworkMessage(
       type: NetworkMessageType.disconnect,
       gameId: gameId,
-      senderId: 'system',
+      senderId: localPlayerId,
     ));
     _transport.close();
-    _emit(_state.copyWith(status: LocalNetworkStatus.disconnected, message: 'تم قطع الاتصال المحلي.'));
+    _emit(_state.copyWith(
+      status: LocalNetworkStatus.disconnected,
+      message: 'تم قطع الاتصال المحلي.',
+    ));
   }
 
   void _handleIncomingMessage(NetworkMessage message) {
     if (message.gameId != gameId) return;
     _publish(message);
 
-    if (message.type == NetworkMessageType.playerJoined && _state.mode == LocalNetworkMode.host) {
-      final bool alreadyExists = _state.players.any((player) => player.id == message.senderId);
+    if (_state.mode != LocalNetworkMode.host) return;
+
+    if (message.type == NetworkMessageType.playerJoined) {
+      final bool alreadyExists =
+          _state.players.any((player) => player.id == message.senderId);
       if (!alreadyExists) {
+        final String name = (message.payload['name'] ?? '').toString().trim();
         _emit(_state.copyWith(
           status: LocalNetworkStatus.connected,
           players: <LocalPlayer>[
             ..._state.players,
-            LocalPlayer(id: message.senderId, name: 'اللاعب 2', isHost: false, isReady: true),
+            LocalPlayer(
+              id: message.senderId,
+              name: name.isEmpty ? 'اللاعب ${_state.players.length + 1}' : name,
+              isHost: false,
+              isReady: true,
+            ),
           ],
-          message: 'تم انضمام اللاعب الثاني. يمكن للاعب الأول بدء اللعبة الآن.',
+          message: 'انضم لاعب جديد — العدد ${_state.players.length + 1}.',
+        ));
+      }
+    } else if (message.type == NetworkMessageType.hello) {
+      final String name = (message.payload['name'] ?? '').toString().trim();
+      if (name.isNotEmpty) {
+        _emit(_state.copyWith(
+          players: _state.players
+              .map((player) => player.id == message.senderId
+                  ? player.copyWith(name: name)
+                  : player)
+              .toList(growable: false),
         ));
       }
     }
@@ -282,24 +354,22 @@ class LocalNetworkCore {
   }
 
   void _publish(NetworkMessage message) {
-    if (!_messageController.isClosed) {
-      _messageController.add(message);
-    }
+    if (!_messageController.isClosed) _messageController.add(message);
   }
 
   void _emit(LocalNetworkState nextState) {
     _state = nextState;
-    if (!_stateController.isClosed) {
-      _stateController.add(nextState);
-    }
+    if (!_stateController.isClosed) _stateController.add(nextState);
   }
 
   String _buildRoomCode() {
-    final int code = DateTime.now().millisecondsSinceEpoch.remainder(9000) + 1000;
+    final int code =
+        DateTime.now().millisecondsSinceEpoch.remainder(9000) + 1000;
     return code.toString();
   }
 
   void dispose() {
+    if (identical(_activeCores[gameId], this)) _activeCores.remove(gameId);
     _transportStatusSubscription?.cancel();
     _transportMessageSubscription?.cancel();
     _transport.dispose();

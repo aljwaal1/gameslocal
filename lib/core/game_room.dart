@@ -24,6 +24,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   final TextEditingController hostAddressController = TextEditingController();
   final TextEditingController roomCodeController = TextEditingController();
 
+  bool get isLanOnly => widget.game.id == 'name_animal_object';
+
   @override
   void initState() {
     super.initState();
@@ -50,8 +52,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       networkCore.startGame();
       return;
     }
-
-    if (networkCore.state.mode == LocalNetworkMode.idle) {
+    if (!isLanOnly && networkCore.state.mode == LocalNetworkMode.idle) {
       _openGame(useNetwork: false);
     }
   }
@@ -107,58 +108,71 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         initialData: networkCore.state,
         builder: (context, snapshot) {
           final LocalNetworkState state = snapshot.data ?? LocalNetworkState.idle();
-
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Card(
-                elevation: 0,
-                color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.55),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.smart_toy, color: Theme.of(context).colorScheme.primary, size: 30),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              _offlineTitle,
-                              style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+              if (!isLanOnly) ...[
+                Card(
+                  elevation: 0,
+                  color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.55),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.smart_toy, color: Theme.of(context).colorScheme.primary, size: 30),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _offlineTitle,
+                                style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(_offlineDescription, style: const TextStyle(height: 1.45)),
-                      const SizedBox(height: 14),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          icon: const Icon(Icons.play_arrow),
-                          label: const Text('ابدأ الآن بدون إنترنت'),
-                          onPressed: _startOfflineGame,
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(_offlineDescription, style: const TextStyle(height: 1.45)),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            icon: const Icon(Icons.play_arrow),
+                            label: const Text('ابدأ الآن بدون إنترنت'),
+                            onPressed: _startOfflineGame,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text('اللعب عبر الشبكة اختياري'),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Expanded(child: Divider()),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text('اللعب عبر الشبكة اختياري'),
+                    ),
+                    Expanded(child: Divider()),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ] else ...[
+                Card(
+                  color: const Color(0xFFE8F5F2),
+                  child: const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text(
+                      'هذه اللعبة تعمل على عدة هواتف ضمن نفس Wi-Fi أو Hotspot. ينشئ لاعب واحد الغرفة، ثم ينضم بقية اللاعبين إلى IP المضيف.',
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 12),
+                ),
+                const SizedBox(height: 12),
+              ],
               Card(
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
@@ -258,21 +272,22 @@ class _NetworkStatusBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('حالة الاتصال: $modeText', style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(state.message, style: const TextStyle(height: 1.4)),
+          Text('الوضع: $modeText', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(state.message),
           if (state.hostAddress.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('IP اللاعب الأول: ${state.hostAddress}', style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text('Port: ${state.port}'),
+            const SizedBox(height: 4),
+            SelectableText('IP: ${state.hostAddress}:${state.port}'),
           ],
-          if (state.status == LocalNetworkStatus.error || state.status == LocalNetworkStatus.disconnected) ...[
+          if (state.roomCode.isNotEmpty) SelectableText('رمز الغرفة: ${state.roomCode}'),
+          if (state.status == LocalNetworkStatus.error ||
+              state.status == LocalNetworkStatus.disconnected) ...[
             const SizedBox(height: 10),
-            OutlinedButton.icon(onPressed: onReconnect, icon: const Icon(Icons.refresh), label: const Text('إعادة الاتصال')),
-          ],
-          if (state.roomCode.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text('رمز الغرفة: ${state.roomCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            OutlinedButton.icon(
+              onPressed: onReconnect,
+              icon: const Icon(Icons.refresh),
+              label: const Text('إعادة المحاولة'),
+            ),
           ],
         ],
       ),
@@ -288,35 +303,33 @@ class _PlayersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<LocalPlayer> players = state.players.isEmpty
-        ? const <LocalPlayer>[
-            LocalPlayer(id: 'local-1', name: 'اللاعب 1', isHost: true, isReady: true),
-            LocalPlayer(id: 'local-2', name: 'اللاعب 2', isHost: false),
-          ]
-        : state.players;
-    final bool waitingForHost = state.mode == LocalNetworkMode.client;
-
+    final bool canStart = state.mode == LocalNetworkMode.host && state.players.length >= 2;
     return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('لاعبو الشبكة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            for (final LocalPlayer player in players)
-              ListTile(
-                leading: Icon(player.isHost ? Icons.person : Icons.person_outline),
-                title: Text(player.name),
-                subtitle: Text(player.isReady ? 'جاهز' : 'بانتظار الجاهزية'),
-              ),
+            Text('اللاعبون (${state.players.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 8),
-            FilledButton.icon(
-              icon: const Icon(Icons.play_arrow),
-              label: Text(waitingForHost ? 'بانتظار بدء اللاعب الأول' : 'ابدأ لعب الشبكة'),
-              onPressed: waitingForHost ? null : onStart,
+            if (state.players.isEmpty)
+              const Text('لم ينضم أي لاعب بعد.')
+            else
+              ...state.players.map((player) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(player.isHost ? Icons.star : Icons.person),
+                    title: Text(player.name),
+                    trailing: Icon(player.isReady ? Icons.check_circle : Icons.hourglass_empty),
+                  )),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: canStart ? onStart : null,
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('بدء اللعبة على جميع الأجهزة'),
+              ),
             ),
           ],
         ),
@@ -330,14 +343,19 @@ class _ConnectionPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      child: const Padding(
+    return const Card(
+      child: Padding(
         padding: EdgeInsets.all(16),
-        child: Text(
-          'ملاحظة: اللعب ضد الروبوت يعمل بدون إنترنت. خيارات Wi‑Fi وLAN مخصصة فقط للعب بين جهازين.',
-          style: TextStyle(height: 1.5),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('طريقة الاتصال', style: TextStyle(fontWeight: FontWeight.bold)),
+            SizedBox(height: 8),
+            Text('1. اجعل جميع الهواتف على نفس Wi-Fi أو Hotspot.'),
+            Text('2. ينشئ اللاعب الأول الغرفة ويشارك عنوان IP.'),
+            Text('3. يدخل بقية اللاعبين عنوان IP وينضمون.'),
+            Text('4. يبدأ المضيف اللعبة فتفتح الشاشة عند الجميع.'),
+          ],
         ),
       ),
     );

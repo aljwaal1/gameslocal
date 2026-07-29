@@ -13,6 +13,7 @@ import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
 import 'games/football/penalty_shootout_game.dart';
 import 'games/football/professional_penalty_game.dart';
+import 'games/name_animal_object/name_animal_object_game.dart';
 import 'games/xo/xo_game.dart';
 import 'lan/screens/lan_home_screen.dart';
 import 'network/wifi_lobby_screen.dart';
@@ -103,6 +104,13 @@ class HomeScreen extends StatelessWidget {
       playersText: 'لاعبان',
       status: 'السراقة ضد الروبوت أو لاعب عبر الشبكة',
       builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
+      id: 'name_animal_object',
+      name: 'اسم حيوان جماد',
+      playersText: 'عدة لاعبين عبر LAN',
+      status: 'كل لاعب على هاتفه ضمن نفس Wi-Fi أو Hotspot',
+      builder: (_, __) => const NameAnimalObjectGameScreen(),
     ),
   ];
 
@@ -341,6 +349,7 @@ class _GameCard extends StatelessWidget {
         'checkers',
         'domino',
         'football_penalties',
+        'name_animal_object',
       }.contains(game.id);
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
   Color get releaseColor =>
@@ -362,6 +371,8 @@ class _GameCard extends StatelessWidget {
         return Icons.dashboard_customize;
       case 'chicken':
         return Icons.egg_alt;
+      case 'name_animal_object':
+        return Icons.edit_note;
       default:
         return Icons.style;
     }
@@ -383,6 +394,8 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFF264653);
       case 'chicken':
         return const Color(0xFFFF9F1C);
+      case 'name_animal_object':
+        return const Color(0xFF7B2CBF);
       default:
         return const Color(0xFF7B2CBF);
     }
