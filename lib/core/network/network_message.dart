@@ -43,8 +43,11 @@ class NetworkMessage {
       ),
       gameId: (json['gameId'] ?? '').toString(),
       senderId: (json['senderId'] ?? '').toString(),
-      payload: Map<String, dynamic>.from(json['payload'] as Map? ?? const <String, dynamic>{}),
-      createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ?? DateTime.now(),
+      payload: Map<String, dynamic>.from(
+        json['payload'] as Map? ?? const <String, dynamic>{},
+      ),
+      createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()) ??
+          DateTime.now(),
     );
   }
 }
