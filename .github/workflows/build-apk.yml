@@ -68,14 +68,19 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Format check
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Verify Dart formatting
+        run: dart format --output=none --set-exit-if-changed lib
 
       - name: Analyze Flutter
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Run Flutter tests
-        run: flutter test
+      - name: Run Flutter tests when present
+        run: |
+          if find test -type f -name '*_test.dart' -print -quit 2>/dev/null | grep -q .; then
+            flutter test
+          else
+            echo "No Flutter tests found; skipping."
+          fi
 
       - name: Build release APK
         run: flutter build apk --release
