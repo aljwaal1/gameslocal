@@ -24,6 +24,22 @@ class LocalPlayer {
       isReady: isReady ?? this.isReady,
     );
   }
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        'id': id,
+        'name': name,
+        'isHost': isHost,
+        'isReady': isReady,
+      };
+
+  factory LocalPlayer.fromJson(Map<dynamic, dynamic> json) {
+    return LocalPlayer(
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? 'لاعب').toString(),
+      isHost: json['isHost'] == true,
+      isReady: json['isReady'] == true,
+    );
+  }
 }
 
 enum LocalNetworkMode { idle, host, client }
@@ -88,7 +104,7 @@ class LocalNetworkState {
 class LocalNetworkCore {
   LocalNetworkCore({required this.gameId}) {
     _activeCores[gameId] = this;
-    _transportStatusSubscription = _transport.status.listen((statusMessage) {
+    _transportStatusSubscription = _transport.status.listen((String statusMessage) {
       _emit(_state.copyWith(message: statusMessage));
     });
     _transportMessageSubscription =
@@ -110,13 +126,12 @@ class LocalNetworkCore {
   StreamSubscription<NetworkMessage>? _transportMessageSubscription;
 
   LocalNetworkState _state = LocalNetworkState.idle();
+  String _localPlayerId = 'system';
 
   LocalNetworkState get state => _state;
   Stream<LocalNetworkState> get stateStream => _stateController.stream;
   Stream<NetworkMessage> get messages => _messageController.stream;
-
-  String get localPlayerId =>
-      _state.players.isEmpty ? 'system' : _state.players.first.id;
+  String get localPlayerId => _localPlayerId;
 
   Future<void> createRoom() async {
     _emit(_state.copyWith(
@@ -141,6 +156,7 @@ class LocalNetworkCore {
         isHost: true,
         isReady: true,
       );
+      _localPlayerId = host.id;
 
       _emit(LocalNetworkState(
         mode: LocalNetworkMode.host,
@@ -201,6 +217,7 @@ class LocalNetworkCore {
         isHost: false,
         isReady: true,
       );
+      _localPlayerId = guest.id;
 
       _emit(LocalNetworkState(
         mode: LocalNetworkMode.client,
@@ -233,20 +250,26 @@ class LocalNetworkCore {
 
   void updateLocalPlayerName(String name) {
     final String cleaned = name.trim();
-    if (cleaned.isEmpty || _state.players.isEmpty) return;
-    final LocalPlayer local = _state.players.first.copyWith(name: cleaned);
-    _emit(_state.copyWith(players: <LocalPlayer>[local, ..._state.players.skip(1)]));
+    if (cleaned.isEmpty || _localPlayerId == 'system') return;
+
+    final List<LocalPlayer> updated = _state.players.map((LocalPlayer player) {
+      return player.id == _localPlayerId ? player.copyWith(name: cleaned) : player;
+    }).toList(growable: false);
+    _emit(_state.copyWith(players: updated));
+
     _sendAndPublish(NetworkMessage(
       type: NetworkMessageType.hello,
       gameId: gameId,
-      senderId: local.id,
+      senderId: _localPlayerId,
       payload: <String, dynamic>{'name': cleaned},
     ));
+
+    if (_state.mode == LocalNetworkMode.host) _broadcastRoster();
   }
 
   void markReady(String playerId, bool ready) {
     final List<LocalPlayer> updatedPlayers = _state.players
-        .map((player) =>
+        .map((LocalPlayer player) =>
             player.id == playerId ? player.copyWith(isReady: ready) : player)
         .toList(growable: false);
     _emit(_state.copyWith(players: updatedPlayers));
@@ -256,6 +279,7 @@ class LocalNetworkCore {
       senderId: playerId,
       payload: <String, dynamic>{'ready': ready},
     ));
+    if (_state.mode == LocalNetworkMode.host) _broadcastRoster();
   }
 
   void startGame() {
@@ -313,12 +337,18 @@ class LocalNetworkCore {
     if (message.gameId != gameId) return;
     _publish(message);
 
+    if (message.type == NetworkMessageType.hello &&
+        message.payload['action'] == 'room_roster') {
+      _applyRoster(message.payload);
+      return;
+    }
+
     if (_state.mode != LocalNetworkMode.host) return;
 
     if (message.type == NetworkMessageType.playerJoined) {
       final bool alreadyExists =
-          _state.players.any((player) => player.id == message.senderId);
-      if (!alreadyExists) {
+          _state.players.any((LocalPlayer player) => player.id == message.senderId);
+      if (!alreadyExists && _state.players.length < 12) {
         final String name = (message.payload['name'] ?? '').toString().trim();
         _emit(_state.copyWith(
           status: LocalNetworkStatus.connected,
@@ -333,19 +363,70 @@ class LocalNetworkCore {
           ],
           message: 'انضم لاعب جديد — العدد ${_state.players.length + 1}.',
         ));
+        _broadcastRoster();
       }
     } else if (message.type == NetworkMessageType.hello) {
       final String name = (message.payload['name'] ?? '').toString().trim();
       if (name.isNotEmpty) {
         _emit(_state.copyWith(
           players: _state.players
-              .map((player) => player.id == message.senderId
+              .map((LocalPlayer player) => player.id == message.senderId
                   ? player.copyWith(name: name)
                   : player)
               .toList(growable: false),
         ));
+        _broadcastRoster();
       }
+    } else if (message.type == NetworkMessageType.playerReady) {
+      final bool ready = message.payload['ready'] == true;
+      _emit(_state.copyWith(
+        players: _state.players
+            .map((LocalPlayer player) => player.id == message.senderId
+                ? player.copyWith(isReady: ready)
+                : player)
+            .toList(growable: false),
+      ));
+      _broadcastRoster();
+    } else if (message.type == NetworkMessageType.disconnect) {
+      _emit(_state.copyWith(
+        players: _state.players
+            .where((LocalPlayer player) => player.id != message.senderId)
+            .toList(growable: false),
+        message: 'غادر لاعب — العدد ${_state.players.length - 1}.',
+      ));
+      _broadcastRoster();
     }
+  }
+
+  void _broadcastRoster() {
+    if (_state.mode != LocalNetworkMode.host) return;
+    _transport.send(NetworkMessage(
+      type: NetworkMessageType.hello,
+      gameId: gameId,
+      senderId: _localPlayerId,
+      payload: <String, dynamic>{
+        'action': 'room_roster',
+        'players': _state.players
+            .map((LocalPlayer player) => player.toJson())
+            .toList(growable: false),
+      },
+    ));
+  }
+
+  void _applyRoster(Map<String, dynamic> payload) {
+    final List<dynamic> rawPlayers =
+        payload['players'] as List<dynamic>? ?? <dynamic>[];
+    final List<LocalPlayer> players = rawPlayers
+        .whereType<Map>()
+        .map((Map<dynamic, dynamic> item) => LocalPlayer.fromJson(item))
+        .where((LocalPlayer player) => player.id.isNotEmpty)
+        .toList(growable: false);
+    if (players.isEmpty) return;
+    _emit(_state.copyWith(
+      status: LocalNetworkStatus.connected,
+      players: players,
+      message: 'تم تحديث قائمة اللاعبين — العدد ${players.length}.',
+    ));
   }
 
   void _sendAndPublish(NetworkMessage message) {
