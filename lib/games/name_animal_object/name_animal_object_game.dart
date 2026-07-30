@@ -19,10 +19,37 @@ enum _Stage { profile, waiting, playing, results }
 class _NameAnimalObjectGameScreenState
     extends State<NameAnimalObjectGameScreen> {
   static const String _gameId = 'name_animal_object';
+  static const int _minimumPlayers = 2;
+  static const int _roundSeconds = 60;
   static const List<String> _letters = <String>[
-    'ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش',
-    'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه',
-    'و', 'ي',
+    'ا',
+    'ب',
+    'ت',
+    'ث',
+    'ج',
+    'ح',
+    'خ',
+    'د',
+    'ذ',
+    'ر',
+    'ز',
+    'س',
+    'ش',
+    'ص',
+    'ض',
+    'ط',
+    'ظ',
+    'ع',
+    'غ',
+    'ف',
+    'ق',
+    'ك',
+    'ل',
+    'م',
+    'ن',
+    'ه',
+    'و',
+    'ي',
   ];
   static const List<String> _categories = <String>[
     'اسم',
@@ -44,7 +71,7 @@ class _NameAnimalObjectGameScreenState
 
   _Stage _stage = _Stage.profile;
   int _round = 0;
-  int _secondsLeft = 60;
+  int _secondsLeft = _roundSeconds;
   String _letter = '';
   String _playerName = '';
   bool _submitted = false;
@@ -106,12 +133,7 @@ class _NameAnimalObjectGameScreenState
     if (network == null) return;
 
     final List<LocalPlayer> players = network.state.players;
-    if (players.length < 2) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يجب اتصال لاعبين على الأقل لبدء الجولة.')),
-      );
-      return;
-    }
+    if (players.length < _minimumPlayers) return;
 
     for (final LocalPlayer player in players) {
       _playerNames[player.id] = player.name;
@@ -131,7 +153,7 @@ class _NameAnimalObjectGameScreenState
       'action': 'categories_round_start',
       'round': nextRound,
       'letter': letter,
-      'seconds': 60,
+      'seconds': _roundSeconds,
       'players': playerData,
     }, senderId: _myId);
   }
@@ -139,7 +161,6 @@ class _NameAnimalObjectGameScreenState
   void _handleMessage(NetworkMessage message) {
     if (!mounted || message.type != NetworkMessageType.move) return;
     final String action = (message.payload['action'] ?? '').toString();
-
     switch (action) {
       case 'categories_round_start':
         _receiveRoundStart(message.payload);
@@ -155,8 +176,10 @@ class _NameAnimalObjectGameScreenState
 
   void _receiveRoundStart(Map<String, dynamic> payload) {
     _timer?.cancel();
-    final List<dynamic> players = payload['players'] as List<dynamic>? ?? <dynamic>[];
+    final List<dynamic> players =
+        payload['players'] as List<dynamic>? ?? <dynamic>[];
     final Set<String> expected = <String>{};
+
     for (final dynamic item in players) {
       if (item is! Map) continue;
       final String id = (item['id'] ?? '').toString();
@@ -174,7 +197,8 @@ class _NameAnimalObjectGameScreenState
     setState(() {
       _round = (payload['round'] as num?)?.toInt() ?? _round + 1;
       _letter = (payload['letter'] ?? '').toString();
-      _secondsLeft = (payload['seconds'] as num?)?.toInt() ?? 60;
+      _secondsLeft =
+          (payload['seconds'] as num?)?.toInt() ?? _roundSeconds;
       _expectedPlayerIds = expected;
       _roundAnswers.clear();
       _submitted = false;
@@ -189,7 +213,7 @@ class _NameAnimalObjectGameScreenState
       if (!mounted) return;
       if (_secondsLeft <= 1) {
         timer.cancel();
-        if (!_submitted) _submitAnswers(auto: true);
+        if (!_submitted) _submitAnswers();
         if (_isHost) {
           Future<void>.delayed(const Duration(seconds: 2), () {
             if (mounted && _stage == _Stage.playing) _finishRound();
@@ -201,7 +225,7 @@ class _NameAnimalObjectGameScreenState
     });
   }
 
-  void _submitAnswers({bool auto = false}) {
+  void _submitAnswers() {
     if (_submitted || _stage != _Stage.playing) return;
     final Map<String, String> values = <String, String>{
       for (final String category in _categories)
@@ -214,19 +238,21 @@ class _NameAnimalObjectGameScreenState
       'round': _round,
       'playerName': _playerName,
       'answers': values,
-      'auto': auto,
     }, senderId: _myId);
   }
 
   void _receiveSubmission(NetworkMessage message) {
     if ((message.payload['round'] as num?)?.toInt() != _round) return;
-    final Map<String, String> values = <String, String>{};
     final Map<dynamic, dynamic> raw =
-        message.payload['answers'] as Map<dynamic, dynamic>? ?? <dynamic, dynamic>{};
-    for (final String category in _categories) {
-      values[category] = (raw[category] ?? '').toString();
-    }
-    final String name = (message.payload['playerName'] ?? '').toString().trim();
+        message.payload['answers'] as Map<dynamic, dynamic>? ??
+            <dynamic, dynamic>{};
+    final Map<String, String> values = <String, String>{
+      for (final String category in _categories)
+        category: (raw[category] ?? '').toString(),
+    };
+
+    final String name =
+        (message.payload['playerName'] ?? '').toString().trim();
     if (name.isNotEmpty) _playerNames[message.senderId] = name;
     _roundAnswers[message.senderId] = values;
 
@@ -247,7 +273,7 @@ class _NameAnimalObjectGameScreenState
         .toLowerCase();
   }
 
-  bool _valid(String answer) {
+  bool _isValid(String answer) {
     return answer.trim().isNotEmpty &&
         _normalize(answer).startsWith(_normalize(_letter));
   }
@@ -268,10 +294,11 @@ class _NameAnimalObjectGameScreenState
       int total = 0;
       for (final String category in _categories) {
         final String answer = _roundAnswers[id]?[category] ?? '';
-        if (!_valid(answer)) continue;
+        if (!_isValid(answer)) continue;
         final String normalized = _normalize(answer);
         final int duplicates = _expectedPlayerIds.where((String otherId) {
-          return _normalize(_roundAnswers[otherId]?[category] ?? '') == normalized;
+          return _normalize(_roundAnswers[otherId]?[category] ?? '') ==
+              normalized;
         }).length;
         total += duplicates > 1 ? 5 : 10;
       }
@@ -291,10 +318,6 @@ class _NameAnimalObjectGameScreenState
 
   void _receiveResults(Map<String, dynamic> payload) {
     _timer?.cancel();
-    final Map<String, int> points = <String, int>{};
-    final Map<String, int> scores = <String, int>{};
-    final Map<String, String> names = <String, String>{};
-
     final Map<dynamic, dynamic> rawPoints =
         payload['points'] as Map<dynamic, dynamic>? ?? <dynamic, dynamic>{};
     final Map<dynamic, dynamic> rawScores =
@@ -302,6 +325,9 @@ class _NameAnimalObjectGameScreenState
     final Map<dynamic, dynamic> rawNames =
         payload['names'] as Map<dynamic, dynamic>? ?? <dynamic, dynamic>{};
 
+    final Map<String, int> points = <String, int>{};
+    final Map<String, int> scores = <String, int>{};
+    final Map<String, String> names = <String, String>{};
     rawPoints.forEach((dynamic key, dynamic value) {
       points[key.toString()] = (value as num?)?.toInt() ?? 0;
     });
@@ -362,10 +388,12 @@ class _NameAnimalObjectGameScreenState
       children: <Widget>[
         const Icon(Icons.badge_outlined, size: 82, color: Color(0xFF7B2CBF)),
         const SizedBox(height: 12),
-        const Text(
-          'اكتب اسمك الذي سيظهر لبقية اللاعبين',
+        Text(
+          _isHost
+              ? 'اكتب اسمك للدخول كمضيف ولاعب'
+              : 'اكتب اسمك الذي سيظهر لبقية اللاعبين',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+          style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 22),
         TextField(
@@ -393,6 +421,8 @@ class _NameAnimalObjectGameScreenState
 
   Widget _buildWaiting() {
     final List<LocalPlayer> players = _network!.state.players;
+    final bool canStart = players.length >= _minimumPlayers;
+
     return ListView(
       key: const ValueKey<String>('waiting'),
       padding: const EdgeInsets.all(18),
@@ -404,31 +434,38 @@ class _NameAnimalObjectGameScreenState
         ),
         const SizedBox(height: 10),
         Text(
-          _isHost ? 'أنت المضيف' : 'بانتظار المضيف',
+          _isHost ? 'أنت المضيف وأحد اللاعبين' : 'بانتظار المضيف',
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 8),
         Text(
-          'المتصلون: ${players.length}',
+          'اللاعبون: ${players.length} — الحد الأدنى: $_minimumPlayers',
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
-        ...players.map((LocalPlayer player) => Card(
-              child: ListTile(
-                leading: Icon(player.isHost ? Icons.star : Icons.person),
-                title: Text(_playerNames[player.id] ?? player.name),
-                subtitle: Text(player.isHost ? 'المضيف' : 'متصل'),
-              ),
-            )),
+        ...players.map(
+          (LocalPlayer player) => Card(
+            child: ListTile(
+              leading: Icon(player.isHost ? Icons.star : Icons.person),
+              title: Text(_playerNames[player.id] ?? player.name),
+              subtitle:
+                  Text(player.isHost ? 'المضيف • لاعب' : 'لاعب متصل'),
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
         if (_isHost)
           FilledButton.icon(
-            onPressed: _startRound,
+            onPressed: canStart ? _startRound : null,
             icon: const Icon(Icons.play_arrow),
-            label: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 13),
-              child: Text('ابدأ الجولة للجميع'),
+            label: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              child: Text(
+                canStart
+                    ? 'ابدأ الجولة للجميع'
+                    : 'بانتظار لاعب آخر',
+              ),
             ),
           )
         else
@@ -466,18 +503,20 @@ class _NameAnimalObjectGameScreenState
           ],
         ),
         const SizedBox(height: 14),
-        ..._categories.map((String category) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: TextField(
-                controller: _answers[category],
-                enabled: !_submitted,
-                decoration: InputDecoration(
-                  labelText: category,
-                  hintText: '$category يبدأ بحرف $_letter',
-                  border: const OutlineInputBorder(),
-                ),
+        ..._categories.map(
+          (String category) => Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: TextField(
+              controller: _answers[category],
+              enabled: !_submitted,
+              decoration: InputDecoration(
+                labelText: category,
+                hintText: '$category يبدأ بحرف $_letter',
+                border: const OutlineInputBorder(),
               ),
-            )),
+            ),
+          ),
+        ),
         FilledButton.icon(
           onPressed: _submitted ? null : _submitAnswers,
           icon: Icon(_submitted ? Icons.hourglass_top : Icons.send),
@@ -501,7 +540,11 @@ class _NameAnimalObjectGameScreenState
 
   Widget _buildResults() {
     final List<String> ranking = _scores.keys.toList()
-      ..sort((String a, String b) => (_scores[b] ?? 0).compareTo(_scores[a] ?? 0));
+      ..sort(
+        (String a, String b) =>
+            (_scores[b] ?? 0).compareTo(_scores[a] ?? 0),
+      );
+
     return ListView(
       key: ValueKey<String>('results-$_round'),
       padding: const EdgeInsets.all(16),
@@ -524,7 +567,8 @@ class _NameAnimalObjectGameScreenState
               subtitle: Text('+${_lastRoundPoints[id] ?? 0} في هذه الجولة'),
               trailing: Text(
                 '${_scores[id] ?? 0}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
               ),
             ),
           );
@@ -532,7 +576,9 @@ class _NameAnimalObjectGameScreenState
         const SizedBox(height: 18),
         if (_isHost)
           FilledButton.icon(
-            onPressed: _startRound,
+            onPressed: _network!.state.players.length >= _minimumPlayers
+                ? _startRound
+                : null,
             icon: const Icon(Icons.refresh),
             label: const Padding(
               padding: EdgeInsets.symmetric(vertical: 13),
@@ -579,7 +625,9 @@ class _InfoCard extends StatelessWidget {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: danger ? const Color(0xFFC1121F) : const Color(0xFF1F6F63),
+              color: danger
+                  ? const Color(0xFFC1121F)
+                  : const Color(0xFF1F6F63),
             ),
           ),
         ],
