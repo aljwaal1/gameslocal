@@ -2,23 +2,19 @@ name: Build APK Direct
 
 on:
   push:
-    branches:
-      - main
-      - feature/iphone-web-player
+    branches: [main]
     paths:
       - 'lib/**'
       - 'assets/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: gameslocal-modern-flutter-${{ github.ref }}
+  group: gameslocal-main-apk
   cancel-in-progress: true
 
 jobs:
@@ -84,26 +80,29 @@ jobs:
       - name: Prepare APK artifact
         run: |
           mkdir -p release apk/modern
-          cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-iphone-web-player.apk
+          cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
-          sha256sum release/gameslocal-iphone-web-player.apk > release/gameslocal-iphone-web-player.apk.sha256
+          sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gameslocal-iphone-web-player-${{ github.run_number }}
+          name: gameslocal-flutter-apk-${{ github.run_number }}
           path: |
-            release/gameslocal-iphone-web-player.apk
-            release/gameslocal-iphone-web-player.apk.sha256
+            release/gameslocal-flutter.apk
+            release/gameslocal-flutter.apk.sha256
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish latest APK on main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Publish latest APK to main
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add apk/modern/gameslocal-flutter.apk
-          git commit -m "Publish latest Android APK" || exit 0
+          if git diff --cached --quiet; then
+            echo "APK already matches the current source."
+            exit 0
+          fi
+          git commit -m "Publish latest Android APK"
           git pull --rebase origin main
           git push origin HEAD:main
