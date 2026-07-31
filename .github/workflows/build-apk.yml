@@ -46,6 +46,9 @@ jobs:
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
 
+      - name: Remove generated sample test
+        run: rm -f test/widget_test.dart
+
       - name: Configure Android network permissions
         run: |
           python3 - <<'PY'
