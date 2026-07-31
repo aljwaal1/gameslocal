@@ -22,34 +22,9 @@ class _NameAnimalObjectGameScreenState
   static const int _minimumPlayers = 2;
   static const int _roundSeconds = 60;
   static const List<String> _letters = <String>[
-    'ا',
-    'ب',
-    'ت',
-    'ث',
-    'ج',
-    'ح',
-    'خ',
-    'د',
-    'ذ',
-    'ر',
-    'ز',
-    'س',
-    'ش',
-    'ص',
-    'ض',
-    'ط',
-    'ظ',
-    'ع',
-    'غ',
-    'ف',
-    'ق',
-    'ك',
-    'ل',
-    'م',
-    'ن',
-    'ه',
-    'و',
-    'ي',
+    'ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش',
+    'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'ه',
+    'و', 'ي',
   ];
   static const List<String> _categories = <String>[
     'اسم',
@@ -75,8 +50,11 @@ class _NameAnimalObjectGameScreenState
   String _letter = '';
   String _playerName = '';
   bool _submitted = false;
+  bool _finishing = false;
   Set<String> _expectedPlayerIds = <String>{};
   final Map<String, Map<String, String>> _roundAnswers =
+      <String, Map<String, String>>{};
+  Map<String, Map<String, String>> _lastRoundAnswers =
       <String, Map<String, String>>{};
   final Map<String, String> _playerNames = <String, String>{};
   final Map<String, int> _scores = <String, int>{};
@@ -128,10 +106,9 @@ class _NameAnimalObjectGameScreenState
   }
 
   void _startRound() {
-    if (!_isHost) return;
+    if (!_isHost || _finishing) return;
     final LocalNetworkCore? network = _network;
     if (network == null) return;
-
     final List<LocalPlayer> players = network.state.players;
     if (players.length < _minimumPlayers) return;
 
@@ -140,8 +117,6 @@ class _NameAnimalObjectGameScreenState
       _scores.putIfAbsent(player.id, () => 0);
     }
 
-    final String letter = _letters[_random.nextInt(_letters.length)];
-    final int nextRound = _round + 1;
     final List<Map<String, String>> playerData = players
         .map((LocalPlayer player) => <String, String>{
               'id': player.id,
@@ -151,8 +126,8 @@ class _NameAnimalObjectGameScreenState
 
     network.sendMove(<String, dynamic>{
       'action': 'categories_round_start',
-      'round': nextRound,
-      'letter': letter,
+      'round': _round + 1,
+      'letter': _letters[_random.nextInt(_letters.length)],
       'seconds': _roundSeconds,
       'players': playerData,
     }, senderId: _myId);
@@ -179,7 +154,6 @@ class _NameAnimalObjectGameScreenState
     final List<dynamic> players =
         payload['players'] as List<dynamic>? ?? <dynamic>[];
     final Set<String> expected = <String>{};
-
     for (final dynamic item in players) {
       if (item is! Map) continue;
       final String id = (item['id'] ?? '').toString();
@@ -189,11 +163,9 @@ class _NameAnimalObjectGameScreenState
       _playerNames[id] = name.isEmpty ? 'لاعب' : name;
       _scores.putIfAbsent(id, () => 0);
     }
-
     for (final TextEditingController controller in _answers.values) {
       controller.clear();
     }
-
     setState(() {
       _round = (payload['round'] as num?)?.toInt() ?? _round + 1;
       _letter = (payload['letter'] ?? '').toString();
@@ -202,6 +174,7 @@ class _NameAnimalObjectGameScreenState
       _expectedPlayerIds = expected;
       _roundAnswers.clear();
       _submitted = false;
+      _finishing = false;
       _stage = _Stage.playing;
     });
     _startTimer();
@@ -231,7 +204,6 @@ class _NameAnimalObjectGameScreenState
       for (final String category in _categories)
         category: _answers[category]!.text.trim(),
     };
-
     setState(() => _submitted = true);
     _network?.sendMove(<String, dynamic>{
       'action': 'categories_submit',
@@ -246,15 +218,13 @@ class _NameAnimalObjectGameScreenState
     final Map<dynamic, dynamic> raw =
         message.payload['answers'] as Map<dynamic, dynamic>? ??
             <dynamic, dynamic>{};
-    final Map<String, String> values = <String, String>{
+    _roundAnswers[message.senderId] = <String, String>{
       for (final String category in _categories)
         category: (raw[category] ?? '').toString(),
     };
-
     final String name =
         (message.payload['playerName'] ?? '').toString().trim();
     if (name.isNotEmpty) _playerNames[message.senderId] = name;
-    _roundAnswers[message.senderId] = values;
 
     if (_expectedPlayerIds.isNotEmpty &&
         _expectedPlayerIds.every(_roundAnswers.containsKey)) {
@@ -278,8 +248,19 @@ class _NameAnimalObjectGameScreenState
         _normalize(answer).startsWith(_normalize(_letter));
   }
 
+  int _answerPoints(String playerId, String category) {
+    final String answer = _roundAnswers[playerId]?[category] ?? '';
+    if (!_isValid(answer)) return 0;
+    final String normalized = _normalize(answer);
+    final int duplicates = _expectedPlayerIds.where((String otherId) {
+      return _normalize(_roundAnswers[otherId]?[category] ?? '') == normalized;
+    }).length;
+    return duplicates > 1 ? 5 : 10;
+  }
+
   void _finishRound() {
-    if (!_isHost || _stage != _Stage.playing) return;
+    if (!_isHost || _stage != _Stage.playing || _finishing) return;
+    _finishing = true;
     _timer?.cancel();
 
     for (final String id in _expectedPlayerIds) {
@@ -293,14 +274,7 @@ class _NameAnimalObjectGameScreenState
     for (final String id in _expectedPlayerIds) {
       int total = 0;
       for (final String category in _categories) {
-        final String answer = _roundAnswers[id]?[category] ?? '';
-        if (!_isValid(answer)) continue;
-        final String normalized = _normalize(answer);
-        final int duplicates = _expectedPlayerIds.where((String otherId) {
-          return _normalize(_roundAnswers[otherId]?[category] ?? '') ==
-              normalized;
-        }).length;
-        total += duplicates > 1 ? 5 : 10;
+        total += _answerPoints(id, category);
       }
       points[id] = total;
       _scores[id] = (_scores[id] ?? 0) + total;
@@ -313,6 +287,7 @@ class _NameAnimalObjectGameScreenState
       'points': points,
       'scores': _scores,
       'names': _playerNames,
+      'answers': _roundAnswers,
     }, senderId: _myId);
   }
 
@@ -324,10 +299,15 @@ class _NameAnimalObjectGameScreenState
         payload['scores'] as Map<dynamic, dynamic>? ?? <dynamic, dynamic>{};
     final Map<dynamic, dynamic> rawNames =
         payload['names'] as Map<dynamic, dynamic>? ?? <dynamic, dynamic>{};
+    final Map<dynamic, dynamic> rawAnswers =
+        payload['answers'] as Map<dynamic, dynamic>? ?? <dynamic, dynamic>{};
 
     final Map<String, int> points = <String, int>{};
     final Map<String, int> scores = <String, int>{};
     final Map<String, String> names = <String, String>{};
+    final Map<String, Map<String, String>> answers =
+        <String, Map<String, String>>{};
+
     rawPoints.forEach((dynamic key, dynamic value) {
       points[key.toString()] = (value as num?)?.toInt() ?? 0;
     });
@@ -337,13 +317,23 @@ class _NameAnimalObjectGameScreenState
     rawNames.forEach((dynamic key, dynamic value) {
       names[key.toString()] = value.toString();
     });
+    rawAnswers.forEach((dynamic playerId, dynamic value) {
+      final Map<dynamic, dynamic> playerRaw =
+          value is Map ? value : <dynamic, dynamic>{};
+      answers[playerId.toString()] = <String, String>{
+        for (final String category in _categories)
+          category: (playerRaw[category] ?? '').toString(),
+      };
+    });
 
     setState(() {
       _lastRoundPoints = points;
+      _lastRoundAnswers = answers;
       _scores
         ..clear()
         ..addAll(scores);
       _playerNames.addAll(names);
+      _finishing = false;
       _stage = _Stage.results;
     });
   }
@@ -357,7 +347,7 @@ class _NameAnimalObjectGameScreenState
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'هذه اللعبة تعمل عبر الشبكة المحلية فقط. ارجع واختر إنشاء غرفة أو الانضمام إلى غرفة.',
+              'هذه اللعبة تعمل عبر الشبكة المحلية فقط. ارجع وأنشئ غرفة أو انضم إلى غرفة.',
               textAlign: TextAlign.center,
             ),
           ),
@@ -366,7 +356,7 @@ class _NameAnimalObjectGameScreenState
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('اسم • حيوان • جماد LAN')),
+      appBar: AppBar(title: const Text('اسم • حيوان • جماد')),
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 250),
@@ -422,7 +412,6 @@ class _NameAnimalObjectGameScreenState
   Widget _buildWaiting() {
     final List<LocalPlayer> players = _network!.state.players;
     final bool canStart = players.length >= _minimumPlayers;
-
     return ListView(
       key: const ValueKey<String>('waiting'),
       padding: const EdgeInsets.all(18),
@@ -440,17 +429,19 @@ class _NameAnimalObjectGameScreenState
         ),
         const SizedBox(height: 8),
         Text(
-          'اللاعبون: ${players.length} — الحد الأدنى: $_minimumPlayers',
+          'اللاعبون: ${players.length}/12 — الحد الأدنى: $_minimumPlayers',
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
         ...players.map(
           (LocalPlayer player) => Card(
             child: ListTile(
-              leading: Icon(player.isHost ? Icons.star : Icons.person),
+              leading: Icon(
+                player.isHost ? Icons.workspace_premium : Icons.person,
+              ),
               title: Text(_playerNames[player.id] ?? player.name),
-              subtitle:
-                  Text(player.isHost ? 'المضيف • لاعب' : 'لاعب متصل'),
+              subtitle: Text(player.isHost ? 'المضيف • لاعب' : 'لاعب متصل'),
+              trailing: const Icon(Icons.check_circle, color: Color(0xFF1F6F63)),
             ),
           ),
         ),
@@ -461,11 +452,7 @@ class _NameAnimalObjectGameScreenState
             icon: const Icon(Icons.play_arrow),
             label: Padding(
               padding: const EdgeInsets.symmetric(vertical: 13),
-              child: Text(
-                canStart
-                    ? 'ابدأ الجولة للجميع'
-                    : 'بانتظار لاعب آخر',
-              ),
+              child: Text(canStart ? 'ابدأ الجولة للجميع' : 'بانتظار لاعب آخر'),
             ),
           )
         else
@@ -473,7 +460,7 @@ class _NameAnimalObjectGameScreenState
             child: Padding(
               padding: EdgeInsets.all(18),
               child: Text(
-                'ستظهر شاشة الأسئلة تلقائيًا عندما يبدأ المضيف الجولة.',
+                'ستبدأ شاشة الحرف تلقائيًا عندما يبدأ المضيف الجولة.',
                 textAlign: TextAlign.center,
               ),
             ),
@@ -540,35 +527,64 @@ class _NameAnimalObjectGameScreenState
 
   Widget _buildResults() {
     final List<String> ranking = _scores.keys.toList()
-      ..sort(
-        (String a, String b) =>
-            (_scores[b] ?? 0).compareTo(_scores[a] ?? 0),
-      );
+      ..sort((String a, String b) =>
+          (_scores[b] ?? 0).compareTo(_scores[a] ?? 0));
 
     return ListView(
       key: ValueKey<String>('results-$_round'),
       padding: const EdgeInsets.all(16),
       children: <Widget>[
-        const Icon(Icons.emoji_events, size: 76, color: Color(0xFFFF9F1C)),
+        const Icon(Icons.emoji_events, size: 70, color: Color(0xFFFF9F1C)),
         Text(
-          'نتيجة الجولة $_round — حرف $_letter',
+          'إجابات حرف $_letter',
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w900),
+          style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 6),
+        Text(
+          'الجولة $_round — ظهرت الإجابات بعد انتهاء جميع اللاعبين',
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        ..._categories.map((String category) => _AnswerCategoryCard(
+              category: category,
+              playerIds: ranking,
+              names: _playerNames,
+              answers: _lastRoundAnswers,
+              pointsFor: (String playerId) {
+                final String answer =
+                    _lastRoundAnswers[playerId]?[category] ?? '';
+                if (answer.trim().isEmpty ||
+                    !_normalize(answer).startsWith(_normalize(_letter))) {
+                  return 0;
+                }
+                final String normalized = _normalize(answer);
+                final int duplicates = ranking.where((String otherId) {
+                  return _normalize(
+                        _lastRoundAnswers[otherId]?[category] ?? '',
+                      ) ==
+                      normalized;
+                }).length;
+                return duplicates > 1 ? 5 : 10;
+              },
+            )),
+        const SizedBox(height: 12),
+        const Text(
+          'الترتيب العام',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 8),
         ...ranking.asMap().entries.map((MapEntry<int, String> entry) {
           final String id = entry.value;
-          final bool me = id == _myId;
           return Card(
-            color: me ? const Color(0xFFE8F5F2) : null,
+            color: id == _myId ? const Color(0xFFE8F5F2) : null,
             child: ListTile(
               leading: CircleAvatar(child: Text('${entry.key + 1}')),
               title: Text(_playerNames[id] ?? 'لاعب'),
               subtitle: Text('+${_lastRoundPoints[id] ?? 0} في هذه الجولة'),
               trailing: Text(
                 '${_scores[id] ?? 0}',
-                style:
-                    const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
               ),
             ),
           );
@@ -582,15 +598,95 @@ class _NameAnimalObjectGameScreenState
             icon: const Icon(Icons.refresh),
             label: const Padding(
               padding: EdgeInsets.symmetric(vertical: 13),
-              child: Text('جولة جديدة للجميع'),
+              child: Text('حرف جديد للجميع'),
             ),
           )
         else
           const Text(
-            'بانتظار المضيف لبدء الجولة التالية.',
+            'بانتظار المضيف لبدء الحرف التالي.',
             textAlign: TextAlign.center,
           ),
       ],
+    );
+  }
+}
+
+class _AnswerCategoryCard extends StatelessWidget {
+  const _AnswerCategoryCard({
+    required this.category,
+    required this.playerIds,
+    required this.names,
+    required this.answers,
+    required this.pointsFor,
+  });
+
+  final String category;
+  final List<String> playerIds;
+  final Map<String, String> names;
+  final Map<String, Map<String, String>> answers;
+  final int Function(String playerId) pointsFor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              category,
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+            ),
+            const Divider(),
+            ...playerIds.map((String id) {
+              final String answer = answers[id]?[category] ?? '';
+              final int points = pointsFor(id);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 5),
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        names[id] ?? 'لاعب',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        answer.trim().isEmpty ? 'بدون إجابة' : answer,
+                        style: TextStyle(
+                          color: points == 0 ? Colors.red.shade700 : null,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 42,
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      decoration: BoxDecoration(
+                        color: points == 10
+                            ? const Color(0xFFE8F5E9)
+                            : points == 5
+                                ? const Color(0xFFFFF4D6)
+                                : const Color(0xFFFFE4E6),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '$points',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
     );
   }
 }
