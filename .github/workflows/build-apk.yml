@@ -2,13 +2,16 @@ name: Build APK Direct
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - feature/iphone-web-player
     paths:
       - 'lib/**'
       - 'assets/**'
-      - 'test/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,7 +25,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -44,7 +46,7 @@ jobs:
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
 
-      - name: Remove generated sample tests
+      - name: Remove generated tests
         run: rm -rf test
 
       - name: Configure Android network permissions
@@ -69,49 +71,39 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Format Dart sources
-        run: dart format lib
+      - name: Format changed sources
+        run: dart format lib/core/game_room.dart lib/games/name_animal_object
 
-      - name: Analyze Flutter without blocking release
+      - name: Analyze project
         continue-on-error: true
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Prepare APK
+      - name: Prepare APK artifact
         run: |
-          mkdir -p apk/modern release
-          cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
+          mkdir -p release apk/modern
+          cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-iphone-web-player.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
-          sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
+          sha256sum release/gameslocal-iphone-web-player.apk > release/gameslocal-iphone-web-player.apk.sha256
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gameslocal-flutter-apk-${{ github.run_number }}
+          name: gameslocal-iphone-web-player-${{ github.run_number }}
           path: |
-            release/gameslocal-flutter.apk
-            release/gameslocal-flutter.apk.sha256
+            release/gameslocal-iphone-web-player.apk
+            release/gameslocal-iphone-web-player.apk.sha256
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish latest APK to main
+      - name: Publish latest APK on main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          cat > DOWNLOAD_APK.md <<'EOF'
-          # تحميل تطبيق ألعاب محلية
-
-          ## نسخة Android الحديثة
-          https://github.com/aljwaal1/gameslocal/raw/main/apk/modern/gameslocal-flutter.apk
-          EOF
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add apk/modern/gameslocal-flutter.apk DOWNLOAD_APK.md
-          if git diff --cached --quiet; then
-            echo "APK is already current."
-            exit 0
-          fi
-          git commit -m "Publish latest Android APK"
+          git add apk/modern/gameslocal-flutter.apk
+          git commit -m "Publish latest Android APK" || exit 0
           git pull --rebase origin main
           git push origin HEAD:main
