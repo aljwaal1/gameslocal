@@ -14,13 +14,14 @@ permissions:
   contents: write
 
 concurrency:
-  group: gameslocal-main-apk
+  group: gameslocal-main-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -67,9 +68,6 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Format changed sources
-        run: dart format lib/core/game_room.dart lib/games/name_animal_object
-
       - name: Analyze project
         continue-on-error: true
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -77,8 +75,10 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release
 
-      - name: Prepare APK artifact
+      - name: Prepare APK
         run: |
+          set -euo pipefail
+          test -s build/app/outputs/flutter-apk/app-release.apk
           mkdir -p release apk/modern
           cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
@@ -95,14 +95,25 @@ jobs:
           retention-days: 30
 
       - name: Publish latest APK to main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          set -euo pipefail
+          test -s apk/modern/gameslocal-flutter.apk
+          cp apk/modern/gameslocal-flutter.apk /tmp/gameslocal-flutter.apk
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout -B main origin/main
+
+          mkdir -p apk/modern
+          cp /tmp/gameslocal-flutter.apk apk/modern/gameslocal-flutter.apk
           git add apk/modern/gameslocal-flutter.apk
+
           if git diff --cached --quiet; then
-            echo "APK already matches the current source."
+            echo "Built APK is identical to the published APK."
             exit 0
           fi
+
           git commit -m "Publish latest Android APK"
-          git pull --rebase origin main
           git push origin HEAD:main
