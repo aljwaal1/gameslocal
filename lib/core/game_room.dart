@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'game_definition.dart';
+import 'network/lan_room_discovery.dart';
 import 'network/local_network_core.dart';
 import 'network/local_wifi_transport.dart';
 import 'network/network_message.dart';
@@ -18,9 +19,11 @@ class GameRoomScreen extends StatefulWidget {
 
 class _GameRoomScreenState extends State<GameRoomScreen> {
   late final LocalNetworkCore networkCore;
+  late final LanRoomDiscovery discovery;
   StreamSubscription<NetworkMessage>? networkSubscription;
   bool isHost = true;
   bool gameOpened = false;
+  bool discovering = false;
   final TextEditingController hostAddressController = TextEditingController();
   final TextEditingController roomCodeController = TextEditingController();
 
@@ -30,12 +33,14 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   void initState() {
     super.initState();
     networkCore = LocalNetworkCore(gameId: widget.game.id);
+    discovery = LanRoomDiscovery(gameId: widget.game.id);
     networkSubscription = networkCore.messages.listen(_handleRoomMessage);
   }
 
   @override
   void dispose() {
     networkSubscription?.cancel();
+    discovery.dispose();
     hostAddressController.dispose();
     roomCodeController.dispose();
     networkCore.dispose();
@@ -43,8 +48,46 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   }
 
   void _handleRoomMessage(NetworkMessage message) {
-    if (!mounted || message.type != NetworkMessageType.startGame || gameOpened) return;
+    if (!mounted || message.type != NetworkMessageType.startGame || gameOpened) {
+      return;
+    }
     _openGame(useNetwork: true);
+  }
+
+  Future<void> _createRoom() async {
+    await networkCore.createRoom();
+    final LocalNetworkState state = networkCore.state;
+    if (state.mode == LocalNetworkMode.host &&
+        state.status != LocalNetworkStatus.error) {
+      await discovery.startAdvertising(
+        roomCode: state.roomCode,
+        gamePort: state.port,
+      );
+    }
+  }
+
+  Future<void> _discoverAndJoin() async {
+    if (discovering) return;
+    setState(() => discovering = true);
+    final DiscoveredLanRoom? room = await discovery.discover();
+    if (!mounted) return;
+    if (room == null) {
+      setState(() => discovering = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لم يتم العثور على غرفة. تأكد أن الأجهزة على نفس الشبكة.'),
+        ),
+      );
+      return;
+    }
+    hostAddressController.text = room.host;
+    roomCodeController.text = room.roomCode;
+    await networkCore.joinRoom(
+      hostAddress: room.host,
+      port: room.port,
+      roomCode: room.roomCode,
+    );
+    if (mounted) setState(() => discovering = false);
   }
 
   void _startGame() {
@@ -57,9 +100,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     }
   }
 
-  void _startOfflineGame() {
-    _openGame(useNetwork: false);
-  }
+  void _startOfflineGame() => _openGame(useNetwork: false);
 
   void _openGame({required bool useNetwork}) {
     if (gameOpened) return;
@@ -72,9 +113,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
           useNetwork ? networkCore : null,
         ),
       ),
-    ).then((_) {
-      gameOpened = false;
-    });
+    ).then((_) => gameOpened = false);
   }
 
   String get _offlineTitle {
@@ -95,7 +134,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       case 'chess':
         return 'لاعبان على نفس الهاتف، ولا حاجة إلى شبكة أو إنترنت.';
       default:
-        return 'ابدأ فورًا على هذا الهاتف. لا Wi‑Fi ولا بيانات ولا غرفة لعب.';
+        return 'ابدأ فورًا على هذا الهاتف دون إنشاء غرفة.';
     }
   }
 
@@ -107,66 +146,53 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         stream: networkCore.stateStream,
         initialData: networkCore.state,
         builder: (context, snapshot) {
-          final LocalNetworkState state = snapshot.data ?? LocalNetworkState.idle();
+          final LocalNetworkState state =
+              snapshot.data ?? LocalNetworkState.idle();
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               if (!isLanOnly) ...[
                 Card(
                   elevation: 0,
-                  color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.55),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer
+                      .withOpacity(0.55),
                   child: Padding(
                     padding: const EdgeInsets.all(18),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Icon(Icons.smart_toy, color: Theme.of(context).colorScheme.primary, size: 30),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                _offlineTitle,
-                                style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
+                        Text(
+                          _offlineTitle,
+                          style: const TextStyle(
+                            fontSize: 21,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 8),
-                        Text(_offlineDescription, style: const TextStyle(height: 1.45)),
+                        Text(_offlineDescription),
                         const SizedBox(height: 14),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
+                            onPressed: _startOfflineGame,
                             icon: const Icon(Icons.play_arrow),
                             label: const Text('ابدأ الآن بدون إنترنت'),
-                            onPressed: _startOfflineGame,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                const Row(
-                  children: [
-                    Expanded(child: Divider()),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text('اللعب عبر الشبكة اختياري'),
-                    ),
-                    Expanded(child: Divider()),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
               ] else ...[
-                Card(
-                  color: const Color(0xFFE8F5F2),
-                  child: const Padding(
+                const Card(
+                  color: Color(0xFFE8F5F2),
+                  child: Padding(
                     padding: EdgeInsets.all(16),
                     child: Text(
-                      'هذه اللعبة تعمل على عدة هواتف ضمن نفس Wi-Fi أو Hotspot. ينشئ لاعب واحد الغرفة، ثم ينضم بقية اللاعبين إلى IP المضيف.',
+                      'ضع الهواتف على نفس Wi-Fi أو Hotspot. التطبيق سيكتشف غرفة اللعبة تلقائيًا دون كتابة IP.',
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -175,63 +201,102 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               ],
               Card(
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                 child: Padding(
                   padding: const EdgeInsets.all(18),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.game.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Text(
+                        widget.game.name,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Text('عدد اللاعبين: ${widget.game.playersText}'),
                       const SizedBox(height: 16),
                       SegmentedButton<bool>(
                         segments: const [
-                          ButtonSegment(value: true, label: Text('إنشاء غرفة'), icon: Icon(Icons.wifi_tethering)),
-                          ButtonSegment(value: false, label: Text('انضمام'), icon: Icon(Icons.login)),
+                          ButtonSegment(
+                            value: true,
+                            label: Text('إنشاء غرفة'),
+                            icon: Icon(Icons.wifi_tethering),
+                          ),
+                          ButtonSegment(
+                            value: false,
+                            label: Text('انضمام'),
+                            icon: Icon(Icons.login),
+                          ),
                         ],
                         selected: {isHost},
-                        onSelectionChanged: (value) => setState(() => isHost = value.first),
+                        onSelectionChanged: (value) {
+                          setState(() => isHost = value.first);
+                          if (!value.first && isLanOnly) {
+                            _discoverAndJoin();
+                          }
+                        },
                       ),
                       const SizedBox(height: 16),
-                      if (!isHost) ...[
+                      if (!isHost && isLanOnly)
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: discovering ? null : _discoverAndJoin,
+                            icon: discovering
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.radar),
+                            label: Text(
+                              discovering
+                                  ? 'جاري البحث عن الغرفة...'
+                                  : 'البحث والاتصال تلقائيًا',
+                            ),
+                          ),
+                        ),
+                      if (!isHost && !isLanOnly) ...[
                         TextField(
                           controller: hostAddressController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                            labelText: 'IP جهاز اللاعب الأول',
-                            hintText: 'مثال: 192.168.1.8',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: roomCodeController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'رمز الغرفة اختياري',
+                            labelText: 'IP جهاز المضيف',
                             border: OutlineInputBorder(),
                           ),
                         ),
                         const SizedBox(height: 12),
                       ],
-                      FilledButton.icon(
-                        icon: Icon(isHost ? Icons.add_link : Icons.link),
-                        label: Text(isHost ? 'تشغيل Host' : 'الاتصال بالغرفة'),
-                        onPressed: () {
-                          if (isHost) {
-                            networkCore.createRoom();
-                          } else {
-                            networkCore.joinRoom(
+                      if (isHost)
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _createRoom,
+                            icon: const Icon(Icons.add_link),
+                            label: const Text('إنشاء الغرفة'),
+                          ),
+                        )
+                      else if (!isLanOnly)
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () => networkCore.joinRoom(
                               hostAddress: hostAddressController.text,
                               port: LocalWifiTransport.defaultPort,
                               roomCode: roomCodeController.text.trim(),
-                            );
-                          }
-                        },
-                      ),
+                            ),
+                            icon: const Icon(Icons.link),
+                            label: const Text('الاتصال بالغرفة'),
+                          ),
+                        ),
                       const SizedBox(height: 12),
-                      _NetworkStatusBox(state: state, onReconnect: networkCore.reconnect),
+                      _NetworkStatusBox(
+                        state: state,
+                        onReconnect: networkCore.reconnect,
+                      ),
                     ],
                   ),
                 ),
@@ -239,7 +304,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               const SizedBox(height: 12),
               _PlayersCard(state: state, onStart: _startGame),
               const SizedBox(height: 12),
-              const _ConnectionPlanCard(),
+              _ConnectionPlanCard(autoDiscovery: isLanOnly),
             ],
           );
         },
@@ -257,11 +322,10 @@ class _NetworkStatusBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String modeText = switch (state.mode) {
-      LocalNetworkMode.host => 'Host',
-      LocalNetworkMode.client => 'Client',
-      LocalNetworkMode.idle => 'لم يتم الاختيار',
+      LocalNetworkMode.host => 'مضيف',
+      LocalNetworkMode.client => 'لاعب',
+      LocalNetworkMode.idle => 'غير متصل',
     };
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -272,14 +336,12 @@ class _NetworkStatusBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('الوضع: $modeText', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('الوضع: $modeText',
+              style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text(state.message),
-          if (state.hostAddress.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            SelectableText('IP: ${state.hostAddress}:${state.port}'),
-          ],
-          if (state.roomCode.isNotEmpty) SelectableText('رمز الغرفة: ${state.roomCode}'),
+          if (state.roomCode.isNotEmpty)
+            Text('رمز الغرفة: ${state.roomCode}'),
           if (state.status == LocalNetworkStatus.error ||
               state.status == LocalNetworkStatus.disconnected) ...[
             const SizedBox(height: 10),
@@ -303,32 +365,49 @@ class _PlayersCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool canStart = state.mode == LocalNetworkMode.host && state.players.length >= 2;
+    final bool canStart =
+        state.mode == LocalNetworkMode.host && state.players.length >= 2;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('اللاعبون (${state.players.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(
+              'اللاعبون (${state.players.length}/12)',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
             const SizedBox(height: 8),
             if (state.players.isEmpty)
               const Text('لم ينضم أي لاعب بعد.')
             else
-              ...state.players.map((player) => ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: Icon(player.isHost ? Icons.star : Icons.person),
-                    title: Text(player.name),
-                    trailing: Icon(player.isReady ? Icons.check_circle : Icons.hourglass_empty),
-                  )),
+              ...state.players.map(
+                (player) => ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    player.isHost ? Icons.workspace_premium : Icons.person,
+                  ),
+                  title: Text(player.name),
+                  subtitle: Text(player.isHost ? 'المضيف • لاعب' : 'لاعب'),
+                  trailing: Icon(
+                    player.isReady
+                        ? Icons.check_circle
+                        : Icons.hourglass_empty,
+                  ),
+                ),
+              ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
                 onPressed: canStart ? onStart : null,
                 icon: const Icon(Icons.play_arrow),
-                label: const Text('بدء اللعبة على جميع الأجهزة'),
+                label: Text(
+                  canStart
+                      ? 'بدء اللعبة على جميع الأجهزة'
+                      : 'بانتظار لاعب آخر',
+                ),
               ),
             ),
           ],
@@ -339,22 +418,31 @@ class _PlayersCard extends StatelessWidget {
 }
 
 class _ConnectionPlanCard extends StatelessWidget {
-  const _ConnectionPlanCard();
+  const _ConnectionPlanCard({required this.autoDiscovery});
+
+  final bool autoDiscovery;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('طريقة الاتصال', style: TextStyle(fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Text('1. اجعل جميع الهواتف على نفس Wi-Fi أو Hotspot.'),
-            Text('2. ينشئ اللاعب الأول الغرفة ويشارك عنوان IP.'),
-            Text('3. يدخل بقية اللاعبين عنوان IP وينضمون.'),
-            Text('4. يبدأ المضيف اللعبة فتفتح الشاشة عند الجميع.'),
+            const Text(
+              'طريقة الاتصال',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text('1. اجعل جميع الهواتف على نفس Wi-Fi أو Hotspot.'),
+            const Text('2. ينشئ لاعب واحد الغرفة.'),
+            Text(
+              autoDiscovery
+                  ? '3. يضغط بقية اللاعبين انضمام، وسيتم اكتشاف الغرفة تلقائيًا.'
+                  : '3. يدخل بقية اللاعبين عنوان المضيف للانضمام.',
+            ),
+            const Text('4. يبدأ المضيف اللعبة عند وجود لاعبين على الأقل.'),
           ],
         ),
       ),
