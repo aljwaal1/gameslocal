@@ -9,7 +9,12 @@ class IphoneWebPlayer {
 }
 
 class IphoneWebEvent {
-  const IphoneWebEvent({required this.playerId, required this.playerName, required this.type, required this.data});
+  const IphoneWebEvent({
+    required this.playerId,
+    required this.playerName,
+    required this.type,
+    required this.data,
+  });
   final String playerId;
   final String playerName;
   final String type;
@@ -21,7 +26,8 @@ class IphoneWebBridge {
   HttpServer? _server;
   final Map<String, WebSocket> _sockets = <String, WebSocket>{};
   final Map<String, IphoneWebPlayer> _players = <String, IphoneWebPlayer>{};
-  final _playersController = StreamController<List<IphoneWebPlayer>>.broadcast();
+  final _playersController =
+      StreamController<List<IphoneWebPlayer>>.broadcast();
   final _eventsController = StreamController<IphoneWebEvent>.broadcast();
 
   Stream<List<IphoneWebPlayer>> get players => _playersController.stream;
@@ -29,23 +35,35 @@ class IphoneWebBridge {
 
   Future<String> start() async {
     await stop();
-    _server = await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
+    _server = await HttpServer.bind(
+      InternetAddress.anyIPv4,
+      port,
+      shared: true,
+    );
     _server!.listen(_handleRequest);
     return 'http://${await _localAddress()}:$port';
   }
 
   Future<void> _handleRequest(HttpRequest request) async {
-    if (request.uri.path == '/ws' && WebSocketTransformer.isUpgradeRequest(request)) {
+    if (request.uri.path == '/ws' &&
+        WebSocketTransformer.isUpgradeRequest(request)) {
       _attachSocket(await WebSocketTransformer.upgrade(request));
       return;
     }
     if (request.uri.path == '/manifest.json') {
       request.response.headers.contentType = ContentType.json;
-      request.response.write(jsonEncode(<String, Object>{
-        'name': 'اسم حيوان جماد', 'short_name': 'حيوان جماد', 'start_url': '/',
-        'display': 'standalone', 'background_color': '#f6f3ff',
-        'theme_color': '#6f2dbd', 'lang': 'ar', 'dir': 'rtl',
-      }));
+      request.response.write(
+        jsonEncode(<String, Object>{
+          'name': 'اسم حيوان جماد',
+          'short_name': 'حيوان جماد',
+          'start_url': '/',
+          'display': 'standalone',
+          'background_color': '#f6f3ff',
+          'theme_color': '#6f2dbd',
+          'lang': 'ar',
+          'dir': 'rtl',
+        }),
+      );
     } else {
       request.response.headers.contentType = ContentType.html;
       request.response.write(_html);
@@ -55,31 +73,48 @@ class IphoneWebBridge {
 
   void _attachSocket(WebSocket socket) {
     String? playerId;
-    socket.listen((dynamic raw) {
-      try {
-        final dynamic decoded = jsonDecode(raw.toString());
-        if (decoded is! Map) return;
-        final Map<String, dynamic> msg = decoded.map((dynamic k, dynamic v) => MapEntry(k.toString(), v));
-        final String type = (msg['type'] ?? '').toString();
-        if (type == 'join') {
-          final String name = (msg['name'] ?? '').toString().trim();
-          playerId = 'web-${DateTime.now().microsecondsSinceEpoch}';
-          final player = IphoneWebPlayer(id: playerId!, name: name.isEmpty ? 'لاعب آيفون' : name);
-          _players[player.id] = player;
-          _sockets[player.id] = socket;
-          socket.add(jsonEncode({'type': 'joined', 'playerId': player.id, 'name': player.name}));
-          _emitPlayers();
-          return;
-        }
-        if (playerId == null) return;
-        _eventsController.add(IphoneWebEvent(
-          playerId: playerId!,
-          playerName: _players[playerId]?.name ?? 'لاعب آيفون',
-          type: type,
-          data: msg,
-        ));
-      } catch (_) {}
-    }, onDone: () => _remove(playerId), onError: (_) => _remove(playerId));
+    socket.listen(
+      (dynamic raw) {
+        try {
+          final dynamic decoded = jsonDecode(raw.toString());
+          if (decoded is! Map) return;
+          final Map<String, dynamic> msg = decoded.map(
+            (dynamic k, dynamic v) => MapEntry(k.toString(), v),
+          );
+          final String type = (msg['type'] ?? '').toString();
+          if (type == 'join') {
+            final String name = (msg['name'] ?? '').toString().trim();
+            playerId = 'web-${DateTime.now().microsecondsSinceEpoch}';
+            final player = IphoneWebPlayer(
+              id: playerId!,
+              name: name.isEmpty ? 'لاعب آيفون' : name,
+            );
+            _players[player.id] = player;
+            _sockets[player.id] = socket;
+            socket.add(
+              jsonEncode({
+                'type': 'joined',
+                'playerId': player.id,
+                'name': player.name,
+              }),
+            );
+            _emitPlayers();
+            return;
+          }
+          if (playerId == null) return;
+          _eventsController.add(
+            IphoneWebEvent(
+              playerId: playerId!,
+              playerName: _players[playerId]?.name ?? 'لاعب آيفون',
+              type: type,
+              data: msg,
+            ),
+          );
+        } catch (_) {}
+      },
+      onDone: () => _remove(playerId),
+      onError: (_) => _remove(playerId),
+    );
   }
 
   void _remove(String? id) {
@@ -89,29 +124,41 @@ class IphoneWebBridge {
     _emitPlayers();
   }
 
-  void _emitPlayers() => _playersController.add(List<IphoneWebPlayer>.unmodifiable(_players.values));
+  void _emitPlayers() => _playersController.add(
+    List<IphoneWebPlayer>.unmodifiable(_players.values),
+  );
 
   void broadcast(Map<String, dynamic> message) {
     final String encoded = jsonEncode(message);
     for (final WebSocket socket in List<WebSocket>.from(_sockets.values)) {
-      try { socket.add(encoded); } catch (_) {}
+      try {
+        socket.add(encoded);
+      } catch (_) {}
     }
   }
 
   Future<String> _localAddress() async {
-    final interfaces = await NetworkInterface.list(includeLoopback: false, type: InternetAddressType.IPv4);
+    final interfaces = await NetworkInterface.list(
+      includeLoopback: false,
+      type: InternetAddressType.IPv4,
+    );
     for (final interface in interfaces) {
       for (final address in interface.addresses) {
-        if (!address.isLoopback && !address.address.startsWith('169.254.')) return address.address;
+        if (!address.isLoopback && !address.address.startsWith('169.254.'))
+          return address.address;
       }
     }
     return '0.0.0.0';
   }
 
   Future<void> stop() async {
-    for (final socket in _sockets.values) { await socket.close(); }
-    _sockets.clear(); _players.clear();
-    await _server?.close(force: true); _server = null;
+    for (final socket in _sockets.values) {
+      await socket.close();
+    }
+    _sockets.clear();
+    _players.clear();
+    await _server?.close(force: true);
+    _server = null;
   }
 
   Future<void> dispose() async {
@@ -120,7 +167,8 @@ class IphoneWebBridge {
     await _eventsController.close();
   }
 
-  static const String _html = r'''<!doctype html><html lang="ar" dir="rtl"><head>
+  static const String _html =
+      r'''<!doctype html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="theme-color" content="#6f2dbd"><link rel="manifest" href="/manifest.json">
 <title>اسم حيوان جماد</title><style>
