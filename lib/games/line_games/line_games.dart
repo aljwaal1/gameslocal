@@ -13,7 +13,12 @@ import '../../core/network/network_message.dart';
 enum LineGameKind { sheikhBeard, dotsBoxes }
 
 class LineGameScreen extends StatefulWidget {
-  const LineGameScreen({super.key, required this.kind, this.networkCore});
+  const LineGameScreen({
+    super.key,
+    required this.kind,
+    this.networkCore,
+  });
+
   final LineGameKind kind;
   final LocalNetworkCore? networkCore;
 
@@ -23,12 +28,14 @@ class LineGameScreen extends StatefulWidget {
 
 class _WebPlayer {
   const _WebPlayer(this.id, this.name);
+
   final String id;
   final String name;
 }
 
 class _WebEvent {
   const _WebEvent(this.id, this.type, this.data);
+
   final String id;
   final String type;
   final Map<String, dynamic> data;
@@ -36,222 +43,979 @@ class _WebEvent {
 
 class _LineWebBridge {
   _LineWebBridge(this.kind);
+
+  static const int port = 40446;
+
   final LineGameKind kind;
   HttpServer? _server;
-  final _players = <String, _WebPlayer>{};
-  final _sockets = <String, WebSocket>{};
-  final players = StreamController<List<_WebPlayer>>.broadcast();
-  final events = StreamController<_WebEvent>.broadcast();
+  final Map<String, _WebPlayer> _players = <String, _WebPlayer>{};
+  final Map<String, WebSocket> _sockets = <String, WebSocket>{};
+  final StreamController<List<_WebPlayer>> players =
+      StreamController<List<_WebPlayer>>.broadcast();
+  final StreamController<_WebEvent> events =
+      StreamController<_WebEvent>.broadcast();
 
   Future<String> start() async {
-    _server = await HttpServer.bind(InternetAddress.anyIPv4, 40446, shared: true);
-    _server!.listen(_request);
-    final interfaces = await NetworkInterface.list(type: InternetAddressType.IPv4, includeLoopback: false);
-    for (final i in interfaces) {
-      for (final a in i.addresses) {
-        if (!a.address.startsWith('169.254.')) return 'http://${a.address}:40446';
+    await _server?.close(force: true);
+    _server = await HttpServer.bind(
+      InternetAddress.anyIPv4,
+      port,
+      shared: true,
+    );
+    _server!.listen(_handleRequest);
+
+    final interfaces = await NetworkInterface.list(
+      type: InternetAddressType.IPv4,
+      includeLoopback: false,
+    );
+    for (final interface in interfaces) {
+      for (final address in interface.addresses) {
+        if (!address.address.startsWith('169.254.')) {
+          return 'http://${address.address}:$port';
+        }
       }
     }
-    return 'http://0.0.0.0:40446';
+    return 'http://0.0.0.0:$port';
   }
 
-  Future<void> _request(HttpRequest r) async {
-    if (r.uri.path == '/ws' && WebSocketTransformer.isUpgradeRequest(r)) {
-      _socket(await WebSocketTransformer.upgrade(r));
+  Future<void> _handleRequest(HttpRequest request) async {
+    if (request.uri.path == '/ws' &&
+        WebSocketTransformer.isUpgradeRequest(request)) {
+      _attachSocket(await WebSocketTransformer.upgrade(request));
       return;
     }
-    r.response.headers.contentType = ContentType.html;
-    r.response.write(_html(kind));
-    await r.response.close();
+
+    request.response.headers.contentType = ContentType.html;
+    request.response.write(_html(kind));
+    await request.response.close();
   }
 
-  void _socket(WebSocket s) {
-    String? id;
-    s.listen((raw) {
-      try {
-        final m = (jsonDecode(raw.toString()) as Map).map((k, v) => MapEntry(k.toString(), v));
-        if (m['type'] == 'join') {
-          id = 'web-${DateTime.now().microsecondsSinceEpoch}';
-          final p = _WebPlayer(id!, (m['name'] ?? 'آيفون').toString());
-          _players[id!] = p;
-          _sockets[id!] = s;
-          s.add(jsonEncode({'type': 'joined', 'id': id, 'name': p.name}));
-          players.add(_players.values.toList());
-        } else if (id != null) {
-          events.add(_WebEvent(id!, (m['type'] ?? '').toString(), Map<String, dynamic>.from(m)));
-        }
-      } catch (_) {}
-    }, onDone: () => _remove(id), onError: (_) => _remove(id));
+  void _attachSocket(WebSocket socket) {
+    String? playerId;
+
+    socket.listen(
+      (dynamic raw) {
+        try {
+          final dynamic decoded = jsonDecode(raw.toString());
+          if (decoded is! Map) return;
+          final message = decoded.map<String, dynamic>(
+            (dynamic key, dynamic value) =>
+                MapEntry<String, dynamic>(key.toString(), value),
+          );
+          final type = (message['type'] ?? '').toString();
+
+          if (type == 'join') {
+            final name = (message['name'] ?? '').toString().trim();
+            playerId = 'web-${DateTime.now().microsecondsSinceEpoch}';
+            final player = _WebPlayer(
+              playerId!,
+              name.isEmpty ? 'لاعب آيفون' : name,
+            );
+            _players[player.id] = player;
+            _sockets[player.id] = socket;
+            socket.add(
+              jsonEncode(<String, dynamic>{
+                'type': 'joined',
+                'id': player.id,
+                'name': player.name,
+              }),
+            );
+            players.add(List<_WebPlayer>.unmodifiable(_players.values));
+            return;
+          }
+
+          if (playerId != null) {
+            events.add(_WebEvent(playerId!, type, message));
+          }
+        } catch (_) {}
+      },
+      onDone: () => _remove(playerId),
+      onError: (_) => _remove(playerId),
+    );
   }
 
   void _remove(String? id) {
     if (id == null) return;
     _players.remove(id);
     _sockets.remove(id);
-    players.add(_players.values.toList());
+    players.add(List<_WebPlayer>.unmodifiable(_players.values));
   }
 
-  void broadcast(Map<String, dynamic> m) {
-    final e = jsonEncode(m);
-    for (final s in _sockets.values) {
-      try { s.add(e); } catch (_) {}
+  void broadcast(Map<String, dynamic> message) {
+    final encoded = jsonEncode(message);
+    for (final socket in List<WebSocket>.from(_sockets.values)) {
+      try {
+        socket.add(encoded);
+      } catch (_) {}
     }
   }
 
   Future<void> dispose() async {
-    for (final s in _sockets.values) { await s.close(); }
+    for (final socket in List<WebSocket>.from(_sockets.values)) {
+      await socket.close();
+    }
+    _sockets.clear();
+    _players.clear();
     await _server?.close(force: true);
+    _server = null;
     await players.close();
     await events.close();
   }
 
   static String _html(LineGameKind kind) {
-    final title = kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
-    final game = kind.name;
-    return '''<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>$title</title><style>*{box-sizing:border-box}body{font-family:-apple-system,sans-serif;margin:0;background:#f6f3ff;color:#241a2e;padding:18px}.card{background:#fff;border-radius:22px;padding:16px;margin:10px 0;box-shadow:0 8px 25px #3b17601a}h1{text-align:center}input,button{width:100%;font-size:18px;padding:13px;border-radius:14px;margin:6px 0}input{border:1px solid #d8cdea}button{border:0;background:#6f2dbd;color:#fff;font-weight:800}.hidden{display:none}canvas{width:100%;aspect-ratio:1;background:white;border-radius:18px;touch-action:none}.scores{display:flex;gap:8px;flex-wrap:wrap}.pill{flex:1;min-width:110px;background:#eee8ff;border-radius:14px;padding:10px;text-align:center}</style></head><body><section id="join" class="card"><h1>$title</h1><input id="name" placeholder="اسم اللاعب"><button id="joinBtn">دخول</button></section><section id="game" class="hidden"><div class="card"><div id="status">بانتظار المضيف...</div><div id="scores" class="scores"></div></div><canvas id="board" width="700" height="700"></canvas></section><script>const kind='$game';let ws,id,state={};const c=document.getElementById('board'),x=c.getContext('2d');document.getElementById('joinBtn').onclick=()=>{const n=document.getElementById('name').value.trim();if(!n)return;ws=new WebSocket(`ws://${location.host}/ws`);ws.onopen=()=>ws.send(JSON.stringify({type:'join',name:n}));ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==='joined'){id=m.id;document.getElementById('join').classList.add('hidden');document.getElementById('game').classList.remove('hidden')}else if(m.type==='state'){state=m;draw()}}};c.addEventListener('pointerdown',e=>{if(!ws||!state.turnId||state.turnId!==id)return;const r=c.getBoundingClientRect(),px=(e.clientX-r.left)*700/r.width,py=(e.clientY-r.top)*700/r.height;if(kind==='sheikhBeard'){let best=-1,d=1e9;(state.points||[]).forEach((p,i)=>{const q=(p.x-px)**2+(p.y-py)**2;if(q<d){d=q;best=i}});if(best>=0&&d<900)ws.send(JSON.stringify({type:'move',index:best}))}else{let best=null,d=1e9;(state.edges||[]).forEach((ed,i)=>{if(ed.owner)return;const a=state.points[ed.a],b=state.points[ed.b],vx=b.x-a.x,vy=b.y-a.y,t=Math.max(0,Math.min(1,((px-a.x)*vx+(py-a.y)*vy)/(vx*vx+vy*vy))),q=(px-(a.x+t*vx))**2+(py-(a.y+t*vy))**2;if(q<d){d=q;best=i}});if(best!==null&&d<500)ws.send(JSON.stringify({type:'move',index:best}))}});function draw(){x.clearRect(0,0,700,700);document.getElementById('status').textContent=state.message||'';document.getElementById('scores').innerHTML=(state.players||[]).map(p=>`<div class="pill">${p.name}<br><b>${p.score||0}</b></div>`).join('');(state.lines||[]).forEach(l=>{const a=state.points[l.a],b=state.points[l.b];x.strokeStyle=l.color;x.lineWidth=9;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()});(state.edges||[]).forEach(ed=>{const a=state.points[ed.a],b=state.points[ed.b];x.strokeStyle=ed.color||'#ddd';x.lineWidth=ed.owner?8:3;x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);x.stroke()});(state.points||[]).forEach(p=>{x.fillStyle=p.color||'#fff';x.strokeStyle='#382747';x.lineWidth=3;x.beginPath();x.arc(p.x,p.y,13,0,Math.PI*2);x.fill();x.stroke()})}</script></body></html>''';
+    final title =
+        kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
+    final gameName = kind.name;
+    return '''<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>$title</title>
+<style>
+*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f6f3ff;color:#241a2e;padding:18px}
+.card{background:#fff;border-radius:22px;padding:16px;margin:10px 0;box-shadow:0 8px 25px #3b17601a}
+h1{text-align:center}input,button{width:100%;font-size:18px;padding:13px;border-radius:14px;margin:6px 0}
+input{border:1px solid #d8cdea}button{border:0;background:#6f2dbd;color:#fff;font-weight:800}.hidden{display:none}
+canvas{width:100%;aspect-ratio:1;background:#fff;border-radius:18px;touch-action:none}
+.scores{display:flex;gap:8px;flex-wrap:wrap}.pill{flex:1;min-width:110px;background:#eee8ff;border-radius:14px;padding:10px;text-align:center}
+</style>
+</head>
+<body>
+<section id="join" class="card">
+<h1>$title</h1>
+<input id="name" placeholder="اسم اللاعب">
+<button id="joinBtn">دخول</button>
+</section>
+<section id="game" class="hidden">
+<div class="card">
+<div id="status">بانتظار المضيف...</div>
+<div id="scores" class="scores"></div>
+</div>
+<canvas id="board" width="700" height="700"></canvas>
+</section>
+<script>
+const kind='$gameName';
+let ws,id,state={};
+const canvas=document.getElementById('board');
+const ctx=canvas.getContext('2d');
+
+document.getElementById('joinBtn').addEventListener('click',()=>{
+  const name=document.getElementById('name').value.trim();
+  if(!name)return;
+  ws=new WebSocket(`ws://\${location.host}/ws`);
+  ws.onopen=()=>ws.send(JSON.stringify({type:'join',name}));
+  ws.onmessage=(event)=>{
+    const message=JSON.parse(event.data);
+    if(message.type==='joined'){
+      id=message.id;
+      document.getElementById('join').classList.add('hidden');
+      document.getElementById('game').classList.remove('hidden');
+    }else if(message.type==='state'){
+      state=message;
+      draw();
+    }
+  };
+});
+
+canvas.addEventListener('pointerdown',(event)=>{
+  if(!ws||state.turnId!==id)return;
+  const rect=canvas.getBoundingClientRect();
+  const px=(event.clientX-rect.left)*700/rect.width;
+  const py=(event.clientY-rect.top)*700/rect.height;
+
+  if(kind==='sheikhBeard'){
+    let best=-1,dist=1e9;
+    (state.points||[]).forEach((point,index)=>{
+      if(point.ownerId)return;
+      const d=(point.x-px)**2+(point.y-py)**2;
+      if(d<dist){dist=d;best=index;}
+    });
+    if(best>=0&&dist<1000){
+      ws.send(JSON.stringify({type:'move',index:best}));
+    }
+  }else{
+    let best=-1,dist=1e9;
+    (state.edges||[]).forEach((edge,index)=>{
+      if(edge.ownerId)return;
+      const a=state.points[edge.a],b=state.points[edge.b];
+      const vx=b.x-a.x,vy=b.y-a.y;
+      const length=vx*vx+vy*vy;
+      const t=Math.max(0,Math.min(1,((px-a.x)*vx+(py-a.y)*vy)/length));
+      const qx=a.x+t*vx,qy=a.y+t*vy;
+      const d=(px-qx)**2+(py-qy)**2;
+      if(d<dist){dist=d;best=index;}
+    });
+    if(best>=0&&dist<650){
+      ws.send(JSON.stringify({type:'move',index:best}));
+    }
+  }
+});
+
+function draw(){
+  ctx.clearRect(0,0,700,700);
+  document.getElementById('status').textContent=state.message||'';
+  document.getElementById('scores').innerHTML=(state.players||[])
+    .map(p=>`<div class="pill">\${p.name}<br><b>\${p.score||0}</b></div>`).join('');
+
+  (state.boxes||[]).forEach(box=>{
+    if(!box.color)return;
+    const a=state.points[box.points[0]];
+    const b=state.points[box.points[3]];
+    ctx.fillStyle=box.color+'44';
+    ctx.fillRect(a.x+8,a.y+8,b.x-a.x-16,b.y-a.y-16);
+  });
+
+  (state.lines||[]).forEach(line=>{
+    const a=state.points[line.a],b=state.points[line.b];
+    ctx.strokeStyle=line.color;
+    ctx.lineWidth=10;
+    ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  });
+
+  (state.edges||[]).forEach(edge=>{
+    const a=state.points[edge.a],b=state.points[edge.b];
+    ctx.strokeStyle=edge.color||'#ddd';
+    ctx.lineWidth=edge.ownerId?8:3;
+    ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+  });
+
+  (state.points||[]).forEach(point=>{
+    ctx.fillStyle=point.color||'#fff';
+    ctx.strokeStyle='#382747';
+    ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(point.x,point.y,14,0,Math.PI*2);ctx.fill();ctx.stroke();
+  });
+}
+</script>
+</body>
+</html>''';
   }
 }
 
 class _LineGameScreenState extends State<LineGameScreen> {
-  static const colors = <Color>[Color(0xffe63946), Color(0xff277da1), Color(0xff2a9d8f), Color(0xfff4a261)];
-  final points = <Offset>[];
-  final owners = <int>[];
-  final scores = <String, int>{};
-  final claimedLines = <String, String>{};
-  final edges = <List<int>>[];
-  final edgeOwners = <String?>[];
-  final boxes = <List<int>>[];
-  final webPlayers = <_WebPlayer>[];
-  StreamSubscription? netSub, webPlayerSub, webEventSub;
-  _LineWebBridge? bridge;
-  String url = '';
-  int turn = 0;
+  static const List<Color> _colors = <Color>[
+    Color(0xFFE63946),
+    Color(0xFF277DA1),
+    Color(0xFF2A9D8F),
+    Color(0xFFF4A261),
+  ];
 
-  bool get host => widget.networkCore?.state.mode == LocalNetworkMode.host;
-  List<Map<String, String>> get players {
-    final out = <Map<String, String>>[];
-    for (final p in widget.networkCore?.state.players ?? const <LocalPlayer>[]) { out.add({'id': p.id, 'name': p.name}); }
-    for (final p in webPlayers) { out.add({'id': p.id, 'name': p.name}); }
-    return out;
+  final List<Offset> _points = <Offset>[];
+  final List<int> _pointOwners = <int>[];
+  final List<List<int>> _edges = <List<int>>[];
+  final List<String?> _edgeOwners = <String?>[];
+  final List<List<int>> _boxes = <List<int>>[];
+  final List<String?> _boxOwners = <String?>[];
+  final List<List<int>> _sheikhLines = <List<int>>[];
+  final Map<String, String> _claimedSheikhLines = <String, String>{};
+  final Map<String, int> _scores = <String, int>{};
+  final List<_WebPlayer> _webPlayers = <_WebPlayer>[];
+
+  StreamSubscription<NetworkMessage>? _networkSubscription;
+  StreamSubscription<List<_WebPlayer>>? _webPlayersSubscription;
+  StreamSubscription<_WebEvent>? _webEventsSubscription;
+  _LineWebBridge? _bridge;
+
+  String _webUrl = '';
+  int _turnIndex = 0;
+
+  bool get _isHost =>
+      widget.networkCore?.state.mode == LocalNetworkMode.host;
+
+  String get _myId => widget.networkCore?.localPlayerId ?? 'local';
+
+  List<Map<String, String>> get _players {
+    final result = <Map<String, String>>[];
+    for (final player
+        in widget.networkCore?.state.players ?? const <LocalPlayer>[]) {
+      result.add(<String, String>{
+        'id': player.id,
+        'name': player.name,
+      });
+    }
+    for (final player in _webPlayers) {
+      result.add(<String, String>{
+        'id': player.id,
+        'name': player.name,
+      });
+    }
+    return result;
+  }
+
+  String get _turnId {
+    final players = _players;
+    if (players.isEmpty) return '';
+    return players[_turnIndex % players.length]['id']!;
   }
 
   @override
   void initState() {
     super.initState();
     _buildBoard();
-    netSub = widget.networkCore?.messages.listen(_networkMessage);
-    if (host) _startWeb();
+    _networkSubscription =
+        widget.networkCore?.messages.listen(_handleNetworkMessage);
+    if (_isHost) {
+      _startWebBridge();
+    }
   }
 
   void _buildBoard() {
     if (widget.kind == LineGameKind.sheikhBeard) {
       const rows = 7;
-      for (var r = 0; r < rows; r++) {
-        final count = r + 1;
-        final y = 80.0 + r * 85;
-        final start = 350.0 - (count - 1) * 43;
-        for (var c = 0; c < count; c++) points.add(Offset(start + c * 86, y));
+      final rowStarts = <int>[];
+
+      for (var row = 0; row < rows; row++) {
+        rowStarts.add(_points.length);
+        final count = row + 1;
+        final y = 80.0 + row * 85;
+        final startX = 350.0 - (count - 1) * 43;
+        for (var column = 0; column < count; column++) {
+          _points.add(Offset(startX + column * 86, y));
+        }
       }
-      owners.addAll(List.filled(points.length, -1));
-    } else {
-      const n = 6;
-      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) points.add(Offset(75 + c * 110, 75 + r * 110));
-      owners.addAll(List.filled(points.length, -1));
-      for (var r = 0; r < n; r++) for (var c = 0; c < n - 1; c++) edges.add([r*n+c, r*n+c+1]);
-      for (var r = 0; r < n - 1; r++) for (var c = 0; c < n; c++) edges.add([r*n+c, (r+1)*n+c]);
-      edgeOwners.addAll(List.filled(edges.length, null));
-      for (var r=0;r<n-1;r++) for(var c=0;c<n-1;c++) boxes.add([r*n+c,r*n+c+1,(r+1)*n+c,(r+1)*n+c+1]);
+      _pointOwners.addAll(List<int>.filled(_points.length, -1));
+
+      for (var row = 0; row < rows; row++) {
+        _sheikhLines.add(
+          List<int>.generate(
+            row + 1,
+            (index) => rowStarts[row] + index,
+          ),
+        );
+      }
+
+      for (var column = 0; column < rows; column++) {
+        final line = <int>[];
+        for (var row = column; row < rows; row++) {
+          line.add(rowStarts[row] + column);
+        }
+        if (line.length >= 3) _sheikhLines.add(line);
+      }
+
+      for (var diagonal = 0; diagonal < rows; diagonal++) {
+        final line = <int>[];
+        for (var row = diagonal; row < rows; row++) {
+          final column = row - diagonal;
+          line.add(rowStarts[row] + column);
+        }
+        if (line.length >= 3) _sheikhLines.add(line);
+      }
+      return;
+    }
+
+    const size = 6;
+    for (var row = 0; row < size; row++) {
+      for (var column = 0; column < size; column++) {
+        _points.add(Offset(75 + column * 110, 75 + row * 110));
+      }
+    }
+    _pointOwners.addAll(List<int>.filled(_points.length, -1));
+
+    for (var row = 0; row < size; row++) {
+      for (var column = 0; column < size - 1; column++) {
+        _edges.add(<int>[row * size + column, row * size + column + 1]);
+      }
+    }
+    for (var row = 0; row < size - 1; row++) {
+      for (var column = 0; column < size; column++) {
+        _edges.add(<int>[
+          row * size + column,
+          (row + 1) * size + column,
+        ]);
+      }
+    }
+    _edgeOwners.addAll(List<String?>.filled(_edges.length, null));
+
+    for (var row = 0; row < size - 1; row++) {
+      for (var column = 0; column < size - 1; column++) {
+        _boxes.add(<int>[
+          row * size + column,
+          row * size + column + 1,
+          (row + 1) * size + column,
+          (row + 1) * size + column + 1,
+        ]);
+      }
+    }
+    _boxOwners.addAll(List<String?>.filled(_boxes.length, null));
+  }
+
+  Future<void> _startWebBridge() async {
+    final bridge = _LineWebBridge(widget.kind);
+    _bridge = bridge;
+
+    _webPlayersSubscription = bridge.players.stream.listen((players) {
+      if (!mounted) return;
+      setState(() {
+        _webPlayers
+          ..clear()
+          ..addAll(players);
+        for (final player in players) {
+          _scores.putIfAbsent(player.id, () => 0);
+        }
+        if (_players.isNotEmpty) {
+          _turnIndex %= _players.length;
+        } else {
+          _turnIndex = 0;
+        }
+      });
+      _broadcastState();
+    });
+
+    _webEventsSubscription = bridge.events.stream.listen((event) {
+      if (event.type == 'move') {
+        final index = (event.data['index'] as num?)?.toInt() ?? -1;
+        _processMove(event.id, index);
+      }
+    });
+
+    try {
+      final url = await bridge.start();
+      if (mounted) {
+        setState(() => _webUrl = url);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _webUrl = 'تعذر تشغيل رابط الآيفون');
+      }
     }
   }
 
-  Future<void> _startWeb() async {
-    bridge = _LineWebBridge(widget.kind);
-    webPlayerSub = bridge!.players.stream.listen((p) { setState(() { webPlayers..clear()..addAll(p); for(final v in p) scores.putIfAbsent(v.id,()=>0); }); _broadcast(); });
-    webEventSub = bridge!.events.stream.listen((e) { if(e.type=='move') _move(e.id, (e.data['index'] as num?)?.toInt() ?? -1); });
-    url = await bridge!.start();
-    if (mounted) setState(() {});
+  void _handleNetworkMessage(NetworkMessage message) {
+    if (message.type != NetworkMessageType.move) return;
+    final action = (message.payload['action'] ?? '').toString();
+
+    if (action == 'line_move' && _isHost) {
+      final index = (message.payload['index'] as num?)?.toInt() ?? -1;
+      _processMove(message.senderId, index);
+    } else if (action == 'line_state' && !_isHost) {
+      _applyState(message.payload);
+    }
   }
 
-  String get myId => widget.networkCore?.localPlayerId ?? 'local';
-  String get turnId => players.isEmpty ? '' : players[turn % players.length]['id']!;
+  void _requestMove(int index) {
+    if (_turnId != _myId || index < 0) return;
 
-  void _networkMessage(NetworkMessage m) {
-    if (m.type != NetworkMessageType.move) return;
-    final a = m.payload['action'];
-    if (a == 'line_move') _move(m.senderId, (m.payload['index'] as num).toInt(), send: false);
-    if (a == 'line_state') _applyState(m.payload);
+    if (_isHost) {
+      _processMove(_myId, index);
+    } else {
+      widget.networkCore?.sendMove(
+        <String, dynamic>{
+          'action': 'line_move',
+          'index': index,
+        },
+        senderId: _myId,
+      );
+    }
   }
 
-  void _move(String id, int index, {bool send = true}) {
-    if (!host && id == myId) return;
-    if (id != turnId || index < 0) return;
-    var bonus = false;
+  void _processMove(String playerId, int index) {
+    if (!_isHost || playerId != _turnId || index < 0) return;
+
+    var gained = 0;
+    final players = _players;
+    final playerIndex =
+        players.indexWhere((player) => player['id'] == playerId);
+    if (playerIndex < 0) return;
+
     if (widget.kind == LineGameKind.sheikhBeard) {
-      if (index >= owners.length || owners[index] >= 0) return;
-      final pi = players.indexWhere((p) => p['id'] == id);
-      owners[index] = pi;
-      final before = claimedLines.length;
-      _detectSheikhLines(pi);
-      final gained = claimedLines.length - before;
-      if (gained > 0) { scores[id] = (scores[id] ?? 0) + gained; bonus = true; GameFeedback.win(); } else { GameFeedback.tap(); }
+      if (index >= _pointOwners.length || _pointOwners[index] >= 0) return;
+      _pointOwners[index] = playerIndex;
+      gained = _claimCompletedSheikhLines(playerIndex, playerId);
     } else {
-      if (index >= edges.length || edgeOwners[index] != null) return;
-      edgeOwners[index] = id;
-      final gained = _completedBoxes(id);
-      if (gained > 0) { scores[id] = (scores[id] ?? 0) + gained; bonus = true; GameFeedback.win(); } else { GameFeedback.move(); }
+      if (index >= _edgeOwners.length || _edgeOwners[index] != null) return;
+      _edgeOwners[index] = playerId;
+      gained = _claimCompletedBoxes(playerId);
     }
-    if (!bonus && players.isNotEmpty) turn = (turn + 1) % players.length;
-    if (send && id == myId) widget.networkCore?.sendMove({'action':'line_move','index':index}, senderId: myId);
-    _broadcast();
+
+    if (gained > 0) {
+      _scores[playerId] = (_scores[playerId] ?? 0) + gained;
+      GameFeedback.win();
+    } else {
+      _turnIndex = (_turnIndex + 1) % players.length;
+      GameFeedback.move();
+    }
+
     setState(() {});
+    _broadcastState();
   }
 
-  void _detectSheikhLines(int owner) {
-    const rows = 7;
-    final lines = <List<int>>[];
-    var start=0;
-    for(var r=0;r<rows;r++){ lines.add(List.generate(r+1,(i)=>start+i)); start+=r+1; }
-    for(var c=0;c<rows;c++){ final l=<int>[]; var s=0; for(var r=0;r<rows;r++){ if(c<=r) l.add(s+c); s+=r+1; } if(l.length>=3) lines.add(l); }
-    for(var d=0;d<rows;d++){ final l=<int>[]; var s=0; for(var r=0;r<rows;r++){ final c=r-d; if(c>=0) l.add(s+c); s+=r+1; } if(l.length>=3) lines.add(l); }
-    for(final l in lines){ if(l.every((i)=>owners[i]==owner)){ final k=l.join('-'); claimedLines.putIfAbsent(k,()=>players[owner]['id']!); } }
-  }
-
-  int _completedBoxes(String id) {
-    var gained=0;
-    for(final b in boxes){
-      final needed=<int>[];
-      for(var i=0;i<edges.length;i++){ final e=edges[i]; if((e[0]==b[0]&&e[1]==b[1])||(e[0]==b[2]&&e[1]==b[3])||(e[0]==b[0]&&e[1]==b[2])||(e[0]==b[1]&&e[1]==b[3])) needed.add(i); }
-      if(needed.length==4&&needed.every((i)=>edgeOwners[i]!=null)){ final key='b${b[0]}'; if(!claimedLines.containsKey(key)){claimedLines[key]=id;gained++;} }
+  int _claimCompletedSheikhLines(int ownerIndex, String playerId) {
+    var gained = 0;
+    for (final line in _sheikhLines) {
+      if (!line.every((pointIndex) => _pointOwners[pointIndex] == ownerIndex)) {
+        continue;
+      }
+      final key = line.join('-');
+      if (_claimedSheikhLines.containsKey(key)) continue;
+      _claimedSheikhLines[key] = playerId;
+      gained++;
     }
     return gained;
   }
 
-  Map<String,dynamic> _state() {
-    final ps=<Map<String,dynamic>>[];
-    for(var i=0;i<players.length;i++){ final p=players[i]; ps.add({'id':p['id'],'name':p['name'],'score':scores[p['id']]??0,'color':'#${colors[i%4].value.toRadixString(16).substring(2)}'}); }
-    final ls=<Map<String,dynamic>>[];
-    claimedLines.forEach((k,v){ if(!k.startsWith('b')){ final a=k.split('-').map(int.parse).toList(); ls.add({'a':a.first,'b':a.last,'color':ps.firstWhere((p)=>p['id']==v)['color']}); }});
-    return {'type':'state','kind':widget.kind.name,'turnId':turnId,'message':players.isEmpty?'بانتظار اللاعبين':'الدور: ${players[turn%players.length]['name']}','players':ps,'points':List.generate(points.length,(i)=>{'x':points[i].dx,'y':points[i].dy,'color':owners[i]<0?null:ps[owners[i]]['color']}),'lines':ls,'edges':List.generate(edges.length,(i)=>{'a':edges[i][0],'b':edges[i][1],'owner':edgeOwners.isEmpty?null:edgeOwners[i],'color':edgeOwners.isEmpty||edgeOwners[i]==null?null:ps.firstWhere((p)=>p['id']==edgeOwners[i])['color']})};
+  int _claimCompletedBoxes(String playerId) {
+    var gained = 0;
+    for (var boxIndex = 0; boxIndex < _boxes.length; boxIndex++) {
+      if (_boxOwners[boxIndex] != null) continue;
+      final box = _boxes[boxIndex];
+      final neededEdges = <int>[
+        _edgeIndex(box[0], box[1]),
+        _edgeIndex(box[2], box[3]),
+        _edgeIndex(box[0], box[2]),
+        _edgeIndex(box[1], box[3]),
+      ];
+      if (neededEdges.every(
+        (edgeIndex) =>
+            edgeIndex >= 0 && _edgeOwners[edgeIndex] != null,
+      )) {
+        _boxOwners[boxIndex] = playerId;
+        gained++;
+      }
+    }
+    return gained;
   }
 
-  void _broadcast() {
-    final s=_state(); bridge?.broadcast(s); if(host) widget.networkCore?.sendMove({'action':'line_state',...s},senderId:myId);
+  int _edgeIndex(int first, int second) {
+    for (var index = 0; index < _edges.length; index++) {
+      final edge = _edges[index];
+      if ((edge[0] == first && edge[1] == second) ||
+          (edge[0] == second && edge[1] == first)) {
+        return index;
+      }
+    }
+    return -1;
   }
 
-  void _applyState(Map<String,dynamic> m) { setState(() {}); }
+  String? _colorHexForPlayer(String? playerId) {
+    if (playerId == null) return null;
+    final index = _players.indexWhere((player) => player['id'] == playerId);
+    if (index < 0) return null;
+    final value = _colors[index % _colors.length].value;
+    return '#${value.toRadixString(16).padLeft(8, '0').substring(2)}';
+  }
+
+  Map<String, dynamic> _createState() {
+    final players = _players;
+    final serializedPlayers = <Map<String, dynamic>>[];
+
+    for (var index = 0; index < players.length; index++) {
+      final player = players[index];
+      final id = player['id']!;
+      serializedPlayers.add(<String, dynamic>{
+        'id': id,
+        'name': player['name'],
+        'score': _scores[id] ?? 0,
+        'color': _colorHexForPlayer(id),
+      });
+    }
+
+    final serializedLines = <Map<String, dynamic>>[];
+    _claimedSheikhLines.forEach((key, ownerId) {
+      final line = key.split('-').map(int.parse).toList();
+      serializedLines.add(<String, dynamic>{
+        'a': line.first,
+        'b': line.last,
+        'ownerId': ownerId,
+        'color': _colorHexForPlayer(ownerId),
+      });
+    });
+
+    final serializedBoxes = <Map<String, dynamic>>[];
+    for (var index = 0; index < _boxes.length; index++) {
+      serializedBoxes.add(<String, dynamic>{
+        'points': _boxes[index],
+        'ownerId': _boxOwners[index],
+        'color': _colorHexForPlayer(_boxOwners[index]),
+      });
+    }
+
+    final turnName = players.isEmpty
+        ? ''
+        : players[_turnIndex % players.length]['name'] ?? '';
+
+    return <String, dynamic>{
+      'type': 'state',
+      'kind': widget.kind.name,
+      'turnId': _turnId,
+      'turnIndex': _turnIndex,
+      'message':
+          players.length < 2 ? 'بانتظار لاعب آخر' : 'الدور: $turnName',
+      'players': serializedPlayers,
+      'scores': _scores,
+      'points': List<Map<String, dynamic>>.generate(
+        _points.length,
+        (index) {
+          final ownerIndex = _pointOwners[index];
+          final ownerId = ownerIndex >= 0 && ownerIndex < players.length
+              ? players[ownerIndex]['id']
+              : null;
+          return <String, dynamic>{
+            'x': _points[index].dx,
+            'y': _points[index].dy,
+            'ownerId': ownerId,
+            'color': _colorHexForPlayer(ownerId),
+          };
+        },
+      ),
+      'lines': serializedLines,
+      'edges': List<Map<String, dynamic>>.generate(
+        _edges.length,
+        (index) => <String, dynamic>{
+          'a': _edges[index][0],
+          'b': _edges[index][1],
+          'ownerId': _edgeOwners[index],
+          'color': _colorHexForPlayer(_edgeOwners[index]),
+        },
+      ),
+      'boxes': serializedBoxes,
+    };
+  }
+
+  void _broadcastState() {
+    if (!_isHost) return;
+    final state = _createState();
+    _bridge?.broadcast(state);
+    widget.networkCore?.sendMove(
+      <String, dynamic>{
+        'action': 'line_state',
+        ...state,
+      },
+      senderId: _myId,
+    );
+  }
+
+  void _applyState(Map<String, dynamic> state) {
+    final rawPlayers = state['players'] as List<dynamic>? ?? const [];
+    final playerIds = <String>[];
+    final parsedScores = <String, int>{};
+
+    for (final item in rawPlayers) {
+      if (item is! Map) continue;
+      final id = (item['id'] ?? '').toString();
+      if (id.isEmpty) continue;
+      playerIds.add(id);
+      parsedScores[id] = (item['score'] as num?)?.toInt() ?? 0;
+    }
+
+    final rawPoints = state['points'] as List<dynamic>? ?? const [];
+    for (var index = 0;
+        index < rawPoints.length && index < _pointOwners.length;
+        index++) {
+      final item = rawPoints[index];
+      if (item is! Map) continue;
+      final ownerId = item['ownerId']?.toString();
+      _pointOwners[index] =
+          ownerId == null ? -1 : playerIds.indexOf(ownerId);
+    }
+
+    final rawEdges = state['edges'] as List<dynamic>? ?? const [];
+    for (var index = 0;
+        index < rawEdges.length && index < _edgeOwners.length;
+        index++) {
+      final item = rawEdges[index];
+      if (item is Map) {
+        _edgeOwners[index] = item['ownerId']?.toString();
+      }
+    }
+
+    final rawBoxes = state['boxes'] as List<dynamic>? ?? const [];
+    for (var index = 0;
+        index < rawBoxes.length && index < _boxOwners.length;
+        index++) {
+      final item = rawBoxes[index];
+      if (item is Map) {
+        _boxOwners[index] = item['ownerId']?.toString();
+      }
+    }
+
+    _claimedSheikhLines.clear();
+    final rawLines = state['lines'] as List<dynamic>? ?? const [];
+    for (final item in rawLines) {
+      if (item is! Map) continue;
+      final first = (item['a'] as num?)?.toInt();
+      final last = (item['b'] as num?)?.toInt();
+      final ownerId = item['ownerId']?.toString();
+      if (first == null || last == null || ownerId == null) continue;
+      final matching = _sheikhLines.where(
+        (line) => line.first == first && line.last == last,
+      );
+      if (matching.isNotEmpty) {
+        _claimedSheikhLines[matching.first.join('-')] = ownerId;
+      }
+    }
+
+    setState(() {
+      _turnIndex = (state['turnIndex'] as num?)?.toInt() ?? 0;
+      _scores
+        ..clear()
+        ..addAll(parsedScores);
+    });
+  }
+
+  void _handleTap(TapDownDetails details, BoxConstraints constraints) {
+    if (_turnId != _myId) return;
+
+    final side = math.min(constraints.maxWidth, constraints.maxHeight);
+    if (side <= 0) return;
+    final scale = side / 700;
+    final point = details.localPosition / scale;
+
+    if (widget.kind == LineGameKind.sheikhBeard) {
+      var bestIndex = -1;
+      var bestDistance = double.infinity;
+      for (var index = 0; index < _points.length; index++) {
+        if (_pointOwners[index] >= 0) continue;
+        final distance = (_points[index] - point).distanceSquared;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      }
+      if (bestDistance < 1000) _requestMove(bestIndex);
+      return;
+    }
+
+    var bestIndex = -1;
+    var bestDistance = double.infinity;
+    for (var index = 0; index < _edges.length; index++) {
+      if (_edgeOwners[index] != null) continue;
+      final start = _points[_edges[index][0]];
+      final end = _points[_edges[index][1]];
+      final vector = end - start;
+      final denominator = vector.distanceSquared;
+      if (denominator == 0) continue;
+      final rawT =
+          ((point - start).dx * vector.dx + (point - start).dy * vector.dy) /
+              denominator;
+      final t = rawT.clamp(0.0, 1.0);
+      final nearest = start + vector * t;
+      final distance = (point - nearest).distanceSquared;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    }
+    if (bestDistance < 650) _requestMove(bestIndex);
+  }
 
   @override
-  void dispose() { netSub?.cancel(); webPlayerSub?.cancel(); webEventSub?.cancel(); bridge?.dispose(); super.dispose(); }
+  void dispose() {
+    _networkSubscription?.cancel();
+    _webPlayersSubscription?.cancel();
+    _webEventsSubscription?.cancel();
+    _bridge?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: Text(widget.kind==LineGameKind.sheikhBeard?'لحية الشيخ':'المربعات')),body: Column(children:[if(host&&url.isNotEmpty) Card(child:Padding(padding:const EdgeInsets.all(12),child:Row(children:[QrImageView(data:url,size:90),const SizedBox(width:12),Expanded(child:SelectableText('$url\nافتحه من Safari على نفس الشبكة'))]))),Padding(padding:const EdgeInsets.all(8),child:Wrap(spacing:8,children:[for(var i=0;i<players.length;i)Chip(avatar:CircleAvatar(backgroundColor:colors[i%4]),label:Text('${players[i]['name']}: ${scores[players[i]['id']]??0}'))])),Expanded(child:LayoutBuilder(builder:(context,c)=>GestureDetector(onTapDown:(d){if(turnId!=myId)return;final scale=math.min(c.maxWidth,c.maxHeight)/700, p=d.localPosition/scale;if(widget.kind==LineGameKind.sheikhBeard){var best=-1,dist=999999.0;for(var i=0;i<points.length;i++){final q=(points[i]-p).distanceSquared;if(q<dist){dist=q;best=i;}}if(dist<900)_move(myId,best);}else{var best=-1,dist=999999.0;for(var i=0;i<edges.length;i++){if(edgeOwners[i]!=null)continue;final a=points[edges[i][0]],b=points[edges[i][1]],ab=b-a,t=((p-a).dx*ab.dx+(p-a).dy*ab.dy)/ab.distanceSquared,t2=t.clamp(0.0,1.0),q=(p-(a+ab*t2)).distanceSquared;if(q<dist){dist=q;best=i;}}if(dist<500)_move(myId,best);}},child:CustomPaint(size:Size.square(math.min(c.maxWidth,c.maxHeight)),painter:_LinePainter(points,owners,edges,edgeOwners,claimedLines,players,colors))))]));
+    final title =
+        widget.kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
+    final players = _players;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Column(
+        children: <Widget>[
+          if (_isHost && _webUrl.isNotEmpty)
+            Card(
+              margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: <Widget>[
+                    if (_webUrl.startsWith('http'))
+                      QrImageView(
+                        data: _webUrl,
+                        size: 90,
+                      ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SelectableText(
+                        '$_webUrl\nافتحه من Safari على نفس الشبكة',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              alignment: WrapAlignment.center,
+              children: <Widget>[
+                for (var index = 0; index < players.length; index++)
+                  Chip(
+                    avatar: CircleAvatar(
+                      backgroundColor: _colors[index % _colors.length],
+                    ),
+                    label: Text(
+                      '${players[index]['name']}: '
+                      '${_scores[players[index]['id']] ?? 0}',
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (BuildContext context, BoxConstraints constraints) {
+                final side =
+                    math.min(constraints.maxWidth, constraints.maxHeight);
+                return Center(
+                  child: GestureDetector(
+                    onTapDown: (details) =>
+                        _handleTap(details, constraints),
+                    child: CustomPaint(
+                      size: Size.square(side),
+                      painter: _LinePainter(
+                        points: _points,
+                        pointOwners: _pointOwners,
+                        edges: _edges,
+                        edgeOwners: _edgeOwners,
+                        boxes: _boxes,
+                        boxOwners: _boxOwners,
+                        sheikhLines: _claimedSheikhLines,
+                        players: players,
+                        colors: _colors,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+            child: Text(
+              players.length < 2
+                  ? 'بانتظار لاعب آخر'
+                  : _turnId == _myId
+                      ? 'دورك الآن'
+                      : 'بانتظار دور اللاعب الآخر',
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
 class _LinePainter extends CustomPainter {
-  _LinePainter(this.points,this.owners,this.edges,this.edgeOwners,this.lines,this.players,this.colors);
-  final List<Offset> points; final List<int> owners; final List<List<int>> edges; final List<String?> edgeOwners; final Map<String,String> lines; final List<Map<String,String>> players; final List<Color> colors;
-  @override void paint(Canvas canvas,Size size){ final s=size.width/700; canvas.scale(s); final p=Paint()..strokeCap=StrokeCap.round; for(var i=0;i<edges.length;i++){p.color=edgeOwners[i]==null?Colors.black12:colors[players.indexWhere((x)=>x['id']==edgeOwners[i])%4];p.strokeWidth=edgeOwners[i]==null?3:9;canvas.drawLine(points[edges[i][0]],points[edges[i][1]],p);} lines.forEach((k,v){if(k.startsWith('b'))return;final a=k.split('-').map(int.parse).toList();p.color=colors[players.indexWhere((x)=>x['id']==v)%4];p.strokeWidth=10;canvas.drawLine(points[a.first],points[a.last],p);}); for(var i=0;i<points.length;i++){p.style=PaintingStyle.fill;p.color=owners[i]<0?Colors.white:colors[owners[i]%4];canvas.drawCircle(points[i],14,p);p.style=PaintingStyle.stroke;p.color=Colors.black54;p.strokeWidth=3;canvas.drawCircle(points[i],14,p);} }
-  @override bool shouldRepaint(covariant _LinePainter old)=>true;
+  const _LinePainter({
+    required this.points,
+    required this.pointOwners,
+    required this.edges,
+    required this.edgeOwners,
+    required this.boxes,
+    required this.boxOwners,
+    required this.sheikhLines,
+    required this.players,
+    required this.colors,
+  });
+
+  final List<Offset> points;
+  final List<int> pointOwners;
+  final List<List<int>> edges;
+  final List<String?> edgeOwners;
+  final List<List<int>> boxes;
+  final List<String?> boxOwners;
+  final Map<String, String> sheikhLines;
+  final List<Map<String, String>> players;
+  final List<Color> colors;
+
+  Color? _playerColor(String? playerId) {
+    if (playerId == null) return null;
+    final index = players.indexWhere((player) => player['id'] == playerId);
+    if (index < 0) return null;
+    return colors[index % colors.length];
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0) return;
+    final scale = size.width / 700;
+    canvas.scale(scale);
+
+    final paint = Paint()
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    for (var index = 0; index < boxes.length; index++) {
+      final ownerColor = _playerColor(boxOwners[index]);
+      if (ownerColor == null) continue;
+      final box = boxes[index];
+      final topLeft = points[box[0]];
+      final bottomRight = points[box[3]];
+      paint
+        ..style = PaintingStyle.fill
+        ..color = ownerColor.withOpacity(0.22);
+      canvas.drawRect(
+        Rect.fromLTRB(
+          topLeft.dx + 8,
+          topLeft.dy + 8,
+          bottomRight.dx - 8,
+          bottomRight.dy - 8,
+        ),
+        paint,
+      );
+    }
+
+    for (var index = 0; index < edges.length; index++) {
+      final ownerColor = _playerColor(edgeOwners[index]);
+      paint
+        ..style = PaintingStyle.stroke
+        ..color = ownerColor ?? Colors.black12
+        ..strokeWidth = ownerColor == null ? 3 : 9;
+      canvas.drawLine(
+        points[edges[index][0]],
+        points[edges[index][1]],
+        paint,
+      );
+    }
+
+    sheikhLines.forEach((key, ownerId) {
+      final indexes = key.split('-').map(int.parse).toList();
+      final ownerColor = _playerColor(ownerId);
+      if (ownerColor == null || indexes.length < 2) return;
+      paint
+        ..style = PaintingStyle.stroke
+        ..color = ownerColor
+        ..strokeWidth = 10;
+      canvas.drawLine(
+        points[indexes.first],
+        points[indexes.last],
+        paint,
+      );
+    });
+
+    for (var index = 0; index < points.length; index++) {
+      final ownerIndex = pointOwners[index];
+      paint
+        ..style = PaintingStyle.fill
+        ..color = ownerIndex >= 0 && ownerIndex < players.length
+            ? colors[ownerIndex % colors.length]
+            : Colors.white;
+      canvas.drawCircle(points[index], 14, paint);
+
+      paint
+        ..style = PaintingStyle.stroke
+        ..color = Colors.black54
+        ..strokeWidth = 3;
+      canvas.drawCircle(points[index], 14, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _LinePainter oldDelegate) => true;
 }
