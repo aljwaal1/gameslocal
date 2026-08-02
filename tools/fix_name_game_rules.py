@@ -38,9 +38,8 @@ new_normalize = """  String _normalize(String v) => v
   }
 """
 
-if old_normalize not in text:
-    raise SystemExit('Could not find old normalization/validation block')
-text = text.replace(old_normalize, new_normalize)
+if old_normalize in text:
+    text = text.replace(old_normalize, new_normalize)
 text = text.replace('if (!_isValid(a)) return 0;', 'if (!_isValid(a, c)) return 0;')
 
 old_proposal = """      'newPoints': value,
@@ -52,9 +51,8 @@ new_proposal = """      'newPoints': value,
       'voters': <String>{},
     };
 """
-if old_proposal not in text:
-    raise SystemExit('Could not find proposal approvals block')
-text = text.replace(old_proposal, new_proposal)
+if old_proposal in text:
+    text = text.replace(old_proposal, new_proposal)
 
 old_vote_send = """    _network?.sendMove({
       'action': 'categories_score_vote',
@@ -72,9 +70,8 @@ new_vote_send = """    if (_isHost) {
       }, senderId: _myId);
     }
 """
-if old_vote_send not in text:
-    raise SystemExit('Could not find vote send block')
-text = text.replace(old_vote_send, new_vote_send)
+if old_vote_send in text:
+    text = text.replace(old_vote_send, new_vote_send)
 
 old_register = """  void _registerVote(String proposalId, String voterId, bool approve) {
     final p = _proposals[proposalId];
@@ -93,12 +90,12 @@ new_register = """  void _registerVote(String proposalId, String voterId, bool a
     approvals.add(voterId);
     if (approvals.length < 2) return;
 """
-if old_register not in text:
-    raise SystemExit('Could not find vote registration block')
-text = text.replace(old_register, new_register)
+if old_register in text:
+    text = text.replace(old_register, new_register)
 
-old_snackbar = "تم إرسال طلب التعديل ويحتاج موافقة لاعبين على الأقل"
-new_snackbar = "تم إرسال طلب التعديل ويحتاج موافقة صريحة من لاعبين مختلفين"
-text = text.replace(old_snackbar, new_snackbar)
+text = text.replace(
+    'تم إرسال طلب التعديل ويحتاج موافقة لاعبين على الأقل',
+    'تم إرسال طلب التعديل ويحتاج موافقة صريحة من لاعبين مختلفين',
+)
 
 path.write_text(text, encoding='utf-8')
