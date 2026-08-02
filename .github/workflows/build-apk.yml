@@ -6,6 +6,7 @@ on:
     paths:
       - 'lib/**'
       - 'assets/**'
+      - 'tools/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -20,7 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -38,6 +39,14 @@ jobs:
         with:
           channel: stable
           cache: true
+
+      - name: Apply requested game updates
+        run: |
+          if [ ! -f lib/core/network/browser_game_bridge.dart ]; then
+            python3 tools/apply_requested_updates.py
+          else
+            echo "Requested updates already applied."
+          fi
 
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
@@ -64,23 +73,15 @@ jobs:
           manifest.write_text(text, encoding='utf-8')
           PY
 
-      - name: Normalize new multiplayer source
+      - name: Format updated sources
         run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('lib/games/name_animal_object/name_animal_object_game.dart')
-          text = path.read_text(encoding='utf-8')
-          text = text.replace("(payload['points'] as Map? ?? {})", "((payload['points'] as Map?) ?? <dynamic, dynamic>{})")
-          text = text.replace("(payload['scores'] as Map? ?? {})", "((payload['scores'] as Map?) ?? <dynamic, dynamic>{})")
-          text = text.replace("(payload['names'] as Map? ?? {})", "((payload['names'] as Map?) ?? <dynamic, dynamic>{})")
-          text = text.replace("(payload['answers'] as Map? ?? {})", "((payload['answers'] as Map?) ?? <dynamic, dynamic>{})")
-          text = text.replace(
-              "final msg={'action':'categories_score_proposal',...proposal..remove('approvals')};",
-              "final msg=<String,dynamic>{'action':'categories_score_proposal',...proposal};msg.remove('approvals');",
-          )
-          path.write_text(text, encoding='utf-8')
-          PY
-          dart format lib/games/name_animal_object/name_animal_object_game.dart lib/games/name_animal_object/iphone_web_bridge.dart
+          dart format \
+            lib/core/audio_feedback.dart \
+            lib/core/network/browser_game_bridge.dart \
+            lib/core/game_room.dart \
+            lib/games/name_animal_object/name_animal_object_game.dart \
+            lib/games/xo/xo_game.dart \
+            lib/games/checkers/checkers_game.dart
 
       - name: Get Flutter dependencies
         run: flutter pub get
@@ -95,12 +96,12 @@ jobs:
         run: |
           set -euo pipefail
           test -s build/app/outputs/flutter-apk/app-release.apk
-          mkdir -p release apk/modern
+          mkdir -p release apk/modern /tmp/gameslocal-update
           cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
           sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
-          cp lib/games/name_animal_object/name_animal_object_game.dart /tmp/name_animal_object_game.dart
-          cp lib/games/name_animal_object/iphone_web_bridge.dart /tmp/iphone_web_bridge.dart
+          cp -R lib /tmp/gameslocal-update/lib
+          cp pubspec.yaml pubspec.lock /tmp/gameslocal-update/
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -112,7 +113,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish corrected source and APK to main
+      - name: Publish updated source and APK to main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
@@ -121,11 +122,16 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout -B main origin/main
-          mkdir -p apk/modern lib/games/name_animal_object
+          rm -rf lib
+          cp -R /tmp/gameslocal-update/lib ./lib
+          cp /tmp/gameslocal-update/pubspec.yaml ./pubspec.yaml
+          cp /tmp/gameslocal-update/pubspec.lock ./pubspec.lock
+          mkdir -p apk/modern
           cp /tmp/gameslocal-flutter.apk apk/modern/gameslocal-flutter.apk
-          cp /tmp/name_animal_object_game.dart lib/games/name_animal_object/name_animal_object_game.dart
-          cp /tmp/iphone_web_bridge.dart lib/games/name_animal_object/iphone_web_bridge.dart
-          git add apk/modern/gameslocal-flutter.apk lib/games/name_animal_object/name_animal_object_game.dart lib/games/name_animal_object/iphone_web_bridge.dart
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Publish synchronized multiplayer update and Android APK"
+          git add lib pubspec.yaml pubspec.lock apk/modern/gameslocal-flutter.apk
+          if git diff --cached --quiet; then
+            echo "No source or APK changes to publish."
+            exit 0
+          fi
+          git commit -m "Add responsive results audio and iPhone XO checkers multiplayer"
           git push origin HEAD:main
