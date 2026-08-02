@@ -11,8 +11,8 @@ import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_game.dart';
 import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
-import 'games/football/penalty_shootout_game.dart';
 import 'games/football/professional_penalty_game.dart';
+import 'games/line_games/line_games.dart';
 import 'games/name_animal_object/name_animal_object_game.dart';
 import 'games/xo/xo_game.dart';
 import 'lan/screens/lan_home_screen.dart';
@@ -109,6 +109,26 @@ class HomeScreen extends StatelessWidget {
       playersText: 'عدة لاعبين عبر LAN',
       status: 'كل لاعب على هاتفه ضمن نفس Wi-Fi أو Hotspot',
       builder: (_, __) => const NameAnimalObjectGameScreen(),
+    ),
+    GameDefinition(
+      id: 'sheikh_beard',
+      name: 'لحية الشيخ',
+      playersText: 'لاعبان أو أكثر عبر LAN والآيفون',
+      status: 'اختيار نقاط وتكوين خطوط مع أدوار متزامنة',
+      builder: (_, networkCore) => LineGameScreen(
+        kind: LineGameKind.sheikhBeard,
+        networkCore: networkCore,
+      ),
+    ),
+    GameDefinition(
+      id: 'dots_boxes',
+      name: 'المربعات',
+      playersText: 'لاعبان أو أكثر عبر LAN والآيفون',
+      status: 'أكمل المربع لتحصل على نقطة ودور إضافي',
+      builder: (_, networkCore) => LineGameScreen(
+        kind: LineGameKind.dotsBoxes,
+        networkCore: networkCore,
+      ),
     ),
   ];
 
@@ -348,6 +368,8 @@ class _GameCard extends StatelessWidget {
         'domino',
         'football_penalties',
         'name_animal_object',
+        'sheikh_beard',
+        'dots_boxes',
       }.contains(game.id);
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
   Color get releaseColor =>
@@ -371,6 +393,10 @@ class _GameCard extends StatelessWidget {
         return Icons.egg_alt;
       case 'name_animal_object':
         return Icons.edit_note;
+      case 'sheikh_beard':
+        return Icons.linear_scale;
+      case 'dots_boxes':
+        return Icons.grid_on;
       default:
         return Icons.style;
     }
@@ -394,6 +420,10 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFFF9F1C);
       case 'name_animal_object':
         return const Color(0xFF7B2CBF);
+      case 'sheikh_beard':
+        return const Color(0xFF8E44AD);
+      case 'dots_boxes':
+        return const Color(0xFF247BA0);
       default:
         return const Color(0xFF7B2CBF);
     }
