@@ -44,6 +44,9 @@ jobs:
       - name: Apply name game validation and vote rules
         run: python3 tools/fix_name_game_rules.py
 
+      - name: Apply responsive screens and compact result columns
+        run: python3 tools/apply_responsive_ui.py
+
       - name: Normalize line games source
         run: |
           python3 - <<'PY'
@@ -133,5 +136,5 @@ jobs:
             echo "No corrected source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Publish iPhone line games and corrected name game scoring"
+          git commit -m "Publish responsive screens and compact score table"
           git push origin HEAD:main
