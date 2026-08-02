@@ -1,7 +1,7 @@
 from pathlib import Path
 import re
 
-# Responsive home grid.
+# Responsive home grid (idempotent).
 main_path = Path('lib/main.dart')
 main = main_path.read_text(encoding='utf-8')
 old_grid = """              Expanded(
@@ -40,11 +40,11 @@ new_grid = """              Expanded(
                 ),
               ),
 """
-if old_grid not in main:
-    raise SystemExit('Home grid block not found')
-main_path.write_text(main.replace(old_grid, new_grid), encoding='utf-8')
+if old_grid in main:
+    main = main.replace(old_grid, new_grid)
+main_path.write_text(main, encoding='utf-8')
 
-# Responsive name-game play header and results.
+# Responsive play header.
 path = Path('lib/games/name_animal_object/name_animal_object_game.dart')
 text = path.read_text(encoding='utf-8')
 old_header = """          Row(
@@ -75,154 +75,161 @@ new_header = """          LayoutBuilder(
             },
           ),
 """
-if old_header not in text:
-    raise SystemExit('Play header block not found')
-text = text.replace(old_header, new_header)
+if old_header in text:
+    text = text.replace(old_header, new_header)
 
 pattern = re.compile(r"  Widget _results\(\) \{.*?\n  Widget _info\(", re.DOTALL)
 replacement = r'''  Widget _results() {
     final ids = _scores.keys.toList()
       ..sort((a, b) => (_scores[b] ?? 0).compareTo(_scores[a] ?? 0));
-    final isCompact = MediaQuery.sizeOf(context).width < 700;
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width < 700;
+    final tableTextStyle = TextStyle(
+      fontSize: compact ? 11 : 13,
+      fontWeight: FontWeight.w600,
+    );
+    final headingTextStyle = TextStyle(
+      fontSize: compact ? 10.5 : 12.5,
+      fontWeight: FontWeight.w900,
+    );
 
     return ListView(
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 10 : 16,
-        vertical: 12,
+        horizontal: compact ? 6 : 14,
+        vertical: 10,
       ),
       children: [
         Text(
           'نتائج حرف $_letter',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: isCompact ? 23 : 28,
+            fontSize: compact ? 22 : 27,
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 10),
-        if (isCompact)
-          ...ids.asMap().entries.map((entry) {
-            final id = entry.value;
-            return Card(
-              margin: const EdgeInsets.only(bottom: 10),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(child: Text('${entry.key + 1}')),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            _playerNames[id] ?? 'لاعب',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        if (_isHost)
-                          IconButton.filledTonal(
-                            tooltip: 'طلب تعديل النقاط',
-                            onPressed: () => _proposeScoreEdit(id),
-                            icon: const Icon(Icons.edit),
-                          ),
-                      ],
-                    ),
-                    const Divider(),
-                    ..._categories.map(
-                      (category) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 3),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 62,
-                              child: Text(
-                                category,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Text(
-                                _lastAnswers[id]?[category]?.isNotEmpty == true
-                                    ? _lastAnswers[id]![category]!
-                                    : '—',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const Divider(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'نقاط الجولة: ${_lastPoints[id] ?? 0}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        Text(
-                          'المجموع: ${_scores[id] ?? 0}',
-                          style: const TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          })
-        else
-          Card(
+        const SizedBox(height: 8),
+        Card(
+          clipBehavior: Clip.antiAlias,
+          child: Scrollbar(
+            thumbVisibility: true,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
+                horizontalMargin: compact ? 7 : 14,
+                columnSpacing: compact ? 12 : 22,
+                dataRowMinHeight: compact ? 40 : 46,
+                dataRowMaxHeight: compact ? 48 : 56,
+                headingRowHeight: compact ? 38 : 44,
                 headingRowColor:
                     WidgetStateProperty.all(const Color(0xFFEDE4FF)),
                 border: TableBorder.all(color: const Color(0xFFD6C8EE)),
                 columns: [
-                  const DataColumn(label: Text('اللاعب')),
-                  ..._categories.map((c) => DataColumn(label: Text(c))),
-                  const DataColumn(label: Text('الجولة')),
-                  const DataColumn(label: Text('المجموع')),
-                  if (_isHost) const DataColumn(label: Text('تعديل')),
-                ],
-                rows: ids.map((id) => DataRow(cells: [
-                  DataCell(Text(_playerNames[id] ?? 'لاعب')),
-                  ..._categories.map((c) => DataCell(Text(
-                    _lastAnswers[id]?[c]?.isNotEmpty == true
-                        ? _lastAnswers[id]![c]!
-                        : '—',
-                  ))),
-                  DataCell(Text('${_lastPoints[id] ?? 0}')),
-                  DataCell(Text('${_scores[id] ?? 0}')),
+                  DataColumn(
+                    label: Text('اللاعب', style: headingTextStyle),
+                  ),
+                  ..._categories.map(
+                    (category) => DataColumn(
+                      label: Text(category, style: headingTextStyle),
+                    ),
+                  ),
+                  DataColumn(
+                    label: Text('الجولة', style: headingTextStyle),
+                  ),
+                  DataColumn(
+                    label: Text('المجموع', style: headingTextStyle),
+                  ),
                   if (_isHost)
-                    DataCell(IconButton(
-                      tooltip: 'طلب تعديل النقاط',
-                      onPressed: () => _proposeScoreEdit(id),
-                      icon: const Icon(Icons.edit),
-                    )),
-                ])).toList(),
+                    DataColumn(
+                      label: Text('تعديل', style: headingTextStyle),
+                    ),
+                ],
+                rows: ids.map((id) {
+                  return DataRow(
+                    cells: [
+                      DataCell(
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: compact ? 82 : 130,
+                          ),
+                          child: Text(
+                            _playerNames[id] ?? 'لاعب',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: tableTextStyle.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                      ..._categories.map(
+                        (category) => DataCell(
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minWidth: compact ? 48 : 65,
+                              maxWidth: compact ? 76 : 110,
+                            ),
+                            child: Text(
+                              _lastAnswers[id]?[category]?.isNotEmpty == true
+                                  ? _lastAnswers[id]![category]!
+                                  : '—',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: tableTextStyle,
+                            ),
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          '${_lastPoints[id] ?? 0}',
+                          style: tableTextStyle.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          '${_scores[id] ?? 0}',
+                          style: tableTextStyle.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                      if (_isHost)
+                        DataCell(
+                          IconButton(
+                            constraints: const BoxConstraints(
+                              minWidth: 34,
+                              minHeight: 34,
+                            ),
+                            padding: EdgeInsets.zero,
+                            iconSize: compact ? 18 : 21,
+                            tooltip: 'طلب تعديل النقاط',
+                            onPressed: () => _proposeScoreEdit(id),
+                            icon: const Icon(Icons.edit),
+                          ),
+                        ),
+                    ],
+                  );
+                }).toList(),
               ),
             ),
           ),
+        ),
         if (_isHost) ...[
           const SizedBox(height: 6),
           const Card(
             color: Color(0xFFFFF4D8),
             child: Padding(
-              padding: EdgeInsets.all(12),
+              padding: EdgeInsets.all(10),
               child: Text(
-                'تعديل النقاط لا يُطبّق مباشرة؛ يُرسل للتصويت ويحتاج موافقة لاعبين مختلفين.',
+                'تعديل النقاط يُرسل للتصويت ويحتاج موافقة لاعبين مختلفين.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
           ),
