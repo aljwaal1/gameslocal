@@ -48,19 +48,36 @@ jobs:
             echo "Requested updates already applied."
           fi
 
-      - name: Enforce minimum answer length
+      - name: Enforce answer length with valid short-word exceptions
         run: |
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           path = Path('lib/games/name_animal_object/name_animal_object_game.dart')
           text = path.read_text(encoding='utf-8')
-          old = "bool _isValid(String a) =>\n      a.trim().isNotEmpty && _normalize(a).startsWith(_normalize(_letter));"
-          new = "bool _isValid(String a) {\n    final normalized = _normalize(a).replaceAll(RegExp(r'\\s+'), '');\n    return normalized.length >= 3 &&\n        normalized.startsWith(_normalize(_letter));\n  }"
-          if old in text:
-              text = text.replace(old, new)
-          elif 'normalized.length >= 3' not in text:
-              raise SystemExit('Could not locate _isValid for minimum-length update')
-          path.write_text(text, encoding='utf-8')
+
+          pattern = re.compile(
+              r"bool _isValid\(String a\) \{.*?\n  \}",
+              re.DOTALL,
+          )
+          replacement = """bool _isValid(String a) {
+    final normalized = _normalize(a).replaceAll(RegExp(r'\\s+'), '');
+    const validShortWords = <String>{
+      'دب',
+      'قط',
+      'زر',
+      'رز',
+      'مي',
+    };
+    final hasValidLength = normalized.length >= 3 || validShortWords.contains(normalized);
+    return hasValidLength && normalized.startsWith(_normalize(_letter));
+  }"""
+
+          updated, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('Could not locate _isValid for short-word exception update')
+          path.write_text(updated, encoding='utf-8')
           PY
 
       - name: Create Android project files
@@ -148,5 +165,5 @@ jobs:
             echo "No source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Require three-letter minimum in name game"
+          git commit -m "Allow valid two-letter words in name game"
           git push origin HEAD:main
