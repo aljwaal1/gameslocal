@@ -6,6 +6,7 @@ on:
     paths:
       - 'lib/**'
       - 'assets/**'
+      - 'tools/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -40,6 +41,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Apply name game validation and vote rules
+        run: python3 tools/fix_name_game_rules.py
+
       - name: Normalize line games source
         run: |
           python3 - <<'PY'
@@ -62,6 +66,7 @@ jobs:
       - name: Configure Android network permissions
         run: |
           python3 - <<'PY'
+          from pathlib import importlib
           from pathlib import Path
 
           manifest = Path('android/app/src/main/AndroidManifest.xml')
@@ -129,5 +134,5 @@ jobs:
             echo "No corrected source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Publish corrected line games and Android APK"
+          git commit -m "Publish iPhone line games and corrected name game scoring"
           git push origin HEAD:main
