@@ -145,12 +145,28 @@ class HomeScreen extends StatelessWidget {
               const _ModeStrip(),
               const SizedBox(height: 10),
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1.20,
-                  children: [for (final game in games) _GameCard(game: game)],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+                    final columns = width < 390
+                        ? 1
+                        : width < 850
+                            ? 2
+                            : width < 1250
+                                ? 3
+                                : 4;
+                    return GridView.builder(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: columns,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: columns == 1 ? 2.05 : 1.20,
+                      ),
+                      itemCount: games.length,
+                      itemBuilder: (context, index) =>
+                          _GameCard(game: games[index]),
+                    );
+                  },
                 ),
               ),
             ],
