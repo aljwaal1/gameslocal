@@ -103,6 +103,7 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     final own = players.where((player) => player.isHost == isHost);
     return own.isNotEmpty ? own.first.id : (isHost ? 'host' : 'client');
   }
+
   bool get canUseSkill => !finished && skillCooldown == 0;
 
   @override
@@ -110,8 +111,10 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     super.initState();
     playerHealth = playerMaxHealth;
     if (isNetworkGame) {
-      networkSubscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
-      if (!isHost) Future<void>.delayed(const Duration(milliseconds: 300), _requestState);
+      networkSubscription =
+          widget.networkCore!.messages.listen(_handleNetworkMessage);
+      if (!isHost)
+        Future<void>.delayed(const Duration(milliseconds: 300), _requestState);
     }
     startTimers();
   }
@@ -134,7 +137,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
 
   void _requestState() {
     if (!isNetworkGame) return;
-    widget.networkCore!.sendMove(<String, dynamic>{'game': 'battle', 'action': 'stateRequest'}, senderId: localPlayerId);
+    widget.networkCore!.sendMove(
+        <String, dynamic>{'game': 'battle', 'action': 'stateRequest'},
+        senderId: localPlayerId);
   }
 
   void _handleNetworkMessage(NetworkMessage message) {
@@ -146,7 +151,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
         connectionLost = true;
         finished = true;
         skillSucceeded = false;
-        skillMessage = 'انقطع اتصال اللاعب الآخر. ارجع إلى الغرفة لإعادة الاتصال.';
+        skillMessage =
+            'انقطع اتصال اللاعب الآخر. ارجع إلى الغرفة لإعادة الاتصال.';
       });
       return;
     }
@@ -181,10 +187,19 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void _sendState() {
     if (!isNetworkGame) return;
     widget.networkCore!.sendMove(<String, dynamic>{
-      'game': 'battle', 'action': 'snapshot', 'playerX': playerX, 'playerY': playerY,
-      'botX': botX, 'botY': botY, 'playerHealth': playerHealth,
-      'botHealth': botHealth, 'secondsLeft': secondsLeft, 'finished': finished,
-      'pickupX': pickupX, 'pickupY': pickupY, 'pickupVisible': pickupVisible,
+      'game': 'battle',
+      'action': 'snapshot',
+      'playerX': playerX,
+      'playerY': playerY,
+      'botX': botX,
+      'botY': botY,
+      'playerHealth': playerHealth,
+      'botHealth': botHealth,
+      'secondsLeft': secondsLeft,
+      'finished': finished,
+      'pickupX': pickupX,
+      'pickupY': pickupY,
+      'pickupVisible': pickupVisible,
     }, senderId: localPlayerId);
   }
 
@@ -222,7 +237,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
     if (!pickupVisible) return;
     final x = isNetworkGame && !isHost ? botX : playerX;
     final y = isNetworkGame && !isHost ? botY : playerY;
-    if (math.sqrt(math.pow(x - pickupX, 2) + math.pow(y - pickupY, 2)) > 0.20) return;
+    if (math.sqrt(math.pow(x - pickupX, 2) + math.pow(y - pickupY, 2)) > 0.20)
+      return;
     pickupVisible = false;
     if (isNetworkGame && !isHost) {
       botHealth = math.min(100, botHealth + 18).toInt();
@@ -266,7 +282,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       botX = botX.clamp(-0.88, 0.88).toDouble();
       botY = botY.clamp(-0.82, 0.82).toDouble();
 
-      if (goal == BattleBotGoal.seekHealth && pickupDistance < 0.22 && pickupVisible) {
+      if (goal == BattleBotGoal.seekHealth &&
+          pickupDistance < 0.22 &&
+          pickupVisible) {
         pickupVisible = false;
         botHealth = math.min(100, botHealth + 18).toInt();
       }
@@ -283,7 +301,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       if (distance >= attackRange) return;
       if (isNetworkGame && !isHost) {
         playerHealth = math.max(0, playerHealth - 18).toInt();
-        playerX = (playerX + (playerX >= botX ? 0.20 : -0.20)).clamp(-0.88, 0.88).toDouble();
+        playerX = (playerX + (playerX >= botX ? 0.20 : -0.20))
+            .clamp(-0.88, 0.88)
+            .toDouble();
         if (playerHealth == 0) finish();
       } else {
         damageBot(playerDamage, knockback: 0.20);
@@ -295,11 +315,13 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
   void useSkill() {
     if (!canUseSkill) return;
     setState(() {
-      final succeeded = isNetworkGame && !isHost ? _applyGuestSkill() : _applySkill();
+      final succeeded =
+          isNetworkGame && !isHost ? _applyGuestSkill() : _applySkill();
       skillSucceeded = succeeded;
       if (succeeded) {
         skillCooldown = skillCooldownSeconds;
-        if (!isNetworkGame || isHost) _showSkillEffect(onPlayer: widget.characterName == 'صخر');
+        if (!isNetworkGame || isHost)
+          _showSkillEffect(onPlayer: widget.characterName == 'صخر');
       }
     });
     _sendState();
@@ -331,7 +353,9 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
       return false;
     }
     playerHealth = math.max(0, playerHealth - 28).toInt();
-    playerX = (playerX + (playerX >= botX ? 0.28 : -0.28)).clamp(-0.88, 0.88).toDouble();
+    playerX = (playerX + (playerX >= botX ? 0.28 : -0.28))
+        .clamp(-0.88, 0.88)
+        .toDouble();
     skillMessage = 'أصاب اللاعب 2 خصمه بضربة مضادة بقوة 28.';
     if (playerHealth == 0) finish();
     _showSkillEffect(onPlayer: true);
@@ -535,7 +559,15 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                       if (pickupVisible)
                         Align(
                           alignment: Alignment(pickupX, pickupY),
-                          child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.green, width: 3)), child: const Icon(Icons.medical_services, color: Colors.green)),
+                          child: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.green, width: 3)),
+                              child: const Icon(Icons.medical_services,
+                                  color: Colors.green)),
                         ),
                       Align(
                         alignment: Alignment(playerX, playerY),
@@ -554,7 +586,8 @@ class _BattleArenaScreenState extends State<BattleArenaScreen> {
                           active: botEffect,
                           child: _Fighter(
                             name: isNetworkGame ? 'اللاعب 2' : 'روبوت',
-                            icon: isNetworkGame ? Icons.person : Icons.smart_toy,
+                            icon:
+                                isNetworkGame ? Icons.person : Icons.smart_toy,
                             color: Colors.red,
                           ),
                         ),
@@ -681,8 +714,16 @@ class _ArenaBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = switch (arenaName) {
-      'الصحراء' => const [Color(0xFF78350F), Color(0xFFD97706), Color(0xFFFBBF24)],
-      'الجليد' => const [Color(0xFF0C4A6E), Color(0xFF0284C7), Color(0xFFBAE6FD)],
+      'الصحراء' => const [
+          Color(0xFF78350F),
+          Color(0xFFD97706),
+          Color(0xFFFBBF24)
+        ],
+      'الجليد' => const [
+          Color(0xFF0C4A6E),
+          Color(0xFF0284C7),
+          Color(0xFFBAE6FD)
+        ],
       _ => const [Color(0xFF1B4332), Color(0xFF2D6A4F), Color(0xFF40916C)],
     };
     return DecoratedBox(

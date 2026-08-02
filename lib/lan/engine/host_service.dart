@@ -14,7 +14,8 @@ class LanHostService {
   final int port;
   ServerSocket? _server;
   final List<Socket> _clients = [];
-  final StreamController<LanMessage> _messages = StreamController<LanMessage>.broadcast();
+  final StreamController<LanMessage> _messages =
+      StreamController<LanMessage>.broadcast();
 
   LanRoom? room;
 
@@ -33,17 +34,24 @@ class LanHostService {
       gameId: gameId,
       hostName: hostName,
       port: port,
-      players: [LanPlayer(id: 'host', name: hostName, role: LanPlayerRole.host)],
+      players: [
+        LanPlayer(id: 'host', name: hostName, role: LanPlayerRole.host)
+      ],
     );
 
-    _server = await ServerSocket.bind(InternetAddress.anyIPv4, port, shared: true);
+    _server =
+        await ServerSocket.bind(InternetAddress.anyIPv4, port, shared: true);
     _server!.listen(_handleClient, onError: (_) {});
     return room!;
   }
 
   void _handleClient(Socket socket) {
     _clients.add(socket);
-    socket.cast<List<int>>().transform(utf8.decoder).transform(const LineSplitter()).listen(
+    socket
+        .cast<List<int>>()
+        .transform(utf8.decoder)
+        .transform(const LineSplitter())
+        .listen(
       (line) {
         final message = LanMessageProtocol.decode(line);
         if (message != null) {

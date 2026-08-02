@@ -61,7 +61,8 @@ class CheckersMoveRules {
   /// When one or more captures are available, non-capturing moves are illegal.
   static List<CheckersMove> requireCapture(Iterable<CheckersMove> moves) {
     final allMoves = moves.toList(growable: false);
-    final captures = allMoves.where((move) => move.isCapture).toList(growable: false);
+    final captures =
+        allMoves.where((move) => move.isCapture).toList(growable: false);
     return captures.isNotEmpty ? captures : allMoves;
   }
 
@@ -72,7 +73,8 @@ class CheckersMoveRules {
   }) {
     return legalMoves
         .where(
-          (move) => move.isCapture && move.fromRow == row && move.fromCol == col,
+          (move) =>
+              move.isCapture && move.fromRow == row && move.fromCol == col,
         )
         .toList(growable: false);
   }
@@ -117,10 +119,14 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   bool get gameFinished => matchStatus?.isFinished ?? false;
   int get redPieceCount => board.expand((row) => row).where(isRedPiece).length;
-  int get blackPieceCount => board.expand((row) => row).where(isBlackPiece).length;
+  int get blackPieceCount =>
+      board.expand((row) => row).where(isBlackPiece).length;
 
-  bool get networkMode => widget.networkCore != null && widget.networkCore!.state.mode != LocalNetworkMode.idle;
-  bool get localPlayerIsRed => widget.networkCore?.state.mode != LocalNetworkMode.client;
+  bool get networkMode =>
+      widget.networkCore != null &&
+      widget.networkCore!.state.mode != LocalNetworkMode.idle;
+  bool get localPlayerIsRed =>
+      widget.networkCore?.state.mode != LocalNetworkMode.client;
   bool get isMyNetworkTurn => !networkMode || redTurn == localPlayerIsRed;
   Set<String> get forcedCaptureSources => allLegalMoves(forRed: redTurn)
       .where((move) => move.isCapture)
@@ -131,7 +137,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   void initState() {
     super.initState();
     playVsBot = !networkMode;
-    networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
+    networkSubscription =
+        widget.networkCore?.messages.listen(_handleNetworkMessage);
     resetBoard();
   }
 
@@ -169,7 +176,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   void requestBoardReset() {
     if (networkMode) {
       GameFeedback.error();
-      setState(() => message = 'إعادة الضبط متوقفة أثناء اللعب عبر Wi‑Fi حتى لا تختلف اللوحة بين الجهازين');
+      setState(() => message =
+          'إعادة الضبط متوقفة أثناء اللعب عبر Wi‑Fi حتى لا تختلف اللوحة بين الجهازين');
       return;
     }
 
@@ -179,9 +187,12 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool isRedPiece(Piece p) => p == Piece.red || p == Piece.redKing;
   bool isBlackPiece(Piece p) => p == Piece.black || p == Piece.blackKing;
   bool isKing(Piece p) => p == Piece.redKing || p == Piece.blackKing;
-  bool isCurrentPlayerPiece(Piece p) => redTurn ? isRedPiece(p) : isBlackPiece(p);
-  bool pieceBelongsToTurn(Piece p, bool forRed) => forRed ? isRedPiece(p) : isBlackPiece(p);
-  bool opponentForTurn(Piece p, bool forRed) => forRed ? isBlackPiece(p) : isRedPiece(p);
+  bool isCurrentPlayerPiece(Piece p) =>
+      redTurn ? isRedPiece(p) : isBlackPiece(p);
+  bool pieceBelongsToTurn(Piece p, bool forRed) =>
+      forRed ? isRedPiece(p) : isBlackPiece(p);
+  bool opponentForTurn(Piece p, bool forRed) =>
+      forRed ? isBlackPiece(p) : isRedPiece(p);
 
   Color get tableColor {
     switch (settings.tableColorIndex) {
@@ -294,7 +305,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final absDr = dr.abs();
     final absDc = dc.abs();
     final movingIsKing = isKing(moving);
-    final forwardOk = movingIsKing || (forRed ? dr == -1 || dr == -2 : dr == 1 || dr == 2);
+    final forwardOk =
+        movingIsKing || (forRed ? dr == -1 || dr == -2 : dr == 1 || dr == 2);
 
     if (!forwardOk || absDr != absDc || (absDr != 1 && absDr != 2)) return null;
 
@@ -302,7 +314,13 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       final midR = (sr + r) ~/ 2;
       final midC = (sc + c) ~/ 2;
       if (!opponentForTurn(board[midR][midC], forRed)) return null;
-      return CheckersMove(fromRow: sr, fromCol: sc, toRow: r, toCol: c, captureRow: midR, captureCol: midC);
+      return CheckersMove(
+          fromRow: sr,
+          fromCol: sc,
+          toRow: r,
+          toCol: c,
+          captureRow: midR,
+          captureCol: midC);
     }
 
     return CheckersMove(fromRow: sr, fromCol: sc, toRow: r, toCol: c);
@@ -319,7 +337,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   CheckersMove? legalMoveFor(int sr, int sc, int r, int c, bool forRed) {
     for (final move in allLegalMoves(forRed: forRed)) {
-      if (move.fromRow == sr && move.fromCol == sc && move.toRow == r && move.toCol == c) {
+      if (move.fromRow == sr &&
+          move.fromCol == sc &&
+          move.toRow == r &&
+          move.toCol == c) {
         return move;
       }
     }
@@ -418,7 +439,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   String currentTurnMessage() {
     if (networkMode) {
-      if (isMyNetworkTurn) return localPlayerIsRed ? 'أنت الأحمر - دورك' : 'أنت الأسود - دورك';
+      if (isMyNetworkTurn)
+        return localPlayerIsRed ? 'أنت الأحمر - دورك' : 'أنت الأسود - دورك';
       return 'انتظار اللاعب الآخر';
     }
     if (playVsBot) return redTurn ? 'أنت الأحمر - دورك' : 'الكمبيوتر يفكر...';
@@ -501,10 +523,21 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         final piece = board[r][c];
         if (!pieceBelongsToTurn(piece, forRed)) continue;
         final directions = isKing(piece)
-            ? const [[-1, -1], [-1, 1], [1, -1], [1, 1]]
+            ? const [
+                [-1, -1],
+                [-1, 1],
+                [1, -1],
+                [1, 1]
+              ]
             : forRed
-                ? const [[-1, -1], [-1, 1]]
-                : const [[1, -1], [1, 1]];
+                ? const [
+                    [-1, -1],
+                    [-1, 1]
+                  ]
+                : const [
+                    [1, -1],
+                    [1, 1]
+                  ];
 
         for (final d in directions) {
           final oneR = r + d[0];
@@ -536,7 +569,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   String _localPlayerId() {
     final LocalNetworkState? state = widget.networkCore?.state;
-    if (state == null || state.players.isEmpty) return localPlayerIsRed ? 'host-checkers' : 'client-checkers';
+    if (state == null || state.players.isEmpty)
+      return localPlayerIsRed ? 'host-checkers' : 'client-checkers';
     return state.players.first.id;
   }
 
@@ -557,7 +591,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         return;
       }
 
-      final validMove = legalMoveFor(move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
+      final validMove = legalMoveFor(
+          move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
       if (validMove == null) return;
 
       GameFeedback.move();
@@ -586,7 +621,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('الضامة'),
-            actions: [IconButton(onPressed: requestBoardReset, icon: const Icon(Icons.refresh))],
+            actions: [
+              IconButton(
+                  onPressed: requestBoardReset, icon: const Icon(Icons.refresh))
+            ],
           ),
           body: Column(
             children: [
@@ -594,32 +632,56 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Card(
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18)),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
                       children: [
                         Row(
                           children: [
-                            Icon(redTurn ? Icons.circle : Icons.circle_outlined),
+                            Icon(
+                                redTurn ? Icons.circle : Icons.circle_outlined),
                             const SizedBox(width: 10),
-                            Expanded(child: Text(message, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                            Expanded(
+                                child: Text(message,
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold))),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Expanded(child: _InfoChip(label: 'المستوى', value: networkMode ? 'Wi‑Fi' : settings.botDifficultyText)),
+                            Expanded(
+                                child: _InfoChip(
+                                    label: 'المستوى',
+                                    value: networkMode
+                                        ? 'Wi‑Fi'
+                                        : settings.botDifficultyText)),
                             const SizedBox(width: 8),
-                            Expanded(child: _InfoChip(label: 'الوضع', value: networkMode ? 'جهازان' : playVsBot ? 'ضد الكمبيوتر' : 'لاعبان')),
+                            Expanded(
+                                child: _InfoChip(
+                                    label: 'الوضع',
+                                    value: networkMode
+                                        ? 'جهازان'
+                                        : playVsBot
+                                            ? 'ضد الكمبيوتر'
+                                            : 'لاعبان')),
                           ],
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Expanded(child: _InfoChip(label: 'أحجار الأحمر', value: '$redPieceCount')),
+                            Expanded(
+                                child: _InfoChip(
+                                    label: 'أحجار الأحمر',
+                                    value: '$redPieceCount')),
                             const SizedBox(width: 8),
-                            Expanded(child: _InfoChip(label: 'أحجار الأسود', value: '$blackPieceCount')),
+                            Expanded(
+                                child: _InfoChip(
+                                    label: 'أحجار الأسود',
+                                    value: '$blackPieceCount')),
                           ],
                         ),
                         if (gameFinished) ...[
@@ -627,15 +689,23 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                           FilledButton.icon(
                             onPressed: networkMode ? null : resetBoard,
                             icon: const Icon(Icons.replay),
-                            label: Text(networkMode ? 'انتهت المباراة' : 'مباراة جديدة'),
+                            label: Text(networkMode
+                                ? 'انتهت المباراة'
+                                : 'مباراة جديدة'),
                           ),
                         ],
                         if (!networkMode) ...[
                           const SizedBox(height: 10),
                           SegmentedButton<bool>(
                             segments: const [
-                              ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
-                              ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
+                              ButtonSegment(
+                                  value: false,
+                                  label: Text('لاعب ضد لاعب'),
+                                  icon: Icon(Icons.people)),
+                              ButtonSegment(
+                                  value: true,
+                                  label: Text('ضد الكمبيوتر'),
+                                  icon: Icon(Icons.smart_toy)),
                             ],
                             selected: {playVsBot},
                             onSelectionChanged: (value) {
@@ -661,17 +731,27 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [tableColor.withOpacity(0.95), tableColor.withOpacity(0.65)],
+                            colors: [
+                              tableColor.withOpacity(0.95),
+                              tableColor.withOpacity(0.65)
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(28),
                           border: Border.all(color: AppColors.accent, width: 5),
-                          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 18, offset: Offset(0, 7))],
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Colors.black38,
+                                blurRadius: 18,
+                                offset: Offset(0, 7))
+                          ],
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(18),
                           child: GridView.builder(
                             physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 8),
                             itemCount: 64,
                             itemBuilder: (context, index) {
                               final r = index ~/ 8;
@@ -682,7 +762,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                                 piece: board[r][c],
                                 selected: selectedRow == r && selectedCol == c,
                                 possibleMove: targets.contains('$r,$c'),
-                                forcedCapture: forcedCaptureSources.contains('$r,$c'),
+                                forcedCapture:
+                                    forcedCaptureSources.contains('$r,$c'),
                                 onTap: () => tapCell(r, c),
                               );
                             },
@@ -717,11 +798,16 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 10),
-      decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14)),
       child: Column(
         children: [
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+          Text(value,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, color: AppColors.primaryDark)),
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: AppColors.muted)),
         ],
       ),
     );
@@ -729,7 +815,14 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _BoardCell extends StatelessWidget {
-  const _BoardCell({required this.row, required this.col, required this.piece, required this.selected, required this.possibleMove, required this.forcedCapture, required this.onTap});
+  const _BoardCell(
+      {required this.row,
+      required this.col,
+      required this.piece,
+      required this.selected,
+      required this.possibleMove,
+      required this.forcedCapture,
+      required this.onTap});
   final int row;
   final int col;
   final Piece piece;
@@ -756,7 +849,11 @@ class _BoardCell extends StatelessWidget {
                     ? const [Color(0xFFE9FBCF), Color(0xFF9BE564)]
                     : [baseColor.withOpacity(0.92), baseColor],
           ),
-          border: Border.all(color: forcedCapture ? const Color(0xFFFF3B30) : Colors.black.withOpacity(0.25), width: forcedCapture ? 3 : 0.55),
+          border: Border.all(
+              color: forcedCapture
+                  ? const Color(0xFFFF3B30)
+                  : Colors.black.withOpacity(0.25),
+              width: forcedCapture ? 3 : 0.55),
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -765,10 +862,16 @@ class _BoardCell extends StatelessWidget {
               Container(
                 width: 16,
                 height: 16,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.primary.withOpacity(0.38)),
+                decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withOpacity(0.38)),
               ),
             if (forcedCapture)
-              const Positioned(top: 2, right: 2, child: Icon(Icons.priority_high, color: Color(0xFFFF3B30), size: 16)),
+              const Positioned(
+                  top: 2,
+                  right: 2,
+                  child: Icon(Icons.priority_high,
+                      color: Color(0xFFFF3B30), size: 16)),
             _PieceView(piece: piece),
           ],
         ),
@@ -800,7 +903,9 @@ class _PieceView extends StatelessWidget {
           stops: const [0.05, 0.55, 1],
         ),
         border: Border.all(color: Colors.white.withOpacity(0.82), width: 1.5),
-        boxShadow: const [BoxShadow(blurRadius: 7, offset: Offset(1, 3), color: Colors.black38)],
+        boxShadow: const [
+          BoxShadow(blurRadius: 7, offset: Offset(1, 3), color: Colors.black38)
+        ],
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -808,10 +913,14 @@ class _PieceView extends StatelessWidget {
           Container(
             width: 27,
             height: 27,
-            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withOpacity(0.20), width: 1.1)),
+            decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: Colors.white.withOpacity(0.20), width: 1.1)),
           ),
           if (king)
-            const Icon(Icons.workspace_premium, color: Color(0xFFFFD166), size: 21),
+            const Icon(Icons.workspace_premium,
+                color: Color(0xFFFFD166), size: 21),
         ],
       ),
     );

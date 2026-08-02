@@ -38,7 +38,11 @@ class LanRoom {
       hostName: '${json['hostName'] ?? ''}',
       port: int.tryParse('${json['port'] ?? 0}') ?? 0,
       players: rawPlayers is List
-          ? rawPlayers.whereType<Map>().map((item) => LanPlayer.fromJson(Map<String, dynamic>.from(item))).toList()
+          ? rawPlayers
+              .whereType<Map>()
+              .map(
+                  (item) => LanPlayer.fromJson(Map<String, dynamic>.from(item)))
+              .toList()
           : const [],
       status: LanRoomStatus.values.firstWhere(
         (status) => status.name == json['status'],

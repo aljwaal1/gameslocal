@@ -10,7 +10,8 @@ class LanDiscoveryService {
   final int discoveryPort;
   RawDatagramSocket? _socket;
   Timer? _timer;
-  final StreamController<LanRoom> _rooms = StreamController<LanRoom>.broadcast();
+  final StreamController<LanRoom> _rooms =
+      StreamController<LanRoom>.broadcast();
 
   Stream<LanRoom> get rooms => _rooms.stream;
 
@@ -25,7 +26,9 @@ class LanDiscoveryService {
   }
 
   Future<void> startListening() async {
-    _socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, discoveryPort, reuseAddress: true, reusePort: true);
+    _socket = await RawDatagramSocket.bind(
+        InternetAddress.anyIPv4, discoveryPort,
+        reuseAddress: true, reusePort: true);
     _socket!.listen((event) {
       if (event != RawSocketEvent.read) return;
       final datagram = _socket!.receive();

@@ -42,7 +42,9 @@ class _XoGameScreenState extends State<XoGameScreen> {
   String get localPlayerId {
     final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
     final matching = players.where((player) => player.isHost == isHost);
-    return matching.isNotEmpty ? matching.first.id : (isHost ? 'host' : 'client');
+    return matching.isNotEmpty
+        ? matching.first.id
+        : (isHost ? 'host' : 'client');
   }
 
   @override
@@ -51,7 +53,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
     if (isNetworkGame) {
       playVsBot = false;
       message = isHost ? 'أنت X - دورك' : 'أنت O - بانتظار دور X';
-      networkSubscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
+      networkSubscription =
+          widget.networkCore!.messages.listen(_handleNetworkMessage);
     }
   }
 
@@ -71,16 +74,22 @@ class _XoGameScreenState extends State<XoGameScreen> {
       });
       return;
     }
-    if (connectionLost || networkMessage.type != NetworkMessageType.move) return;
+    if (connectionLost || networkMessage.type != NetworkMessageType.move)
+      return;
     final action = networkMessage.payload['action']?.toString();
     if (action == 'reset') {
       _resetBoard(notifyPeer: false);
       return;
     }
     final index = networkMessage.payload['index'];
-    if (action != 'place' || index is! int || index < 0 || index >= cells.length) return;
-    if (cells[index] != XoCell.empty || roundCounted || winLine.isNotEmpty) return;
-    final mark = networkMessage.payload['mark'] == XoCell.x.name ? XoCell.x : XoCell.o;
+    if (action != 'place' ||
+        index is! int ||
+        index < 0 ||
+        index >= cells.length) return;
+    if (cells[index] != XoCell.empty || roundCounted || winLine.isNotEmpty)
+      return;
+    final mark =
+        networkMessage.payload['mark'] == XoCell.x.name ? XoCell.x : XoCell.o;
     if (mark != (xTurn ? XoCell.x : XoCell.o)) return;
     cells[index] = mark;
     afterMove();
@@ -99,7 +108,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
           : (playVsBot ? 'أنت X - دورك' : 'دور X');
     });
     if (notifyPeer && isNetworkGame) {
-      widget.networkCore!.sendMove(<String, dynamic>{'action': 'reset'}, senderId: localPlayerId);
+      widget.networkCore!.sendMove(<String, dynamic>{'action': 'reset'},
+          senderId: localPlayerId);
     }
   }
 
@@ -115,7 +125,11 @@ class _XoGameScreenState extends State<XoGameScreen> {
   }
 
   void tapCell(int index) {
-    if (connectionLost || cells[index] != XoCell.empty || winLine.isNotEmpty || botThinking || roundCounted) return;
+    if (connectionLost ||
+        cells[index] != XoCell.empty ||
+        winLine.isNotEmpty ||
+        botThinking ||
+        roundCounted) return;
     if (playVsBot && !xTurn) return;
     if (isNetworkGame && (xTurn ? XoCell.x : XoCell.o) != localMark) return;
 
@@ -159,7 +173,9 @@ class _XoGameScreenState extends State<XoGameScreen> {
         ? ((xTurn ? XoCell.x : XoCell.o) == localMark
             ? 'أنت ${localMark.name.toUpperCase()} - دورك'
             : 'دور اللاعب الآخر')
-        : (playVsBot ? (xTurn ? 'أنت X - دورك' : 'الكمبيوتر يفكر...') : (xTurn ? 'دور X' : 'دور O'));
+        : (playVsBot
+            ? (xTurn ? 'أنت X - دورك' : 'الكمبيوتر يفكر...')
+            : (xTurn ? 'دور X' : 'دور O'));
     setState(() {});
 
     if (playVsBot && !xTurn) runBot();
@@ -273,7 +289,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
     ];
     for (final line in lines) {
       final a = board[line[0]];
-      if (a != XoCell.empty && a == board[line[1]] && a == board[line[2]]) return a;
+      if (a != XoCell.empty && a == board[line[1]] && a == board[line[2]])
+        return a;
     }
     return null;
   }
@@ -287,8 +304,14 @@ class _XoGameScreenState extends State<XoGameScreen> {
           appBar: AppBar(
             title: const Text('إكس أو'),
             actions: [
-              IconButton(onPressed: reset, tooltip: 'جولة جديدة', icon: const Icon(Icons.refresh)),
-              IconButton(onPressed: resetScore, tooltip: 'تصفير النتائج', icon: const Icon(Icons.restart_alt)),
+              IconButton(
+                  onPressed: reset,
+                  tooltip: 'جولة جديدة',
+                  icon: const Icon(Icons.refresh)),
+              IconButton(
+                  onPressed: resetScore,
+                  tooltip: 'تصفير النتائج',
+                  icon: const Icon(Icons.restart_alt)),
             ],
           ),
           body: ListView(
@@ -301,9 +324,19 @@ class _XoGameScreenState extends State<XoGameScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(isNetworkGame ? Icons.wifi : (playVsBot ? Icons.smart_toy : Icons.people), color: AppColors.primary),
+                          Icon(
+                              isNetworkGame
+                                  ? Icons.wifi
+                                  : (playVsBot
+                                      ? Icons.smart_toy
+                                      : Icons.people),
+                              color: AppColors.primary),
                           const SizedBox(width: 10),
-                          Expanded(child: Text(message, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+                          Expanded(
+                              child: Text(message,
+                                  style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold))),
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -311,23 +344,34 @@ class _XoGameScreenState extends State<XoGameScreen> {
                         alignment: Alignment.centerRight,
                         child: Text(
                           isNetworkGame
-                              ? (connectionLost ? 'الاتصال مقطوع' : 'لعب شبكي محلي • أنت ${localMark.name.toUpperCase()}')
+                              ? (connectionLost
+                                  ? 'الاتصال مقطوع'
+                                  : 'لعب شبكي محلي • أنت ${localMark.name.toUpperCase()}')
                               : 'مستوى الكمبيوتر من الإعدادات: ${settings.botDifficultyText}',
-                          style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              color: AppColors.muted,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 14),
-                      if (!isNetworkGame) SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment(value: false, label: Text('لاعب ضد لاعب'), icon: Icon(Icons.people)),
-                          ButtonSegment(value: true, label: Text('ضد الكمبيوتر'), icon: Icon(Icons.smart_toy)),
-                        ],
-                        selected: {playVsBot},
-                        onSelectionChanged: (value) {
-                          playVsBot = value.first;
-                          reset();
-                        },
-                      ),
+                      if (!isNetworkGame)
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment(
+                                value: false,
+                                label: Text('لاعب ضد لاعب'),
+                                icon: Icon(Icons.people)),
+                            ButtonSegment(
+                                value: true,
+                                label: Text('ضد الكمبيوتر'),
+                                icon: Icon(Icons.smart_toy)),
+                          ],
+                          selected: {playVsBot},
+                          onSelectionChanged: (value) {
+                            playVsBot = value.first;
+                            reset();
+                          },
+                        ),
                     ],
                   ),
                 ),
@@ -335,11 +379,21 @@ class _XoGameScreenState extends State<XoGameScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _ScoreTile(label: 'X', value: xWins, color: AppColors.danger)),
+                  Expanded(
+                      child: _ScoreTile(
+                          label: 'X', value: xWins, color: AppColors.danger)),
                   const SizedBox(width: 8),
-                  Expanded(child: _ScoreTile(label: 'تعادل', value: draws, color: AppColors.muted)),
+                  Expanded(
+                      child: _ScoreTile(
+                          label: 'تعادل',
+                          value: draws,
+                          color: AppColors.muted)),
                   const SizedBox(width: 8),
-                  Expanded(child: _ScoreTile(label: 'O', value: oWins, color: AppColors.primaryDark)),
+                  Expanded(
+                      child: _ScoreTile(
+                          label: 'O',
+                          value: oWins,
+                          color: AppColors.primaryDark)),
                 ],
               ),
               const SizedBox(height: 22),
@@ -347,7 +401,10 @@ class _XoGameScreenState extends State<XoGameScreen> {
                 aspectRatio: 1,
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, mainAxisSpacing: 10, crossAxisSpacing: 10),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10),
                   itemCount: 9,
                   itemBuilder: (context, index) {
                     final cell = cells[index];
@@ -360,15 +417,24 @@ class _XoGameScreenState extends State<XoGameScreen> {
                         decoration: BoxDecoration(
                           color: winning ? AppColors.accent : Colors.white,
                           borderRadius: BorderRadius.circular(24),
-                          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))],
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Colors.black12,
+                                blurRadius: 10,
+                                offset: Offset(0, 4))
+                          ],
                         ),
                         child: Center(
                           child: Text(
-                            cell == XoCell.empty ? '' : (cell == XoCell.x ? 'X' : 'O'),
+                            cell == XoCell.empty
+                                ? ''
+                                : (cell == XoCell.x ? 'X' : 'O'),
                             style: TextStyle(
                               fontSize: 54,
                               fontWeight: FontWeight.w900,
-                              color: cell == XoCell.x ? AppColors.danger : AppColors.primaryDark,
+                              color: cell == XoCell.x
+                                  ? AppColors.danger
+                                  : AppColors.primaryDark,
                             ),
                           ),
                         ),
@@ -392,7 +458,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
 }
 
 class _ScoreTile extends StatelessWidget {
-  const _ScoreTile({required this.label, required this.value, required this.color});
+  const _ScoreTile(
+      {required this.label, required this.value, required this.color});
   final String label;
   final int value;
   final Color color;
@@ -401,10 +468,15 @@ class _ScoreTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(18), border: Border.all(color: color.withOpacity(0.2))),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withOpacity(0.2))),
       child: Column(
         children: [
-          Text('$value', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
+          Text('$value',
+              style: TextStyle(
+                  fontSize: 24, fontWeight: FontWeight.w900, color: color)),
           Text(label, style: const TextStyle(color: AppColors.muted)),
         ],
       ),

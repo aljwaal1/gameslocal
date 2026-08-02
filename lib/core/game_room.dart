@@ -60,7 +60,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   void _start() {
     if (networkCore.state.mode == LocalNetworkMode.host) {
       networkCore.startGame();
-    } else if (!_isNameGame && networkCore.state.mode == LocalNetworkMode.idle) {
+    } else if (!_isNameGame &&
+        networkCore.state.mode == LocalNetworkMode.idle) {
       _openGame(useNetwork: false);
     }
   }
@@ -76,7 +77,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
           final LocalNetworkState state = snap.data ?? LocalNetworkState.idle();
           final bool hostReady = state.mode == LocalNetworkMode.host;
           final bool canStart = hostReady &&
-              (_isNameGame ? state.players.isNotEmpty : state.players.length >= 2);
+              (_isNameGame
+                  ? state.players.isNotEmpty
+                  : state.players.length >= 2);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: <Widget>[

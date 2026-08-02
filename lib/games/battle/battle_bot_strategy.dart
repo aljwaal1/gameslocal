@@ -44,11 +44,9 @@ BattleBotGoal chooseBattleBotGoal({
     }
     return BattleBotGoal.retreat;
   }
-  if (
-    health <= _lowHealthThreshold &&
-    pickupVisible &&
-    pickupDistance <= _lowHealthPickupReach
-  ) {
+  if (health <= _lowHealthThreshold &&
+      pickupVisible &&
+      pickupDistance <= _lowHealthPickupReach) {
     return BattleBotGoal.seekHealth;
   }
 
@@ -57,5 +55,7 @@ BattleBotGoal chooseBattleBotGoal({
     'سهل' => 0.48,
     _ => 0.68,
   };
-  return decisionRoll < chaseThreshold ? BattleBotGoal.chase : BattleBotGoal.wander;
+  return decisionRoll < chaseThreshold
+      ? BattleBotGoal.chase
+      : BattleBotGoal.wander;
 }

@@ -33,9 +33,8 @@ class RealisticPenaltyScene extends StatelessWidget {
   final void Function(double x, double y) onShoot;
 
   double _phase(double start, double end, [Curve curve = Curves.linear]) {
-    final value = ((shotProgress - start) / (end - start))
-        .clamp(0.0, 1.0)
-        .toDouble();
+    final value =
+        ((shotProgress - start) / (end - start)).clamp(0.0, 1.0).toDouble();
     return curve.transform(value);
   }
 

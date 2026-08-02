@@ -125,8 +125,8 @@ class IphoneWebBridge {
   }
 
   void _emitPlayers() => _playersController.add(
-    List<IphoneWebPlayer>.unmodifiable(_players.values),
-  );
+        List<IphoneWebPlayer>.unmodifiable(_players.values),
+      );
 
   void broadcast(Map<String, dynamic> message) {
     final String encoded = jsonEncode(message);

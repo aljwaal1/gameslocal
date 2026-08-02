@@ -39,7 +39,8 @@ class NetworkGameMove {
       sequence: (json['sequence'] as num?)?.toInt() ?? 0,
       playerId: (json['playerId'] ?? '').toString(),
       action: (json['action'] ?? '').toString(),
-      payload: Map<String, dynamic>.from(json['payload'] as Map? ?? const <String, dynamic>{}),
+      payload: Map<String, dynamic>.from(
+          json['payload'] as Map? ?? const <String, dynamic>{}),
     );
   }
 }

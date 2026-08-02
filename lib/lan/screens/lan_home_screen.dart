@@ -58,7 +58,11 @@ class _LanHomeScreenState extends State<LanHomeScreen> {
 
   Future<void> createRoom() async {
     GameFeedback.tap();
-    final room = await engine.createRoom(gameId: selectedGame, hostName: nameController.text.trim().isEmpty ? 'لاعب' : nameController.text.trim());
+    final room = await engine.createRoom(
+        gameId: selectedGame,
+        hostName: nameController.text.trim().isEmpty
+            ? 'لاعب'
+            : nameController.text.trim());
     setState(() {
       hostedRoom = room;
       hosting = true;
@@ -68,7 +72,9 @@ class _LanHomeScreenState extends State<LanHomeScreen> {
   Future<void> joinRoom(LanRoom room) async {
     GameFeedback.tap();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('تم اختيار غرفة ${room.code}. ربط اللعب الفعلي سيكون في المرحلة التالية.')),
+      SnackBar(
+          content: Text(
+              'تم اختيار غرفة ${room.code}. ربط اللعب الفعلي سيكون في المرحلة التالية.')),
     );
   }
 
@@ -96,38 +102,65 @@ class _LanHomeScreenState extends State<LanHomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('اسم اللاعب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text('اسم اللاعب',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(prefixIcon: Icon(Icons.person), border: OutlineInputBorder(), hintText: 'اكتب اسمك'),
+                    decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.person),
+                        border: OutlineInputBorder(),
+                        hintText: 'اكتب اسمك'),
                   ),
                   const SizedBox(height: 12),
-                  const Text('اختر اللعبة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text('اختر اللعبة',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     value: selectedGame,
-                    decoration: const InputDecoration(border: OutlineInputBorder()),
-                    items: [for (final game in games) DropdownMenuItem(value: game.$1, child: Text(game.$2))],
-                    onChanged: hosting ? null : (value) => setState(() => selectedGame = value ?? 'xo'),
+                    decoration:
+                        const InputDecoration(border: OutlineInputBorder()),
+                    items: [
+                      for (final game in games)
+                        DropdownMenuItem(value: game.$1, child: Text(game.$2))
+                    ],
+                    onChanged: hosting
+                        ? null
+                        : (value) =>
+                            setState(() => selectedGame = value ?? 'xo'),
                   ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 12),
-          if (hosting && hostedRoom != null) _HostedRoomCard(room: hostedRoom!, onStop: stopHost) else FilledButton.icon(onPressed: createRoom, icon: const Icon(Icons.add_circle), label: const Text('إنشاء غرفة على نفس الشبكة')),
+          if (hosting && hostedRoom != null)
+            _HostedRoomCard(room: hostedRoom!, onStop: stopHost)
+          else
+            FilledButton.icon(
+                onPressed: createRoom,
+                icon: const Icon(Icons.add_circle),
+                label: const Text('إنشاء غرفة على نفس الشبكة')),
           const SizedBox(height: 10),
-          OutlinedButton.icon(onPressed: startSearch, icon: const Icon(Icons.search), label: Text(searching ? 'إعادة البحث عن الغرف' : 'البحث عن الغرف')),
+          OutlinedButton.icon(
+              onPressed: startSearch,
+              icon: const Icon(Icons.search),
+              label:
+                  Text(searching ? 'إعادة البحث عن الغرف' : 'البحث عن الغرف')),
           const SizedBox(height: 14),
-          const Text('الغرف الموجودة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          const Text('الغرف الموجودة',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 8),
           if (!searching)
-            const _EmptyBox(text: 'اضغط البحث لعرض الغرف الموجودة على نفس الشبكة')
+            const _EmptyBox(
+                text: 'اضغط البحث لعرض الغرف الموجودة على نفس الشبكة')
           else if (rooms.isEmpty)
             const _EmptyBox(text: 'لا توجد غرف حتى الآن')
           else
-            for (final room in rooms) _RoomCard(room: room, onJoin: () => joinRoom(room)),
+            for (final room in rooms)
+              _RoomCard(room: room, onJoin: () => joinRoom(room)),
         ],
       ),
     );
@@ -148,14 +181,22 @@ class _HostedRoomCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('الغرفة جاهزة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const Text('الغرفة جاهزة',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 8),
-            Text('كود الغرفة: ${room.code}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+            Text('كود الغرفة: ${room.code}',
+                style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primaryDark)),
             const SizedBox(height: 6),
             Text('اللعبة: ${room.gameId}'),
             Text('المنفذ: ${room.port}'),
             const SizedBox(height: 12),
-            OutlinedButton.icon(onPressed: onStop, icon: const Icon(Icons.stop_circle), label: const Text('إيقاف الغرفة')),
+            OutlinedButton.icon(
+                onPressed: onStop,
+                icon: const Icon(Icons.stop_circle),
+                label: const Text('إيقاف الغرفة')),
           ],
         ),
       ),
@@ -189,8 +230,11 @@ class _EmptyBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-      child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.muted)),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      child: Text(text,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.muted)),
     );
   }
 }

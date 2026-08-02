@@ -55,7 +55,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
-  bool get isLocalTurn => isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
+  bool get isLocalTurn =>
+      isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
   List<DominoTile> get localHand => isNetworkGame && !isHost ? bot : player;
   String get localPlayerId {
     final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
@@ -66,12 +67,14 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   @override
   void initState() {
     super.initState();
-    networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
+    networkSubscription =
+        widget.networkCore?.messages.listen(_handleNetworkMessage);
     startRound(resetScore: true);
     if (isNetworkGame && isHost) {
       Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
     } else if (isNetworkGame) {
-      Future<void>.delayed(const Duration(milliseconds: 300), _requestRoundState);
+      Future<void>.delayed(
+          const Duration(milliseconds: 300), _requestRoundState);
     }
   }
 
@@ -96,9 +99,10 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     board = [];
     lastPlayedTile = null;
     playerTurn = selectDominoStartingPlayer(<List<(int, int)>>[
-      player.map((tile) => (tile.left, tile.right)).toList(growable: false),
-      bot.map((tile) => (tile.left, tile.right)).toList(growable: false),
-    ]) == 0;
+          player.map((tile) => (tile.left, tile.right)).toList(growable: false),
+          bot.map((tile) => (tile.left, tile.right)).toList(growable: false),
+        ]) ==
+        0;
     roundFinished = false;
     if (resetScore) {
       playerScore = 0;
@@ -106,32 +110,45 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     }
     roundNumber = round ?? (resetScore ? 1 : roundNumber);
     message = isNetworkGame
-        ? (isLocalTurn ? 'الجولة $roundNumber: دورك' : 'الجولة $roundNumber: بانتظار اللاعب الآخر')
+        ? (isLocalTurn
+            ? 'الجولة $roundNumber: دورك'
+            : 'الجولة $roundNumber: بانتظار اللاعب الآخر')
         : 'الجولة $roundNumber: دورك، اختر قطعة مناسبة';
     setState(() {});
   }
 
   void _requestRoundState() {
     if (!isNetworkGame) return;
-    widget.networkCore!.sendMove(<String, dynamic>{'game': 'domino', 'action': 'stateRequest'}, senderId: localPlayerId);
+    widget.networkCore!.sendMove(
+        <String, dynamic>{'game': 'domino', 'action': 'stateRequest'},
+        senderId: localPlayerId);
   }
 
   void _sendRoundStart() {
     if (!isNetworkGame || !isHost) return;
-    widget.networkCore!.sendMove(<String, dynamic>{'game': 'domino', 'action': 'start', 'seed': roundSeed, 'round': roundNumber}, senderId: localPlayerId);
+    widget.networkCore!.sendMove(<String, dynamic>{
+      'game': 'domino',
+      'action': 'start',
+      'seed': roundSeed,
+      'round': roundNumber
+    }, senderId: localPlayerId);
   }
 
   void _sendDominoAction(String action, {DominoTile? tile}) {
     if (!isNetworkGame) return;
     widget.networkCore!.sendMove(<String, dynamic>{
-      'game': 'domino', 'action': action,
+      'game': 'domino',
+      'action': action,
       if (tile != null) 'left': tile.left,
       if (tile != null) 'right': tile.right,
     }, senderId: localPlayerId);
   }
 
   void _handleNetworkMessage(NetworkMessage networkMessage) {
-    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId || networkMessage.payload['game'] != 'domino') return;
+    if (!mounted ||
+        networkMessage.type != NetworkMessageType.move ||
+        networkMessage.senderId == localPlayerId ||
+        networkMessage.payload['game'] != 'domino') return;
     final payload = networkMessage.payload;
     final action = payload['action']?.toString();
     if (action == 'stateRequest') {
@@ -148,9 +165,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     }
     if (roundFinished) return;
     if (action == 'play') {
-      final tile = DominoTile((payload['left'] as num).toInt(), (payload['right'] as num).toInt());
+      final tile = DominoTile(
+          (payload['left'] as num).toInt(), (payload['right'] as num).toInt());
       final remoteHand = isHost ? bot : player;
-      final index = remoteHand.indexWhere((t) => t.left == tile.left && t.right == tile.right);
+      final index = remoteHand
+          .indexWhere((t) => t.left == tile.left && t.right == tile.right);
       if (index < 0 || !canPlay(remoteHand[index])) return;
       placeTile(remoteHand[index], remoteHand);
       if (remoteHand.isEmpty) {
@@ -181,7 +200,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     return list;
   }
 
-  int pipsOf(List<DominoTile> hand) => hand.fold(0, (sum, tile) => sum + tile.total);
+  int pipsOf(List<DominoTile> hand) =>
+      hand.fold(0, (sum, tile) => sum + tile.total);
 
   bool canPlay(DominoTile tile) {
     if (board.isEmpty) return true;
@@ -197,7 +217,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     if (!isLocalTurn || roundFinished) return;
     if (!canPlay(tile)) {
       GameFeedback.error();
-      setState(() => message = 'هذه القطعة لا تناسب الطرفين: $leftEnd أو $rightEnd');
+      setState(
+          () => message = 'هذه القطعة لا تناسب الطرفين: $leftEnd أو $rightEnd');
       return;
     }
     GameFeedback.move();
@@ -214,7 +235,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     playerTurn = !playerTurn;
     message = isNetworkGame ? 'بانتظار اللاعب الآخر' : 'الكمبيوتر يفكر...';
     setState(() {});
-    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 550), botMove);
+    if (!isNetworkGame)
+      Future<void>.delayed(const Duration(milliseconds: 550), botMove);
   }
 
   void drawTile() {
@@ -227,7 +249,9 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     GameFeedback.tap();
     localHand.add(stock.removeLast());
     _sendDominoAction('draw');
-    message = localHand.any(canPlay) ? 'سحبت قطعة. القطع المناسبة أصبحت في أول يدك' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
+    message = localHand.any(canPlay)
+        ? 'سحبت قطعة. القطع المناسبة أصبحت في أول يدك'
+        : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
     setState(() {});
   }
 
@@ -250,9 +274,12 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     }
     playerTurn = !playerTurn;
     _sendDominoAction('pass');
-    message = isNetworkGame ? 'مررت الدور. بانتظار اللاعب الآخر' : 'مررت الدور. الكمبيوتر يلعب...';
+    message = isNetworkGame
+        ? 'مررت الدور. بانتظار اللاعب الآخر'
+        : 'مررت الدور. الكمبيوتر يلعب...';
     setState(() {});
-    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 450), botMove);
+    if (!isNetworkGame)
+      Future<void>.delayed(const Duration(milliseconds: 450), botMove);
   }
 
   void botMove() {
@@ -317,9 +344,19 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   int scoreEndsAfterMove(DominoTile tile, int newLeft, int newRight) {
-    final botFutureOptions = bot.where((candidate) => candidate != tile && (candidate.matches(newLeft) || candidate.matches(newRight))).length;
-    final playerLikelyOptions = player.where((candidate) => candidate.matches(newLeft) || candidate.matches(newRight)).length;
-    return tile.total + (tile.isDouble ? 4 : 0) + (botFutureOptions * 3) - (playerLikelyOptions * 2);
+    final botFutureOptions = bot
+        .where((candidate) =>
+            candidate != tile &&
+            (candidate.matches(newLeft) || candidate.matches(newRight)))
+        .length;
+    final playerLikelyOptions = player
+        .where((candidate) =>
+            candidate.matches(newLeft) || candidate.matches(newRight))
+        .length;
+    return tile.total +
+        (tile.isDouble ? 4 : 0) +
+        (botFutureOptions * 3) -
+        (playerLikelyOptions * 2);
   }
 
   void finishRound({required bool playerWon, required String reason}) {
@@ -330,7 +367,9 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       GameFeedback.win();
     } else {
       botScore += points;
-      message = isNetworkGame ? '$reason. اللاعب الآخر ربح $points نقطة' : '$reason. الكمبيوتر ربح $points نقطة';
+      message = isNetworkGame
+          ? '$reason. اللاعب الآخر ربح $points نقطة'
+          : '$reason. الكمبيوتر ربح $points نقطة';
       GameFeedback.error();
     }
     roundFinished = true;
@@ -349,7 +388,9 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     } else if (botPips < playerPips) {
       final points = playerPips - botPips;
       botScore += points;
-      message = isNetworkGame ? 'اللعبة مغلقة. اللاعب الآخر قطعه أقل وربح $points نقطة' : 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
+      message = isNetworkGame
+          ? 'اللعبة مغلقة. اللاعب الآخر قطعه أقل وربح $points نقطة'
+          : 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
       GameFeedback.error();
     } else {
       message = 'اللعبة مغلقة وتعادل بالنقاط';
@@ -412,15 +453,25 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     return AnimatedBuilder(
       animation: settings,
       builder: (context, _) {
-        final visibleBoard = board.length > 16 ? board.sublist(max(0, board.length - 16)) : board;
+        final visibleBoard = board.length > 16
+            ? board.sublist(max(0, board.length - 16))
+            : board;
         final playableCount = player.where(canPlay).length;
 
         return Scaffold(
           appBar: AppBar(
             title: const Text('الدومينو'),
             actions: [
-              if (!isNetworkGame) IconButton(tooltip: '4 لاعبين محليًا', onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const DominoFourPlayerScreen())), icon: const Icon(Icons.groups)),
-              IconButton(onPressed: () => startRound(resetScore: true), icon: const Icon(Icons.refresh)),
+              if (!isNetworkGame)
+                IconButton(
+                    tooltip: '4 لاعبين محليًا',
+                    onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) => const DominoFourPlayerScreen())),
+                    icon: const Icon(Icons.groups)),
+              IconButton(
+                  onPressed: () => startRound(resetScore: true),
+                  icon: const Icon(Icons.refresh)),
             ],
           ),
           body: SafeArea(
@@ -447,15 +498,24 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: tableGradientColors()),
+                        gradient: LinearGradient(
+                            begin: Alignment.topRight,
+                            end: Alignment.bottomLeft,
+                            colors: tableGradientColors()),
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: Colors.white.withOpacity(0.10)),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.10)),
                       ),
                       child: board.isEmpty
-                          ? const Center(child: Text('ابدأ بأي قطعة من يدك', style: TextStyle(color: Colors.white, fontSize: 18)))
+                          ? const Center(
+                              child: Text('ابدأ بأي قطعة من يدك',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 18)))
                           : Column(
                               children: [
-                                const Text('مسار الدومينو', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                const Text('مسار الدومينو',
+                                    style: TextStyle(
+                                        color: Colors.white70, fontSize: 12)),
                                 const SizedBox(height: 6),
                                 Expanded(
                                   child: Wrap(
@@ -464,12 +524,19 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                                     spacing: 6,
                                     runSpacing: 6,
                                     children: [
-                                      for (int i = 0; i < visibleBoard.length; i++)
+                                      for (int i = 0;
+                                          i < visibleBoard.length;
+                                          i++)
                                         DominoTileView(
                                           tile: visibleBoard[i],
                                           compact: true,
-                                          order: board.length - visibleBoard.length + i + 1,
-                                          lastPlayed: visibleBoard[i].toString() == lastPlayedTile?.toString(),
+                                          order: board.length -
+                                              visibleBoard.length +
+                                              i +
+                                              1,
+                                          lastPlayed:
+                                              visibleBoard[i].toString() ==
+                                                  lastPlayedTile?.toString(),
                                         ),
                                     ],
                                   ),
@@ -481,9 +548,20 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(child: OutlinedButton.icon(onPressed: roundFinished ? null : drawTile, icon: const Icon(Icons.add), label: const Text('اسحب'))),
+                      Expanded(
+                          child: OutlinedButton.icon(
+                              onPressed: roundFinished ? null : drawTile,
+                              icon: const Icon(Icons.add),
+                              label: const Text('اسحب'))),
                       const SizedBox(width: 8),
-                      Expanded(child: OutlinedButton.icon(onPressed: roundFinished ? nextRound : passTurn, icon: Icon(roundFinished ? Icons.play_arrow : Icons.skip_next), label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'))),
+                      Expanded(
+                          child: OutlinedButton.icon(
+                              onPressed: roundFinished ? nextRound : passTurn,
+                              icon: Icon(roundFinished
+                                  ? Icons.play_arrow
+                                  : Icons.skip_next),
+                              label: Text(
+                                  roundFinished ? 'جولة جديدة' : 'تمرير'))),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -505,7 +583,12 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 }
 
 class _PlayerHand extends StatelessWidget {
-  const _PlayerHand({required this.tiles, required this.playerTurn, required this.roundFinished, required this.canPlay, required this.onPlay});
+  const _PlayerHand(
+      {required this.tiles,
+      required this.playerTurn,
+      required this.roundFinished,
+      required this.canPlay,
+      required this.onPlay});
 
   final List<DominoTile> tiles;
   final bool playerTurn;
@@ -528,11 +611,18 @@ class _PlayerHand extends StatelessWidget {
             children: [
               for (final tile in tiles)
                 Opacity(
-                  opacity: playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.38,
+                  opacity:
+                      playerTurn && !roundFinished && canPlay(tile) ? 1 : 0.38,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: playerTurn && !roundFinished && canPlay(tile) ? () => onPlay(tile) : null,
-                    child: DominoTileView(tile: tile, compact: compact, playable: playerTurn && !roundFinished && canPlay(tile)),
+                    onTap: playerTurn && !roundFinished && canPlay(tile)
+                        ? () => onPlay(tile)
+                        : null,
+                    child: DominoTileView(
+                        tile: tile,
+                        compact: compact,
+                        playable:
+                            playerTurn && !roundFinished && canPlay(tile)),
                   ),
                 ),
             ],
@@ -572,13 +662,22 @@ class _EndBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.22), borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.accent)),
+      decoration: BoxDecoration(
+          color: AppColors.accent.withOpacity(0.22),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.accent)),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+          Text(label,
+              style: const TextStyle(fontSize: 12, color: AppColors.muted)),
           const SizedBox(width: 8),
-          CircleAvatar(radius: 14, backgroundColor: AppColors.accent, child: Text('$value', style: const TextStyle(color: AppColors.ink, fontWeight: FontWeight.bold))),
+          CircleAvatar(
+              radius: 14,
+              backgroundColor: AppColors.accent,
+              child: Text('$value',
+                  style: const TextStyle(
+                      color: AppColors.ink, fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -586,7 +685,16 @@ class _EndBox extends StatelessWidget {
 }
 
 class _InfoPanel extends StatelessWidget {
-  const _InfoPanel({required this.message, required this.playerScore, required this.botScore, required this.roundNumber, required this.playerCount, required this.botCount, required this.stockCount, required this.playableCount, required this.botDifficultyText});
+  const _InfoPanel(
+      {required this.message,
+      required this.playerScore,
+      required this.botScore,
+      required this.roundNumber,
+      required this.playerCount,
+      required this.botCount,
+      required this.stockCount,
+      required this.playableCount,
+      required this.botDifficultyText});
 
   final String message;
   final int playerScore;
@@ -605,13 +713,36 @@ class _InfoPanel extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            Row(children: [const Icon(Icons.dashboard_customize, color: AppColors.primary), const SizedBox(width: 8), Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)))]),
+            Row(children: [
+              const Icon(Icons.dashboard_customize, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: Text(message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold)))
+            ]),
             const SizedBox(height: 6),
-            Align(alignment: Alignment.centerRight, child: Text('مستوى الكمبيوتر من الإعدادات: $botDifficultyText', style: const TextStyle(color: AppColors.muted, fontWeight: FontWeight.bold, fontSize: 12))),
+            Align(
+                alignment: Alignment.centerRight,
+                child: Text('مستوى الكمبيوتر من الإعدادات: $botDifficultyText',
+                    style: const TextStyle(
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12))),
             const SizedBox(height: 8),
-            Row(children: [_MiniStat(label: 'نقاطك', value: '$playerScore'), _MiniStat(label: 'خصمك', value: '$botScore'), _MiniStat(label: 'جولة', value: '$roundNumber')]),
+            Row(children: [
+              _MiniStat(label: 'نقاطك', value: '$playerScore'),
+              _MiniStat(label: 'خصمك', value: '$botScore'),
+              _MiniStat(label: 'جولة', value: '$roundNumber')
+            ]),
             const SizedBox(height: 6),
-            Row(children: [_MiniStat(label: 'قطعك', value: '$playerCount'), _MiniStat(label: 'مناسبة', value: '$playableCount'), _MiniStat(label: 'السحب', value: '$stockCount')]),
+            Row(children: [
+              _MiniStat(label: 'قطعك', value: '$playerCount'),
+              _MiniStat(label: 'مناسبة', value: '$playableCount'),
+              _MiniStat(label: 'السحب', value: '$stockCount')
+            ]),
           ],
         ),
       ),
@@ -630,15 +761,29 @@ class _MiniStat extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 3),
         padding: const EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-        child: Column(children: [Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryDark)), Text(label, style: const TextStyle(fontSize: 10, color: AppColors.muted))]),
+        decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12)),
+        child: Column(children: [
+          Text(value,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+          Text(label,
+              style: const TextStyle(fontSize: 10, color: AppColors.muted))
+        ]),
       ),
     );
   }
 }
 
 class DominoTileView extends StatelessWidget {
-  const DominoTileView({super.key, required this.tile, this.compact = false, this.playable = false, this.order, this.lastPlayed = false});
+  const DominoTileView(
+      {super.key,
+      required this.tile,
+      this.compact = false,
+      this.playable = false,
+      this.order,
+      this.lastPlayed = false});
 
   final DominoTile tile;
   final bool compact;
@@ -652,8 +797,16 @@ class DominoTileView extends StatelessWidget {
     final height = compact ? 62.0 : 92.0;
     final pipSize = compact ? 4.0 : 5.2;
 
-    final borderColor = lastPlayed ? const Color(0xFF7B2CBF) : playable ? AppColors.accent : AppColors.primary.withOpacity(0.18);
-    final borderWidth = lastPlayed ? 3.2 : playable ? 3.0 : 1.0;
+    final borderColor = lastPlayed
+        ? const Color(0xFF7B2CBF)
+        : playable
+            ? AppColors.accent
+            : AppColors.primary.withOpacity(0.18);
+    final borderWidth = lastPlayed
+        ? 3.2
+        : playable
+            ? 3.0
+            : 1.0;
 
     return Stack(
       clipBehavior: Clip.none,
@@ -663,15 +816,31 @@ class DominoTileView extends StatelessWidget {
           width: width,
           height: height,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Colors.white, Color(0xFFF2F2F2)]),
+            gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF2F2F2)]),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: borderColor, width: borderWidth),
-            boxShadow: [BoxShadow(color: (lastPlayed ? const Color(0xFF7B2CBF) : playable ? AppColors.accent : Colors.black).withOpacity(0.32), blurRadius: lastPlayed || playable ? 11 : 6, offset: const Offset(0, 3))],
+            boxShadow: [
+              BoxShadow(
+                  color: (lastPlayed
+                          ? const Color(0xFF7B2CBF)
+                          : playable
+                              ? AppColors.accent
+                              : Colors.black)
+                      .withOpacity(0.32),
+                  blurRadius: lastPlayed || playable ? 11 : 6,
+                  offset: const Offset(0, 3))
+            ],
           ),
           child: Column(
             children: [
               Expanded(child: _PipFace(value: tile.left, pipSize: pipSize)),
-              Container(height: 1.3, margin: const EdgeInsets.symmetric(horizontal: 5), color: AppColors.muted.withOpacity(0.55)),
+              Container(
+                  height: 1.3,
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  color: AppColors.muted.withOpacity(0.55)),
               Expanded(child: _PipFace(value: tile.right, pipSize: pipSize)),
             ],
           ),
@@ -680,7 +849,15 @@ class DominoTileView extends StatelessWidget {
           Positioned(
             top: -5,
             right: -5,
-            child: CircleAvatar(radius: 9, backgroundColor: lastPlayed ? const Color(0xFF7B2CBF) : AppColors.accent, child: Text('$order', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold))),
+            child: CircleAvatar(
+                radius: 9,
+                backgroundColor:
+                    lastPlayed ? const Color(0xFF7B2CBF) : AppColors.accent,
+                child: Text('$order',
+                    style: const TextStyle(
+                        fontSize: 9,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold))),
           ),
       ],
     );
@@ -725,16 +902,38 @@ class _PipPainter extends CustomPainter {
         points.addAll([Offset(left, top), Offset(right, bottom)]);
         break;
       case 3:
-        points.addAll([Offset(left, top), Offset(centerX, centerY), Offset(right, bottom)]);
+        points.addAll([
+          Offset(left, top),
+          Offset(centerX, centerY),
+          Offset(right, bottom)
+        ]);
         break;
       case 4:
-        points.addAll([Offset(left, top), Offset(right, top), Offset(left, bottom), Offset(right, bottom)]);
+        points.addAll([
+          Offset(left, top),
+          Offset(right, top),
+          Offset(left, bottom),
+          Offset(right, bottom)
+        ]);
         break;
       case 5:
-        points.addAll([Offset(left, top), Offset(right, top), Offset(centerX, centerY), Offset(left, bottom), Offset(right, bottom)]);
+        points.addAll([
+          Offset(left, top),
+          Offset(right, top),
+          Offset(centerX, centerY),
+          Offset(left, bottom),
+          Offset(right, bottom)
+        ]);
         break;
       case 6:
-        points.addAll([Offset(left, top), Offset(right, top), Offset(left, centerY), Offset(right, centerY), Offset(left, bottom), Offset(right, bottom)]);
+        points.addAll([
+          Offset(left, top),
+          Offset(right, top),
+          Offset(left, centerY),
+          Offset(right, centerY),
+          Offset(left, bottom),
+          Offset(right, bottom)
+        ]);
         break;
     }
 
@@ -744,5 +943,6 @@ class _PipPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _PipPainter oldDelegate) => oldDelegate.value != value || oldDelegate.pipSize != pipSize;
+  bool shouldRepaint(covariant _PipPainter oldDelegate) =>
+      oldDelegate.value != value || oldDelegate.pipSize != pipSize;
 }

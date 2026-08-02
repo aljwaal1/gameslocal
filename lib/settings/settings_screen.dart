@@ -23,16 +23,28 @@ class SettingsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('مستوى الروبوت', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text('مستوى الروبوت',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
                       SegmentedButton<BotDifficulty>(
                         segments: const [
-                          ButtonSegment(value: BotDifficulty.easy, label: Text('سهل'), icon: Icon(Icons.sentiment_satisfied)),
-                          ButtonSegment(value: BotDifficulty.normal, label: Text('متوسط'), icon: Icon(Icons.smart_toy)),
-                          ButtonSegment(value: BotDifficulty.hard, label: Text('صعب'), icon: Icon(Icons.psychology)),
+                          ButtonSegment(
+                              value: BotDifficulty.easy,
+                              label: Text('سهل'),
+                              icon: Icon(Icons.sentiment_satisfied)),
+                          ButtonSegment(
+                              value: BotDifficulty.normal,
+                              label: Text('متوسط'),
+                              icon: Icon(Icons.smart_toy)),
+                          ButtonSegment(
+                              value: BotDifficulty.hard,
+                              label: Text('صعب'),
+                              icon: Icon(Icons.psychology)),
                         ],
                         selected: {settings.botDifficulty},
-                        onSelectionChanged: (value) => settings.setBotDifficulty(value.first),
+                        onSelectionChanged: (value) =>
+                            settings.setBotDifficulty(value.first),
                       ),
                     ],
                   ),
@@ -46,15 +58,18 @@ class SettingsScreen extends StatelessWidget {
                       value: settings.soundEnabled,
                       title: const Text('الأصوات'),
                       subtitle: const Text('تشغيل أو إيقاف أصوات اللعب'),
-                      secondary: const Icon(Icons.volume_up, color: AppColors.primary),
+                      secondary:
+                          const Icon(Icons.volume_up, color: AppColors.primary),
                       onChanged: settings.setSoundEnabled,
                     ),
                     const Divider(height: 1),
                     SwitchListTile(
                       value: settings.vibrationEnabled,
                       title: const Text('الاهتزاز'),
-                      subtitle: const Text('اهتزاز خفيف عند الدور والحركات المهمة'),
-                      secondary: const Icon(Icons.vibration, color: AppColors.primary),
+                      subtitle:
+                          const Text('اهتزاز خفيف عند الدور والحركات المهمة'),
+                      secondary:
+                          const Icon(Icons.vibration, color: AppColors.primary),
                       onChanged: settings.setVibrationEnabled,
                     ),
                   ],
@@ -67,19 +82,28 @@ class SettingsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('لون الطاولة', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text('لون الطاولة',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 10,
                         children: List.generate(4, (index) {
-                          final colors = [AppColors.primaryDark, const Color(0xFF6B4F2A), const Color(0xFF1E3A8A), const Color(0xFF111827)];
+                          final colors = [
+                            AppColors.primaryDark,
+                            const Color(0xFF6B4F2A),
+                            const Color(0xFF1E3A8A),
+                            const Color(0xFF111827)
+                          ];
                           return InkWell(
                             borderRadius: BorderRadius.circular(22),
                             onTap: () => settings.setTableColorIndex(index),
                             child: CircleAvatar(
                               radius: 22,
                               backgroundColor: colors[index],
-                              child: settings.tableColorIndex == index ? const Icon(Icons.check, color: Colors.white) : null,
+                              child: settings.tableColorIndex == index
+                                  ? const Icon(Icons.check, color: Colors.white)
+                                  : null,
                             ),
                           );
                         }),

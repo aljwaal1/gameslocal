@@ -17,7 +17,8 @@ class LanEngine {
   Stream<LanMessage> get clientMessages => client.messages;
   Stream<LanRoom> get discoveredRooms => discovery.rooms;
 
-  Future<LanRoom> createRoom({required String gameId, required String hostName}) async {
+  Future<LanRoom> createRoom(
+      {required String gameId, required String hostName}) async {
     final room = await host.startHost(gameId: gameId, hostName: hostName);
     await discovery.startAdvertising(room);
     return room;

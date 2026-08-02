@@ -41,8 +41,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   void _newGame() {
-    const blackBack = ['♜','♞','♝','♛','♚','♝','♞','♜'];
-    const whiteBack = ['♖','♘','♗','♕','♔','♗','♘','♖'];
+    const blackBack = ['♜', '♞', '♝', '♛', '♚', '♝', '♞', '♜'];
+    const whiteBack = ['♖', '♘', '♗', '♕', '♔', '♗', '♘', '♖'];
     board = List<ChessPiece?>.filled(64, null);
     for (var i = 0; i < 8; i++) {
       board[i] = ChessPiece(blackBack[i], ChessSide.black);
@@ -73,8 +73,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       history.add(List<ChessPiece?>.from(board));
       turnHistory.add(turn);
       castlingHistory.add(_CastlingRights(
-        whiteKingMoved, blackKingMoved, whiteLeftRookMoved, whiteRightRookMoved,
-        blackLeftRookMoved, blackRightRookMoved,
+        whiteKingMoved,
+        blackKingMoved,
+        whiteLeftRookMoved,
+        whiteRightRookMoved,
+        blackLeftRookMoved,
+        blackRightRookMoved,
       ));
       moveCount++;
       final moving = board[selected!];
@@ -82,8 +86,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       board[selected!] = null;
       _applyCastlingRookMove(moving, selected!, index);
       _markCastlingPieceMoved(moving, selected!);
-      if ((moving?.symbol == '♙' && index ~/ 8 == 0) || (moving?.symbol == '♟' && index ~/ 8 == 7)) {
-        board[index] = ChessPiece(moving!.side == ChessSide.white ? '♕' : '♛', moving.side);
+      if ((moving?.symbol == '♙' && index ~/ 8 == 0) ||
+          (moving?.symbol == '♟' && index ~/ 8 == 7)) {
+        board[index] = ChessPiece(
+            moving!.side == ChessSide.white ? '♕' : '♛', moving.side);
       }
       selected = null;
       targets = <int>[];
@@ -91,7 +97,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       final checked = _isKingInCheck(turn);
       final hasMove = _hasAnyLegalMove(turn);
       if (checked && !hasMove) {
-        message = turn == ChessSide.white ? 'كش مات — فاز الأسود' : 'كش مات — فاز الأبيض';
+        message = turn == ChessSide.white
+            ? 'كش مات — فاز الأسود'
+            : 'كش مات — فاز الأبيض';
         GameFeedback.win();
       } else if (!checked && !hasMove) {
         message = 'تعادل — لا توجد نقلة قانونية';
@@ -105,8 +113,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       setState(() {});
       return;
     }
-    if (piece == null || piece.side != turn || message.startsWith('كش مات') || message.startsWith('تعادل')) {
-      setState(() { selected = null; targets = <int>[]; });
+    if (piece == null ||
+        piece.side != turn ||
+        message.startsWith('كش مات') ||
+        message.startsWith('تعادل')) {
+      setState(() {
+        selected = null;
+        targets = <int>[];
+      });
       return;
     }
     setState(() {
@@ -152,7 +166,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   bool _hasAnyLegalMove(ChessSide side) {
     for (var i = 0; i < board.length; i++) {
       final piece = board[i];
-      if (piece != null && piece.side == side && _legalMoves(i, piece).isNotEmpty) return true;
+      if (piece != null &&
+          piece.side == side &&
+          _legalMoves(i, piece).isNotEmpty) return true;
     }
     return false;
   }
@@ -161,7 +177,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     final kingSymbol = side == ChessSide.white ? '♔' : '♚';
     final king = board.indexWhere((piece) => piece?.symbol == kingSymbol);
     if (king < 0) return true;
-    final opponent = side == ChessSide.white ? ChessSide.black : ChessSide.white;
+    final opponent =
+        side == ChessSide.white ? ChessSide.black : ChessSide.white;
     return _isSquareAttacked(king, opponent);
   }
 
@@ -175,9 +192,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       final col = i % 8;
       if ('♙♟'.contains(piece.symbol)) {
         final direction = bySide == ChessSide.white ? -1 : 1;
-        if (targetRow == row + direction && (targetCol - col).abs() == 1) return true;
+        if (targetRow == row + direction && (targetCol - col).abs() == 1)
+          return true;
       } else if ('♔♚'.contains(piece.symbol)) {
-        if ((targetRow - row).abs() <= 1 && (targetCol - col).abs() <= 1) return true;
+        if ((targetRow - row).abs() <= 1 && (targetCol - col).abs() <= 1)
+          return true;
       } else if (_moves(i, piece).contains(square)) {
         return true;
       }
@@ -193,6 +212,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       final target = board[nr * 8 + nc];
       if (target == null || target.side != piece.side) out.add(nr * 8 + nc);
     }
+
     void ray(int dr, int dc) {
       var nr = r + dr, nc = c + dc;
       while (nr >= 0 && nr < 8 && nc >= 0 && nc < 8) {
@@ -203,9 +223,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           if (target.side != piece.side) out.add(i);
           break;
         }
-        nr += dr; nc += dc;
+        nr += dr;
+        nc += dc;
       }
     }
+
     if ('♙♟'.contains(piece.symbol)) {
       final d = piece.side == ChessSide.white ? -1 : 1;
       final one = (r + d) * 8 + c;
@@ -223,13 +245,36 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         }
       }
     } else if ('♘♞'.contains(piece.symbol)) {
-      for (final d in const [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]]) add(r+d[0], c+d[1]);
+      for (final d in const [
+        [-2, -1],
+        [-2, 1],
+        [-1, -2],
+        [-1, 2],
+        [1, -2],
+        [1, 2],
+        [2, -1],
+        [2, 1]
+      ]) add(r + d[0], c + d[1]);
     } else if ('♔♚'.contains(piece.symbol)) {
-      for (var dr=-1; dr<=1; dr++) for (var dc=-1; dc<=1; dc++) if (dr!=0 || dc!=0) add(r+dr,c+dc);
+      for (var dr = -1; dr <= 1; dr++)
+        for (var dc = -1; dc <= 1; dc++)
+          if (dr != 0 || dc != 0) add(r + dr, c + dc);
       _addCastlingMoves(index, piece, out);
     } else {
-      if ('♖♜♕♛'.contains(piece.symbol)) for (final d in const [[-1,0],[1,0],[0,-1],[0,1]]) ray(d[0],d[1]);
-      if ('♗♝♕♛'.contains(piece.symbol)) for (final d in const [[-1,-1],[-1,1],[1,-1],[1,1]]) ray(d[0],d[1]);
+      if ('♖♜♕♛'.contains(piece.symbol))
+        for (final d in const [
+          [-1, 0],
+          [1, 0],
+          [0, -1],
+          [0, 1]
+        ]) ray(d[0], d[1]);
+      if ('♗♝♕♛'.contains(piece.symbol))
+        for (final d in const [
+          [-1, -1],
+          [-1, 1],
+          [1, -1],
+          [1, 1]
+        ]) ray(d[0], d[1]);
     }
     return out;
   }
@@ -238,27 +283,38 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     final isWhite = king.side == ChessSide.white;
     final row = isWhite ? 7 : 0;
     final home = row * 8 + 4;
-    if (index != home || _isKingInCheck(king.side) || (isWhite ? whiteKingMoved : blackKingMoved)) return;
+    if (index != home ||
+        _isKingInCheck(king.side) ||
+        (isWhite ? whiteKingMoved : blackKingMoved)) return;
     final opponent = isWhite ? ChessSide.black : ChessSide.white;
     final rookSymbol = isWhite ? '♖' : '♜';
     final leftRookMoved = isWhite ? whiteLeftRookMoved : blackLeftRookMoved;
     final rightRookMoved = isWhite ? whiteRightRookMoved : blackRightRookMoved;
     final kingSideRook = board[row * 8 + 7];
-    if (!rightRookMoved && kingSideRook?.symbol == rookSymbol &&
-        board[row * 8 + 5] == null && board[row * 8 + 6] == null &&
-        !_isSquareAttacked(row * 8 + 5, opponent) && !_isSquareAttacked(row * 8 + 6, opponent)) {
+    if (!rightRookMoved &&
+        kingSideRook?.symbol == rookSymbol &&
+        board[row * 8 + 5] == null &&
+        board[row * 8 + 6] == null &&
+        !_isSquareAttacked(row * 8 + 5, opponent) &&
+        !_isSquareAttacked(row * 8 + 6, opponent)) {
       out.add(row * 8 + 6);
     }
     final queenSideRook = board[row * 8];
-    if (!leftRookMoved && queenSideRook?.symbol == rookSymbol &&
-        board[row * 8 + 1] == null && board[row * 8 + 2] == null && board[row * 8 + 3] == null &&
-        !_isSquareAttacked(row * 8 + 3, opponent) && !_isSquareAttacked(row * 8 + 2, opponent)) {
+    if (!leftRookMoved &&
+        queenSideRook?.symbol == rookSymbol &&
+        board[row * 8 + 1] == null &&
+        board[row * 8 + 2] == null &&
+        board[row * 8 + 3] == null &&
+        !_isSquareAttacked(row * 8 + 3, opponent) &&
+        !_isSquareAttacked(row * 8 + 2, opponent)) {
       out.add(row * 8 + 2);
     }
   }
 
   void _applyCastlingRookMove(ChessPiece? moving, int from, int to) {
-    if (moving == null || !'♔♚'.contains(moving.symbol) || (to - from).abs() != 2) return;
+    if (moving == null ||
+        !'♔♚'.contains(moving.symbol) ||
+        (to - from).abs() != 2) return;
     final row = from ~/ 8;
     if (to > from) {
       board[row * 8 + 5] = board[row * 8 + 7];
@@ -282,46 +338,104 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('الشطرنج'), actions: [IconButton(onPressed: history.isEmpty ? null : _undo, tooltip: 'تراجع', icon: const Icon(Icons.undo)), IconButton(onPressed: _newGame, tooltip: 'لعبة جديدة', icon: const Icon(Icons.refresh))]),
-      body: SafeArea(child: Column(children: [
-        Padding(padding: const EdgeInsets.all(16), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(message, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)), Chip(label: Text('نقلة $moveCount'))])),
-        Expanded(child: Center(child: AspectRatio(aspectRatio: 1, child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 8),
-          itemCount: 64,
-          itemBuilder: (_, i) {
-            final r=i~/8,c=i%8, dark=(r+c).isOdd;
-            final isTarget = targets.contains(i);
-            final isCapture = isTarget && board[i] != null;
-            return InkWell(
-              onTap: () => _tap(i),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: dark ? const Color(0xFF769656) : const Color(0xFFEEEED2),
-                  border: selected == i ? Border.all(color: Colors.orange.shade800, width: 3) : null,
-                ),
-                alignment: Alignment.center,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    if (isTarget && !isCapture)
-                      Container(width: 16, height: 16, decoration: const BoxDecoration(color: Color(0xAA1B5E20), shape: BoxShape.circle)),
-                    if (isTarget && isCapture)
-                      Container(width: 38, height: 38, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.red.shade700, width: 3))),
-                    Text(board[i]?.symbol ?? '', style: const TextStyle(fontSize: 34, color: Colors.black)),
-                  ],
-                ),
-              ),
-            );
-          },
-        )))),
-        const Padding(padding: EdgeInsets.all(12), child: Text('شطرنج قانوني: كش وكش مات وتعادل • تراجع • ترقية البيدق')),
+      appBar: AppBar(title: const Text('الشطرنج'), actions: [
+        IconButton(
+            onPressed: history.isEmpty ? null : _undo,
+            tooltip: 'تراجع',
+            icon: const Icon(Icons.undo)),
+        IconButton(
+            onPressed: _newGame,
+            tooltip: 'لعبة جديدة',
+            icon: const Icon(Icons.refresh))
+      ]),
+      body: SafeArea(
+          child: Column(children: [
+        Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(message,
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.bold)),
+                  Chip(label: Text('نقلة $moveCount'))
+                ])),
+        Expanded(
+            child: Center(
+                child: AspectRatio(
+                    aspectRatio: 1,
+                    child: GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 8),
+                      itemCount: 64,
+                      itemBuilder: (_, i) {
+                        final r = i ~/ 8, c = i % 8, dark = (r + c).isOdd;
+                        final isTarget = targets.contains(i);
+                        final isCapture = isTarget && board[i] != null;
+                        return InkWell(
+                          onTap: () => _tap(i),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: dark
+                                  ? const Color(0xFF769656)
+                                  : const Color(0xFFEEEED2),
+                              border: selected == i
+                                  ? Border.all(
+                                      color: Colors.orange.shade800, width: 3)
+                                  : null,
+                            ),
+                            alignment: Alignment.center,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                if (isTarget && !isCapture)
+                                  Container(
+                                      width: 16,
+                                      height: 16,
+                                      decoration: const BoxDecoration(
+                                          color: Color(0xAA1B5E20),
+                                          shape: BoxShape.circle)),
+                                if (isTarget && isCapture)
+                                  Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                              color: Colors.red.shade700,
+                                              width: 3))),
+                                Text(board[i]?.symbol ?? '',
+                                    style: const TextStyle(
+                                        fontSize: 34, color: Colors.black)),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    )))),
+        const Padding(
+            padding: EdgeInsets.all(12),
+            child:
+                Text('شطرنج قانوني: كش وكش مات وتعادل • تراجع • ترقية البيدق')),
       ])),
     );
   }
 }
 
 class _CastlingRights {
-  const _CastlingRights(this.whiteKingMoved, this.blackKingMoved, this.whiteLeftRookMoved, this.whiteRightRookMoved, this.blackLeftRookMoved, this.blackRightRookMoved);
-  final bool whiteKingMoved, blackKingMoved, whiteLeftRookMoved, whiteRightRookMoved, blackLeftRookMoved, blackRightRookMoved;
+  const _CastlingRights(
+      this.whiteKingMoved,
+      this.blackKingMoved,
+      this.whiteLeftRookMoved,
+      this.whiteRightRookMoved,
+      this.blackLeftRookMoved,
+      this.blackRightRookMoved);
+  final bool whiteKingMoved,
+      blackKingMoved,
+      whiteLeftRookMoved,
+      whiteRightRookMoved,
+      blackLeftRookMoved,
+      blackRightRookMoved;
 }

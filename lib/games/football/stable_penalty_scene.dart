@@ -102,7 +102,8 @@ class _StablePenaltySceneState extends State<StablePenaltyScene> {
           sceneRect.top + sceneRect.height * 0.735,
         );
 
-        final runT = _phase(widget.shotProgress, 0.08, 0.40, Curves.easeInOutCubic);
+        final runT =
+            _phase(widget.shotProgress, 0.08, 0.40, Curves.easeInOutCubic);
         final plantT =
             _phase(widget.shotProgress, 0.38, 0.52, Curves.easeOutCubic);
         final strikeT =
@@ -129,16 +130,14 @@ class _StablePenaltySceneState extends State<StablePenaltyScene> {
                 onTapUp: widget.enabled
                     ? (details) {
                         if (!goalRect.contains(details.localPosition)) return;
-                        final x =
-                            ((details.localPosition.dx - goalRect.left) /
-                                    goalRect.width)
-                                .clamp(0.0, 1.0)
-                                .toDouble();
-                        final y =
-                            ((details.localPosition.dy - goalRect.top) /
-                                    goalRect.height)
-                                .clamp(0.0, 1.0)
-                                .toDouble();
+                        final x = ((details.localPosition.dx - goalRect.left) /
+                                goalRect.width)
+                            .clamp(0.0, 1.0)
+                            .toDouble();
+                        final y = ((details.localPosition.dy - goalRect.top) /
+                                goalRect.height)
+                            .clamp(0.0, 1.0)
+                            .toDouble();
                         widget.onShoot(x, y);
                       }
                     : null,
@@ -514,8 +513,8 @@ class _ActorMotionPainter extends CustomPainter {
       for (var i = 0; i < 7; i++) {
         final angle = -pi * 0.9 + i * 0.22;
         final distance = 10 + strikeT * (10 + i * 1.6);
-        final particle = boot +
-            Offset(cos(angle) * distance, sin(angle) * distance * 0.55);
+        final particle =
+            boot + Offset(cos(angle) * distance, sin(angle) * distance * 0.55);
         canvas.drawCircle(
           particle,
           max(0.7, 2.1 - strikeT),

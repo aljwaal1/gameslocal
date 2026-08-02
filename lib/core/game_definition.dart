@@ -2,7 +2,8 @@ import 'package:flutter/widgets.dart';
 
 import 'network/local_network_core.dart';
 
-typedef GameScreenBuilder = Widget Function(BuildContext context, LocalNetworkCore? networkCore);
+typedef GameScreenBuilder = Widget Function(
+    BuildContext context, LocalNetworkCore? networkCore);
 
 class GameDefinition {
   const GameDefinition({

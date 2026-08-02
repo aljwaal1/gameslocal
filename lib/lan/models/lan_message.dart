@@ -21,7 +21,8 @@ class LanMessage {
         'roomCode': roomCode,
         'gameId': gameId,
         'payload': payload,
-        'timestamp': timestamp == 0 ? DateTime.now().millisecondsSinceEpoch : timestamp,
+        'timestamp':
+            timestamp == 0 ? DateTime.now().millisecondsSinceEpoch : timestamp,
       };
 
   factory LanMessage.fromJson(Map<String, dynamic> json) {
@@ -33,7 +34,9 @@ class LanMessage {
       senderId: '${json['senderId'] ?? ''}',
       roomCode: '${json['roomCode'] ?? ''}',
       gameId: '${json['gameId'] ?? ''}',
-      payload: json['payload'] is Map ? Map<String, dynamic>.from(json['payload'] as Map) : const {},
+      payload: json['payload'] is Map
+          ? Map<String, dynamic>.from(json['payload'] as Map)
+          : const {},
       timestamp: int.tryParse('${json['timestamp'] ?? 0}') ?? 0,
     );
   }

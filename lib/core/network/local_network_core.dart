@@ -16,7 +16,8 @@ class LocalPlayer {
   final bool isHost;
   final bool isReady;
 
-  LocalPlayer copyWith({String? id, String? name, bool? isHost, bool? isReady}) {
+  LocalPlayer copyWith(
+      {String? id, String? name, bool? isHost, bool? isReady}) {
     return LocalPlayer(
       id: id ?? this.id,
       name: name ?? this.name,
@@ -104,7 +105,8 @@ class LocalNetworkState {
 class LocalNetworkCore {
   LocalNetworkCore({required this.gameId}) {
     _activeCores[gameId] = this;
-    _transportStatusSubscription = _transport.status.listen((String statusMessage) {
+    _transportStatusSubscription =
+        _transport.status.listen((String statusMessage) {
       _emit(_state.copyWith(message: statusMessage));
     });
     _transportMessageSubscription =
@@ -253,7 +255,9 @@ class LocalNetworkCore {
     if (cleaned.isEmpty || _localPlayerId == 'system') return;
 
     final List<LocalPlayer> updated = _state.players.map((LocalPlayer player) {
-      return player.id == _localPlayerId ? player.copyWith(name: cleaned) : player;
+      return player.id == _localPlayerId
+          ? player.copyWith(name: cleaned)
+          : player;
     }).toList(growable: false);
     _emit(_state.copyWith(players: updated));
 
@@ -346,8 +350,8 @@ class LocalNetworkCore {
     if (_state.mode != LocalNetworkMode.host) return;
 
     if (message.type == NetworkMessageType.playerJoined) {
-      final bool alreadyExists =
-          _state.players.any((LocalPlayer player) => player.id == message.senderId);
+      final bool alreadyExists = _state.players
+          .any((LocalPlayer player) => player.id == message.senderId);
       if (!alreadyExists && _state.players.length < 12) {
         final String name = (message.payload['name'] ?? '').toString().trim();
         _emit(_state.copyWith(

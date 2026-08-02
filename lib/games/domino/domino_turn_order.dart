@@ -19,7 +19,8 @@ class DominoTurnOrder {
 
   void reset({int startingPlayer = 0}) {
     if (startingPlayer < 0 || startingPlayer >= playerCount) {
-      throw RangeError.range(startingPlayer, 0, playerCount - 1, 'startingPlayer');
+      throw RangeError.range(
+          startingPlayer, 0, playerCount - 1, 'startingPlayer');
     }
     currentPlayer = startingPlayer;
   }

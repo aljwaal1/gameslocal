@@ -163,8 +163,7 @@ class _LineWebBridge {
   }
 
   static String _html(LineGameKind kind) {
-    final title =
-        kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
+    final title = kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
     final gameName = kind.name;
     return '''<!doctype html>
 <html lang="ar" dir="rtl">
@@ -322,8 +321,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
   String _webUrl = '';
   int _turnIndex = 0;
 
-  bool get _isHost =>
-      widget.networkCore?.state.mode == LocalNetworkMode.host;
+  bool get _isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
 
   String get _myId => widget.networkCore?.localPlayerId ?? 'local';
 
@@ -568,8 +566,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
         _edgeIndex(box[1], box[3]),
       ];
       if (neededEdges.every(
-        (edgeIndex) =>
-            edgeIndex >= 0 && _edgeOwners[edgeIndex] != null,
+        (edgeIndex) => edgeIndex >= 0 && _edgeOwners[edgeIndex] != null,
       )) {
         _boxOwners[boxIndex] = playerId;
         gained++;
@@ -641,8 +638,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
       'kind': widget.kind.name,
       'turnId': _turnId,
       'turnIndex': _turnIndex,
-      'message':
-          players.length < 2 ? 'بانتظار لاعب آخر' : 'الدور: $turnName',
+      'message': players.length < 2 ? 'بانتظار لاعب آخر' : 'الدور: $turnName',
       'players': serializedPlayers,
       'scores': _scores,
       'points': List<Map<String, dynamic>>.generate(
@@ -707,8 +703,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
       final item = rawPoints[index];
       if (item is! Map) continue;
       final ownerId = item['ownerId']?.toString();
-      _pointOwners[index] =
-          ownerId == null ? -1 : playerIds.indexOf(ownerId);
+      _pointOwners[index] = ownerId == null ? -1 : playerIds.indexOf(ownerId);
     }
 
     final rawEdges = state['edges'] as List<dynamic>? ?? const [];
@@ -790,7 +785,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
       final rawT =
           ((point - start).dx * vector.dx + (point - start).dy * vector.dy) /
               denominator;
-      final t = rawT.clamp(0.0, 1.0);
+      final t = rawT.clamp(0.0, 1.0).toDouble();
       final nearest = start + vector * t;
       final distance = (point - nearest).distanceSquared;
       if (distance < bestDistance) {
@@ -870,8 +865,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
                     math.min(constraints.maxWidth, constraints.maxHeight);
                 return Center(
                   child: GestureDetector(
-                    onTapDown: (details) =>
-                        _handleTap(details, constraints),
+                    onTapDown: (details) => _handleTap(details, constraints),
                     child: CustomPaint(
                       size: Size.square(side),
                       painter: _LinePainter(

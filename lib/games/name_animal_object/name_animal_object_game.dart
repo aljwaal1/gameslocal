@@ -542,132 +542,134 @@ class _NameAnimalObjectGameScreenState
   }
 
   Widget _profile() => ListView(
-    padding: const EdgeInsets.all(20),
-    children: [
-      const Icon(Icons.edit_note, size: 88, color: Color(0xFF6F2DBD)),
-      const SizedBox(height: 16),
-      const Text(
-        'اكتب اسمك',
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
-      ),
-      const SizedBox(height: 18),
-      TextField(
-        controller: _nameController,
-        decoration: const InputDecoration(
-          labelText: 'اسم اللاعب',
-          border: OutlineInputBorder(),
-        ),
-      ),
-      const SizedBox(height: 12),
-      FilledButton(onPressed: _saveName, child: const Text('دخول اللعبة')),
-    ],
-  );
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Icon(Icons.edit_note, size: 88, color: Color(0xFF6F2DBD)),
+          const SizedBox(height: 16),
+          const Text(
+            'اكتب اسمك',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 18),
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'اسم اللاعب',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: _saveName, child: const Text('دخول اللعبة')),
+        ],
+      );
 
   Widget _waiting() => ListView(
-    padding: const EdgeInsets.all(16),
-    children: [
-      if (_isHost)
-        Card(
-          color: const Color(0xFFEDE4FF),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const Text(
-                  'دخول الآيفون',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (_isHost)
+            Card(
+              color: const Color(0xFFEDE4FF),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Text(
+                      'دخول الآيفون',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_webUrl.startsWith('http'))
+                      QrImageView(
+                        data: _webUrl,
+                        size: 190,
+                        backgroundColor: Colors.white,
+                      ),
+                    const SizedBox(height: 10),
+                    SelectableText(
+                      _webUrl.isEmpty ? 'جاري تجهيز الرابط...' : _webUrl,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'امسح QR أو اكتب الرابط كاملًا في Safari على نفس الشبكة.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                if (_webUrl.startsWith('http'))
-                  QrImageView(
-                    data: _webUrl,
-                    size: 190,
-                    backgroundColor: Colors.white,
-                  ),
-                const SizedBox(height: 10),
-                SelectableText(
-                  _webUrl.isEmpty ? 'جاري تجهيز الرابط...' : _webUrl,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'امسح QR أو اكتب الرابط كاملًا في Safari على نفس الشبكة.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              ),
+            ),
+          const SizedBox(height: 8),
+          Text(
+            'اللاعبون: $_totalPlayers',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+          ),
+          ..._network!.state.players.map(
+            (p) => ListTile(
+              leading: Icon(p.isHost ? Icons.star : Icons.android),
+              title: Text(_playerNames[p.id] ?? p.name),
+              subtitle: const Text('أندرويد'),
             ),
           ),
-        ),
-      const SizedBox(height: 8),
-      Text(
-        'اللاعبون: $_totalPlayers',
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-      ),
-      ..._network!.state.players.map(
-        (p) => ListTile(
-          leading: Icon(p.isHost ? Icons.star : Icons.android),
-          title: Text(_playerNames[p.id] ?? p.name),
-          subtitle: const Text('أندرويد'),
-        ),
-      ),
-      ..._webPlayers.values.map(
-        (p) => ListTile(
-          leading: const Icon(Icons.phone_iphone),
-          title: Text(p.name),
-          subtitle: const Text('آيفون / Safari'),
-        ),
-      ),
-      if (_isHost)
-        FilledButton.icon(
-          onPressed: _totalPlayers >= 2 ? _startRound : null,
-          icon: const Icon(Icons.play_arrow),
-          label: Text(_totalPlayers >= 2 ? 'ابدأ الحرف' : 'بانتظار لاعب آخر'),
-        )
-      else
-        const Text('بانتظار المضيف...', textAlign: TextAlign.center),
-    ],
-  );
+          ..._webPlayers.values.map(
+            (p) => ListTile(
+              leading: const Icon(Icons.phone_iphone),
+              title: Text(p.name),
+              subtitle: const Text('آيفون / Safari'),
+            ),
+          ),
+          if (_isHost)
+            FilledButton.icon(
+              onPressed: _totalPlayers >= 2 ? _startRound : null,
+              icon: const Icon(Icons.play_arrow),
+              label:
+                  Text(_totalPlayers >= 2 ? 'ابدأ الحرف' : 'بانتظار لاعب آخر'),
+            )
+          else
+            const Text('بانتظار المضيف...', textAlign: TextAlign.center),
+        ],
+      );
 
   Widget _playing() => ListView(
-    padding: const EdgeInsets.all(16),
-    children: [
-      Row(
+        padding: const EdgeInsets.all(16),
         children: [
-          Expanded(child: _info('الجولة', '$_round')),
-          const SizedBox(width: 8),
-          Expanded(child: _info('الحرف', _letter)),
-          const SizedBox(width: 8),
-          Expanded(child: _info('الوقت', '$_secondsLeft')),
-        ],
-      ),
-      const SizedBox(height: 14),
-      ..._categories.map(
-        (c) => Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: TextField(
-            controller: _answers[c],
-            enabled: !_submitted,
-            decoration: InputDecoration(
-              labelText: c,
-              hintText: '$c يبدأ بحرف $_letter',
-              border: const OutlineInputBorder(),
+          Row(
+            children: [
+              Expanded(child: _info('الجولة', '$_round')),
+              const SizedBox(width: 8),
+              Expanded(child: _info('الحرف', _letter)),
+              const SizedBox(width: 8),
+              Expanded(child: _info('الوقت', '$_secondsLeft')),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ..._categories.map(
+            (c) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: TextField(
+                controller: _answers[c],
+                enabled: !_submitted,
+                decoration: InputDecoration(
+                  labelText: c,
+                  hintText: '$c يبدأ بحرف $_letter',
+                  border: const OutlineInputBorder(),
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-      FilledButton.icon(
-        onPressed: _submitted ? null : () => _submitAnswers(endAll: true),
-        icon: const Icon(Icons.flag),
-        label: Text(_submitted ? 'تم التسليم' : 'إنهاء الجولة للجميع'),
-      ),
-    ],
-  );
+          FilledButton.icon(
+            onPressed: _submitted ? null : () => _submitAnswers(endAll: true),
+            icon: const Icon(Icons.flag),
+            label: Text(_submitted ? 'تم التسليم' : 'إنهاء الجولة للجميع'),
+          ),
+        ],
+      );
 
   Widget _results() {
     final ids = _scores.keys.toList()
@@ -737,21 +739,21 @@ class _NameAnimalObjectGameScreenState
         ),
         const SizedBox(height: 10),
         ...ids.asMap().entries.map(
-          (e) => Card(
-            child: ListTile(
-              leading: CircleAvatar(child: Text('${e.key + 1}')),
-              title: Text(_playerNames[e.value] ?? 'لاعب'),
-              subtitle: Text('+${_lastPoints[e.value] ?? 0}'),
-              trailing: Text(
-                '${_scores[e.value] ?? 0}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+              (e) => Card(
+                child: ListTile(
+                  leading: CircleAvatar(child: Text('${e.key + 1}')),
+                  title: Text(_playerNames[e.value] ?? 'لاعب'),
+                  subtitle: Text('+${_lastPoints[e.value] ?? 0}'),
+                  trailing: Text(
+                    '${_scores[e.value] ?? 0}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
         if (_isHost)
           FilledButton.icon(
             onPressed: _totalPlayers >= 2 ? _startRound : null,
@@ -768,19 +770,19 @@ class _NameAnimalObjectGameScreenState
   }
 
   Widget _info(String label, String value) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEDE4FF),
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Column(
-      children: [
-        Text(label),
-        Text(
-          value,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEDE4FF),
+          borderRadius: BorderRadius.circular(16),
         ),
-      ],
-    ),
-  );
+        child: Column(
+          children: [
+            Text(label),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+      );
 }

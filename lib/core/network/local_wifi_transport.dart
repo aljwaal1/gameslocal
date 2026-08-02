@@ -131,7 +131,8 @@ class LocalWifiTransport {
       return;
     }
 
-    final StreamSubscription<String>? subscription = _hostClients.remove(socket);
+    final StreamSubscription<String>? subscription =
+        _hostClients.remove(socket);
     subscription?.cancel();
     socket.destroy();
     _statusController.add('غادر لاعب — المتصلون الآن ${_hostClients.length}');

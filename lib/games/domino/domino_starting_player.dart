@@ -3,7 +3,8 @@ int selectDominoStartingPlayer(List<List<(int, int)>> hands) {
     throw ArgumentError.value(hands, 'hands', 'At least one hand is required');
   }
   if (hands.any((hand) => hand.isEmpty)) {
-    throw ArgumentError.value(hands, 'hands', 'Each player must have at least one tile');
+    throw ArgumentError.value(
+        hands, 'hands', 'Each player must have at least one tile');
   }
 
   int? bestDoublePlayer;

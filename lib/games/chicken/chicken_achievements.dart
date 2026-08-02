@@ -75,7 +75,8 @@ class ChickenAchievements {
   /// Compact progress information for the result panel and achievements page.
   static Future<ChickenAchievementProgress> loadProgress() async {
     final unlocked = await loadUnlocked();
-    final unlockedCount = all.where((item) => unlocked.contains(item.id)).length;
+    final unlockedCount =
+        all.where((item) => unlocked.contains(item.id)).length;
     return ChickenAchievementProgress(
       unlockedCount: unlockedCount,
       totalCount: all.length,
@@ -100,7 +101,8 @@ class ChickenAchievements {
     );
 
     final prefs = await SharedPreferences.getInstance();
-    final unlocked = (prefs.getStringList(_storageKey) ?? const <String>[]).toSet();
+    final unlocked =
+        (prefs.getStringList(_storageKey) ?? const <String>[]).toSet();
     final newlyUnlocked = <ChickenAchievement>[];
 
     void unlock(String id, bool condition) {
@@ -139,7 +141,8 @@ class ChickenAchievements {
       throw ArgumentError.value(hits, 'hits', 'must not be negative');
     }
     if (accuracy < 0 || accuracy > 100) {
-      throw ArgumentError.value(accuracy, 'accuracy', 'must be between 0 and 100');
+      throw ArgumentError.value(
+          accuracy, 'accuracy', 'must be between 0 and 100');
     }
     if (bestCombo < 0) {
       throw ArgumentError.value(bestCombo, 'bestCombo', 'must not be negative');

@@ -32,10 +32,34 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
   ];
 
   static const characters = [
-    ('برق', Icons.bolt, 'سريع', 'حركة أسرع داخل الساحة', 'اندفاع سريع نحو الروبوت مع ضربة عند الاقتراب'),
-    ('صخر', Icons.shield, 'دفاعي', 'صحة أعلى وضرر أقل من الروبوت', 'استعادة 20 نقطة صحة عند الحاجة'),
-    ('لهب', Icons.local_fire_department, 'قوي', 'ضرر أكبر في كل ضربة', 'ضربة لهب قوية عند الاقتراب'),
-    ('موج', Icons.water_drop, 'متوازن', 'مدى هجوم أبعد', 'موجة بعيدة تدفع الروبوت للخلف'),
+    (
+      'برق',
+      Icons.bolt,
+      'سريع',
+      'حركة أسرع داخل الساحة',
+      'اندفاع سريع نحو الروبوت مع ضربة عند الاقتراب'
+    ),
+    (
+      'صخر',
+      Icons.shield,
+      'دفاعي',
+      'صحة أعلى وضرر أقل من الروبوت',
+      'استعادة 20 نقطة صحة عند الحاجة'
+    ),
+    (
+      'لهب',
+      Icons.local_fire_department,
+      'قوي',
+      'ضرر أكبر في كل ضربة',
+      'ضربة لهب قوية عند الاقتراب'
+    ),
+    (
+      'موج',
+      Icons.water_drop,
+      'متوازن',
+      'مدى هجوم أبعد',
+      'موجة بعيدة تدفع الروبوت للخلف'
+    ),
   ];
 
   String get selectedCharacterName => characters[character].$1;
@@ -97,7 +121,9 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            Text(widget.networkCore == null ? 'اختر الشخصية ومستوى الروبوت، أو ابدأ مباراة سريعة مباشرة.' : 'اختر شخصيتك ثم ابدأ مواجهة اللاعب الآخر عبر الشبكة المحلية.'),
+            Text(widget.networkCore == null
+                ? 'اختر الشخصية ومستوى الروبوت، أو ابدأ مباراة سريعة مباشرة.'
+                : 'اختر شخصيتك ثم ابدأ مواجهة اللاعب الآخر عبر الشبكة المحلية.'),
             const SizedBox(height: 14),
             OutlinedButton.icon(
               onPressed: widget.networkCore == null ? _startQuickMatch : null,
@@ -108,7 +134,8 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               ),
             ),
             const SizedBox(height: 18),
-            const Text('الشخصية', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('الشخصية',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             GridView.builder(
               shrinkWrap: true,
@@ -152,9 +179,11 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
                             children: [
                               Text(
                                 item.$1,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
-                              Text(item.$3, style: const TextStyle(fontSize: 12)),
+                              Text(item.$3,
+                                  style: const TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
@@ -165,36 +194,46 @@ class _BattleModeScreenState extends State<BattleModeScreen> {
               },
             ),
             const SizedBox(height: 18),
-            const Text('الخريطة', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('الخريطة',
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             SegmentedButton<int>(
               segments: [
                 for (int i = 0; i < arenas.length; i++)
-                  ButtonSegment<int>(value: i, label: Text(arenas[i].$1), icon: Icon(arenas[i].$2)),
+                  ButtonSegment<int>(
+                      value: i,
+                      label: Text(arenas[i].$1),
+                      icon: Icon(arenas[i].$2)),
               ],
               selected: <int>{arena},
-              onSelectionChanged: (value) => setState(() => arena = value.first),
+              onSelectionChanged: (value) =>
+                  setState(() => arena = value.first),
             ),
             const SizedBox(height: 18),
             _SupportedModeCard(networkGame: widget.networkCore != null),
             const SizedBox(height: 10),
             _OptionCard(
-              title: widget.networkCore == null ? 'مستوى الروبوت' : 'نوع المباراة',
+              title:
+                  widget.networkCore == null ? 'مستوى الروبوت' : 'نوع المباراة',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.networkCore == null) DropdownButtonFormField<String>(
-                    value: botLevel,
-                    items: const [
-                      DropdownMenuItem(value: 'سهل', child: Text('سهل')),
-                      DropdownMenuItem(value: 'متوسط', child: Text('متوسط')),
-                      DropdownMenuItem(value: 'صعب', child: Text('صعب')),
-                    ],
-                    onChanged: (value) => setState(() => botLevel = value ?? botLevel),
-                  ),
+                  if (widget.networkCore == null)
+                    DropdownButtonFormField<String>(
+                      value: botLevel,
+                      items: const [
+                        DropdownMenuItem(value: 'سهل', child: Text('سهل')),
+                        DropdownMenuItem(value: 'متوسط', child: Text('متوسط')),
+                        DropdownMenuItem(value: 'صعب', child: Text('صعب')),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => botLevel = value ?? botLevel),
+                    ),
                   const SizedBox(height: 8),
                   Text(
-                    widget.networkCore == null ? botLevelDescription : 'اتصال محلي مباشر بين لاعبين؛ المضيف هو اللاعب الأول.',
+                    widget.networkCore == null
+                        ? botLevelDescription
+                        : 'اتصال محلي مباشر بين لاعبين؛ المضيف هو اللاعب الأول.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -239,7 +278,8 @@ class _SupportedModeCard extends StatelessWidget {
           children: [
             CircleAvatar(
               backgroundColor: colorScheme.primaryContainer,
-              child: Icon(Icons.sports_martial_arts, color: colorScheme.primary),
+              child:
+                  Icon(Icons.sports_martial_arts, color: colorScheme.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -247,12 +287,16 @@ class _SupportedModeCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    networkGame ? 'النمط: لاعب ضد لاعب عبر LAN' : 'النمط المتاح حاليًا: 1 ضد 1',
+                    networkGame
+                        ? 'النمط: لاعب ضد لاعب عبر LAN'
+                        : 'النمط المتاح حاليًا: 1 ضد 1',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
-                    networkGame ? 'تتم مزامنة الحركة والهجوم والصحة بين الجهازين.' : 'لاعب واحد ضد روبوت. اللعب الجماعي ونمط الفرق سيظهران بعد اكتمال دعمهما داخل الساحة.',
+                    networkGame
+                        ? 'تتم مزامنة الحركة والهجوم والصحة بين الجهازين.'
+                        : 'لاعب واحد ضد روبوت. اللعب الجماعي ونمط الفرق سيظهران بعد اكتمال دعمهما داخل الساحة.',
                     style: TextStyle(fontSize: 12),
                   ),
                 ],

@@ -54,8 +54,7 @@ class _ProPenaltyShootoutGameScreenState
   final List<bool> _awayResults = <bool>[];
 
   bool get _networkGame => widget.networkCore != null;
-  bool get _isHost =>
-      widget.networkCore?.state.mode == LocalNetworkMode.host;
+  bool get _isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
   bool get _localTurn => !_networkGame || (_turn.isEven == _isHost);
 
   bool get _finished {
@@ -84,7 +83,8 @@ class _ProPenaltyShootoutGameScreenState
     )..repeat();
 
     if (_networkGame) {
-      _subscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
+      _subscription =
+          widget.networkCore!.messages.listen(_handleNetworkMessage);
     }
   }
 
@@ -349,16 +349,24 @@ class _ProPenaltyShootoutGameScreenState
     if (turn is! int || zone is! int || keeperZone is! int || goal is! bool) {
       return;
     }
-    if (turn != _turn || zone < 0 || zone > 8 || keeperZone < 0 || keeperZone > 8) {
+    if (turn != _turn ||
+        zone < 0 ||
+        zone > 8 ||
+        keeperZone < 0 ||
+        keeperZone > 8) {
       return;
     }
 
     final fallbackTarget = _zoneCenter(zone);
     final fallbackKeeper = _zoneCenter(keeperZone);
-    final targetX = _payloadDouble(message.payload['targetX']) ?? fallbackTarget.dx;
-    final targetY = _payloadDouble(message.payload['targetY']) ?? fallbackTarget.dy;
-    final keeperX = _payloadDouble(message.payload['keeperX']) ?? fallbackKeeper.dx;
-    final keeperY = _payloadDouble(message.payload['keeperY']) ?? fallbackKeeper.dy;
+    final targetX =
+        _payloadDouble(message.payload['targetX']) ?? fallbackTarget.dx;
+    final targetY =
+        _payloadDouble(message.payload['targetY']) ?? fallbackTarget.dy;
+    final keeperX =
+        _payloadDouble(message.payload['keeperX']) ?? fallbackKeeper.dx;
+    final keeperY =
+        _payloadDouble(message.payload['keeperY']) ?? fallbackKeeper.dy;
     final power = _payloadDouble(message.payload['power']) ?? 0.82;
 
     final teamId = message.payload['teamId']?.toString() ?? '';
@@ -702,7 +710,8 @@ class _ProPenaltyShootoutGameScreenState
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white12),
         boxShadow: const <BoxShadow>[
-          BoxShadow(color: Colors.black45, blurRadius: 16, offset: Offset(0, 7)),
+          BoxShadow(
+              color: Colors.black45, blurRadius: 16, offset: Offset(0, 7)),
         ],
       ),
       child: Row(

@@ -73,16 +73,14 @@ class HomeScreen extends StatelessWidget {
       name: 'الضامة',
       playersText: 'لاعبان',
       status: 'ضد لاعب أو ضد الكمبيوتر',
-      builder: (_, networkCore) =>
-          CheckersGameScreen(networkCore: networkCore),
+      builder: (_, networkCore) => CheckersGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'domino',
       name: 'الدومينو',
       playersText: '2 عبر الشبكة / 4 محليًا',
       status: 'ضد الكمبيوتر أو لاعب عبر الشبكة أو 4 لاعبين محليًا',
-      builder: (_, networkCore) =>
-          DominoGameScreen(networkCore: networkCore),
+      builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'chicken',

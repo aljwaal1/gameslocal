@@ -17,7 +17,8 @@ class _WifiLobbyScreenState extends State<WifiLobbyScreen> {
   void createRoom() {
     setState(() {
       hosting = true;
-      roomCode = 'LOCAL-${DateTime.now().second.toString().padLeft(2, '0')}${DateTime.now().minute.toString().padLeft(2, '0')}';
+      roomCode =
+          'LOCAL-${DateTime.now().second.toString().padLeft(2, '0')}${DateTime.now().minute.toString().padLeft(2, '0')}';
       status = 'تم إنشاء غرفة تجريبية. اجعل الجهازين على نفس Wi‑Fi أو Hotspot.';
     });
   }
@@ -25,7 +26,8 @@ class _WifiLobbyScreenState extends State<WifiLobbyScreen> {
   void joinRoom() {
     setState(() {
       hosting = false;
-      status = 'وضع الانضمام مفعّل. في التحديث القادم سيتم البحث الفعلي عن المضيف.';
+      status =
+          'وضع الانضمام مفعّل. في التحديث القادم سيتم البحث الفعلي عن المضيف.';
     });
   }
 
@@ -48,7 +50,9 @@ class _WifiLobbyScreenState extends State<WifiLobbyScreen> {
                         Icon(Icons.wifi, color: AppColors.primary, size: 34),
                         SizedBox(width: 10),
                         Expanded(
-                          child: Text('غرفة محلية', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                          child: Text('غرفة محلية',
+                              style: TextStyle(
+                                  fontSize: 22, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ),
@@ -64,9 +68,14 @@ class _WifiLobbyScreenState extends State<WifiLobbyScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Text('رمز الغرفة', style: TextStyle(color: AppColors.muted)),
+                          const Text('رمز الغرفة',
+                              style: TextStyle(color: AppColors.muted)),
                           const SizedBox(height: 6),
-                          Text(roomCode, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+                          Text(roomCode,
+                              style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primaryDark)),
                         ],
                       ),
                     ),

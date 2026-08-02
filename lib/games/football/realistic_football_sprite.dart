@@ -37,8 +37,7 @@ class RealisticFootballSprite extends StatelessWidget {
       FootballSpritePose.playerKick => 'assets/football/photo/player_kick.jpg',
       FootballSpritePose.keeperReady =>
         'assets/football/photo/keeper_ready.jpg',
-      FootballSpritePose.keeperDive =>
-        'assets/football/photo/keeper_dive.jpg',
+      FootballSpritePose.keeperDive => 'assets/football/photo/keeper_dive.jpg',
     };
   }
 

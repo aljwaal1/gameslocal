@@ -29,7 +29,8 @@ const List<FootballTeam> footballTeams = <FootballTeam>[
   FootballTeam('netherlands', 'هولندا', Color(0xFFFF6B00), Colors.white),
   FootballTeam('croatia', 'كرواتيا', Color(0xFFD00027), Colors.white),
   FootballTeam('japan', 'اليابان', Color(0xFF1D2D5C), Colors.white),
-  FootballTeam('south_korea', 'كوريا الجنوبية', Color(0xFFE6002D), Color(0xFF003478)),
+  FootballTeam(
+      'south_korea', 'كوريا الجنوبية', Color(0xFFE6002D), Color(0xFF003478)),
   FootballTeam('mexico', 'المكسيك', Color(0xFF006847), Color(0xFFCE1126)),
   FootballTeam('egypt', 'مصر', Color(0xFFCE1126), Colors.white),
   FootballTeam('saudi', 'السعودية', Color(0xFF006C35), Colors.white),
@@ -43,7 +44,8 @@ class PenaltyShootoutGameScreen extends StatefulWidget {
   final LocalNetworkCore? networkCore;
 
   @override
-  State<PenaltyShootoutGameScreen> createState() => _PenaltyShootoutGameScreenState();
+  State<PenaltyShootoutGameScreen> createState() =>
+      _PenaltyShootoutGameScreenState();
 }
 
 class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
@@ -89,7 +91,8 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
   void initState() {
     super.initState();
     if (_networkGame) {
-      _subscription = widget.networkCore!.messages.listen(_handleNetworkMessage);
+      _subscription =
+          widget.networkCore!.messages.listen(_handleNetworkMessage);
     }
   }
 
@@ -132,12 +135,14 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
   }
 
   Future<void> _shoot(int zone) async {
-    if (!_started || _busy || _finished || !_localTurn || _connectionLost) return;
+    if (!_started || _busy || _finished || !_localTurn || _connectionLost)
+      return;
     final keeperZone = _random.nextInt(9);
     final goal = !(keeperZone == zone && _random.nextDouble() < 0.80);
     final shotTurn = _turn;
 
-    await _applyShot(zone: zone, keeperZone: keeperZone, goal: goal, remote: false);
+    await _applyShot(
+        zone: zone, keeperZone: keeperZone, goal: goal, remote: false);
 
     if (_networkGame) {
       widget.networkCore!.sendMove(<String, dynamic>{
@@ -220,12 +225,16 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
         _message = _homeGoals > _awayGoals
             ? '🏆 فاز ${_homeTeam.name}'
             : '🏆 فاز ${_awayTeam.name}';
-      } else if (_homeShots >= 5 && _awayShots >= 5 && _homeGoals == _awayGoals) {
+      } else if (_homeShots >= 5 &&
+          _awayShots >= 5 &&
+          _homeGoals == _awayGoals) {
         _message = 'تعادل! تبدأ الآن ركلات الحسم المفاجئ';
       } else if (_networkGame) {
-        _message = _localTurn ? 'دورك: اختر مكان التسديدة' : 'بانتظار اللاعب الآخر';
+        _message =
+            _localTurn ? 'دورك: اختر مكان التسديدة' : 'بانتظار اللاعب الآخر';
       } else {
-        _message = _turn.isEven ? 'دورك: اختر مكان التسديدة' : 'الروبوت يستعد...';
+        _message =
+            _turn.isEven ? 'دورك: اختر مكان التسديدة' : 'الروبوت يستعد...';
       }
     });
 
@@ -241,7 +250,8 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
     final zone = _random.nextInt(9);
     final keeperZone = _random.nextInt(9);
     final goal = !(zone == keeperZone && _random.nextDouble() < 0.68);
-    await _applyShot(zone: zone, keeperZone: keeperZone, goal: goal, remote: true);
+    await _applyShot(
+        zone: zone, keeperZone: keeperZone, goal: goal, remote: true);
   }
 
   void _handleNetworkMessage(NetworkMessage message) {
@@ -261,8 +271,13 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
     final zone = message.payload['zone'];
     final keeperZone = message.payload['keeperZone'];
     final goal = message.payload['goal'];
-    if (turn is! int || zone is! int || keeperZone is! int || goal is! bool) return;
-    if (turn != _turn || zone < 0 || zone > 8 || keeperZone < 0 || keeperZone > 8) return;
+    if (turn is! int || zone is! int || keeperZone is! int || goal is! bool)
+      return;
+    if (turn != _turn ||
+        zone < 0 ||
+        zone > 8 ||
+        keeperZone < 0 ||
+        keeperZone > 8) return;
 
     final teamId = message.payload['teamId']?.toString() ?? '';
     final teams = footballTeams.where((team) => team.id == teamId);
@@ -278,9 +293,15 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
 
   Alignment _alignment(int zone) {
     const zones = <Alignment>[
-      Alignment(-0.78, -0.66), Alignment(0, -0.66), Alignment(0.78, -0.66),
-      Alignment(-0.78, -0.05), Alignment.center, Alignment(0.78, -0.05),
-      Alignment(-0.78, 0.58), Alignment(0, 0.58), Alignment(0.78, 0.58),
+      Alignment(-0.78, -0.66),
+      Alignment(0, -0.66),
+      Alignment(0.78, -0.66),
+      Alignment(-0.78, -0.05),
+      Alignment.center,
+      Alignment(0.78, -0.05),
+      Alignment(-0.78, 0.58),
+      Alignment(0, 0.58),
+      Alignment(0.78, 0.58),
     ];
     return zones[zone.clamp(0, 8)];
   }
@@ -322,28 +343,40 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
               colors: <Color>[Color(0xFF064E3B), Color(0xFF0B172A)],
             ),
             boxShadow: const <BoxShadow>[
-              BoxShadow(color: Colors.black45, blurRadius: 24, offset: Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black45, blurRadius: 24, offset: Offset(0, 10)),
             ],
           ),
           child: const Column(
             children: <Widget>[
               Icon(Icons.sports_soccer, color: Color(0xFFFFD166), size: 74),
               SizedBox(height: 12),
-              Text('ليلة ركلات الترجيح', style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900)),
+              Text('ليلة ركلات الترجيح',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w900)),
               SizedBox(height: 6),
-              Text('اختر منتخبك وادخل أجواء الملعب', style: TextStyle(color: Colors.white70, fontSize: 16)),
+              Text('اختر منتخبك وادخل أجواء الملعب',
+                  style: TextStyle(color: Colors.white70, fontSize: 16)),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        _teamPicker('منتخبك', _homeTeam, (team) => setState(() => _homeTeam = team)),
+        _teamPicker(
+            'منتخبك', _homeTeam, (team) => setState(() => _homeTeam = team)),
         const SizedBox(height: 12),
-        _teamPicker('المنتخب المنافس', _awayTeam, (team) => setState(() => _awayTeam = team)),
+        _teamPicker('المنتخب المنافس', _awayTeam,
+            (team) => setState(() => _awayTeam = team)),
         const SizedBox(height: 14),
-        Text(_message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        Text(_message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         FilledButton.icon(
-          style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 17)),
+          style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 17)),
           onPressed: _start,
           icon: const Icon(Icons.stadium),
           label: Text(_networkGame ? 'ابدأ مباراة الشبكة' : 'ابدأ ضد الروبوت'),
@@ -352,7 +385,8 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
     );
   }
 
-  Widget _teamPicker(String title, FootballTeam selected, ValueChanged<FootballTeam> onChanged) {
+  Widget _teamPicker(String title, FootballTeam selected,
+      ValueChanged<FootballTeam> onChanged) {
     return Card(
       color: const Color(0xFF102D28),
       child: Padding(
@@ -360,7 +394,11 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(title,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             DropdownButtonFormField<String>(
               value: selected.id,
@@ -371,7 +409,11 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
                 for (final team in footballTeams)
                   DropdownMenuItem<String>(
                     value: team.id,
-                    child: Row(children: [_Kit(team: team, small: true), const SizedBox(width: 10), Text(team.name)]),
+                    child: Row(children: [
+                      _Kit(team: team, small: true),
+                      const SizedBox(width: 10),
+                      Text(team.name)
+                    ]),
                   ),
               ],
               onChanged: (id) {
@@ -392,7 +434,11 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
           Expanded(child: _scoreCard(_homeTeam, _homeGoals, _homeResults)),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 6),
-            child: Text('VS', style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
+            child: Text('VS',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900)),
           ),
           Expanded(child: _scoreCard(_awayTeam, _awayGoals, _awayResults)),
         ]),
@@ -403,11 +449,18 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: _showResultFlash
-                ? (_lastGoal ? const Color(0xFF16A34A) : const Color(0xFFDC2626))
+                ? (_lastGoal
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFFDC2626))
                 : const Color(0xFF102D28),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Text(_message, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
+          child: Text(_message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900)),
         ),
         const SizedBox(height: 12),
         AspectRatio(
@@ -416,7 +469,8 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
             borderRadius: BorderRadius.circular(28),
             child: Stack(
               children: [
-                const Positioned.fill(child: CustomPaint(painter: _StadiumPainter())),
+                const Positioned.fill(
+                    child: CustomPaint(painter: _StadiumPainter())),
                 Positioned(
                   left: 12,
                   right: 12,
@@ -425,16 +479,23 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTapUp: (details) {
-                      if (!_localTurn || _busy || _finished || _connectionLost) return;
-                      final col = (details.localPosition.dx / (details.localPosition.dx.isFinite ? 1 : 1));
+                      if (!_localTurn || _busy || _finished || _connectionLost)
+                        return;
+                      final col = (details.localPosition.dx /
+                          (details.localPosition.dx.isFinite ? 1 : 1));
                       final width = MediaQuery.sizeOf(context).width - 52;
-                      final column = (details.localPosition.dx / (width / 3)).floor().clamp(0, 2);
-                      final row = (details.localPosition.dy / (230 / 3)).floor().clamp(0, 2);
+                      final column = (details.localPosition.dx / (width / 3))
+                          .floor()
+                          .clamp(0, 2);
+                      final row = (details.localPosition.dy / (230 / 3))
+                          .floor()
+                          .clamp(0, 2);
                       _shoot(row * 3 + column);
                     },
                     child: Stack(
                       children: [
-                        const Positioned.fill(child: CustomPaint(painter: _GoalPainter())),
+                        const Positioned.fill(
+                            child: CustomPaint(painter: _GoalPainter())),
                         AnimatedAlign(
                           duration: const Duration(milliseconds: 420),
                           curve: Curves.easeOutCubic,
@@ -464,7 +525,11 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
                   bottom: 20,
                   child: AnimatedSlide(
                     duration: const Duration(milliseconds: 300),
-                    offset: Offset(_shooterPose == 0 ? 0 : (_shooterPose == 1 ? 0.35 : 0.62), 0),
+                    offset: Offset(
+                        _shooterPose == 0
+                            ? 0
+                            : (_shooterPose == 1 ? 0.35 : 0.62),
+                        0),
                     child: CustomPaint(
                       size: const Size(105, 170),
                       painter: _PlayerPainter(
@@ -484,7 +549,12 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
                     child: Text(
                       'المس الزاوية التي تريد التسديد نحوها',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, shadows: <Shadow>[Shadow(color: Colors.black, blurRadius: 5)]),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          shadows: <Shadow>[
+                            Shadow(color: Colors.black, blurRadius: 5)
+                          ]),
                     ),
                   ),
               ],
@@ -510,11 +580,24 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
         child: Column(children: [
           _Kit(team: team),
           const SizedBox(height: 5),
-          Text(team.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          Text('$goals', style: const TextStyle(color: Color(0xFFFFD166), fontSize: 28, fontWeight: FontWeight.w900)),
+          Text(team.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.bold)),
+          Text('$goals',
+              style: const TextStyle(
+                  color: Color(0xFFFFD166),
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900)),
           Wrap(
             spacing: 2,
-            children: [for (final result in results) Icon(result ? Icons.check_circle : Icons.cancel, size: 14, color: result ? Colors.greenAccent : Colors.redAccent)],
+            children: [
+              for (final result in results)
+                Icon(result ? Icons.check_circle : Icons.cancel,
+                    size: 14,
+                    color: result ? Colors.greenAccent : Colors.redAccent)
+            ],
           ),
         ]),
       ),
@@ -538,7 +621,9 @@ class _Kit extends StatelessWidget {
         borderRadius: BorderRadius.circular(small ? 8 : 14),
         gradient: LinearGradient(colors: <Color>[team.primary, team.secondary]),
         border: Border.all(color: Colors.white24),
-        boxShadow: const <BoxShadow>[BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3))],
+        boxShadow: const <BoxShadow>[
+          BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3))
+        ],
       ),
       child: Icon(Icons.checkroom, color: Colors.white, size: small ? 21 : 33),
     );
@@ -556,7 +641,9 @@ class _BallWidget extends StatelessWidget {
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white,
-        boxShadow: <BoxShadow>[BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 4))],
+        boxShadow: <BoxShadow>[
+          BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(0, 4))
+        ],
       ),
       child: const Icon(Icons.sports_soccer, size: 34, color: Colors.black87),
     );
@@ -568,32 +655,57 @@ class _StadiumPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final sky = Paint()..shader = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: <Color>[Color(0xFF071A33), Color(0xFF123E45)],
-    ).createShader(Offset.zero & size);
+    final sky = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: <Color>[Color(0xFF071A33), Color(0xFF123E45)],
+      ).createShader(Offset.zero & size);
     canvas.drawRect(Offset.zero & size, sky);
 
     final crowd = Paint()..color = const Color(0xFF15263A);
-    canvas.drawRect(Rect.fromLTWH(0, size.height * 0.12, size.width, size.height * 0.25), crowd);
+    canvas.drawRect(
+        Rect.fromLTWH(0, size.height * 0.12, size.width, size.height * 0.25),
+        crowd);
     final random = Random(7);
     final dot = Paint();
     for (var i = 0; i < 240; i++) {
-      dot.color = <Color>[Colors.white54, Colors.yellowAccent, Colors.redAccent, Colors.lightBlueAccent][i % 4];
-      canvas.drawCircle(Offset(random.nextDouble() * size.width, size.height * 0.13 + random.nextDouble() * size.height * 0.20), 1.2, dot);
+      dot.color = <Color>[
+        Colors.white54,
+        Colors.yellowAccent,
+        Colors.redAccent,
+        Colors.lightBlueAccent
+      ][i % 4];
+      canvas.drawCircle(
+          Offset(random.nextDouble() * size.width,
+              size.height * 0.13 + random.nextDouble() * size.height * 0.20),
+          1.2,
+          dot);
     }
 
-    final pitch = Paint()..shader = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: <Color>[Color(0xFF16833F), Color(0xFF075A2B)],
-    ).createShader(Rect.fromLTWH(0, size.height * 0.35, size.width, size.height * 0.65));
-    canvas.drawRect(Rect.fromLTWH(0, size.height * 0.35, size.width, size.height * 0.65), pitch);
+    final pitch = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: <Color>[Color(0xFF16833F), Color(0xFF075A2B)],
+      ).createShader(
+          Rect.fromLTWH(0, size.height * 0.35, size.width, size.height * 0.65));
+    canvas.drawRect(
+        Rect.fromLTWH(0, size.height * 0.35, size.width, size.height * 0.65),
+        pitch);
 
-    final line = Paint()..color = Colors.white70..strokeWidth = 2..style = PaintingStyle.stroke;
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width / 2, size.height * 0.83), width: size.width * 0.66, height: size.height * 0.30), line);
-    canvas.drawCircle(Offset(size.width / 2, size.height * 0.72), 4, Paint()..color = Colors.white);
+    final line = Paint()
+      ..color = Colors.white70
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(size.width / 2, size.height * 0.83),
+            width: size.width * 0.66,
+            height: size.height * 0.30),
+        line);
+    canvas.drawCircle(Offset(size.width / 2, size.height * 0.72), 4,
+        Paint()..color = Colors.white);
   }
 
   @override
@@ -605,12 +717,24 @@ class _GoalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final shadow = Paint()..color = Colors.black38..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-    canvas.drawRect(Rect.fromLTWH(size.width * 0.05, size.height * 0.05, size.width * 0.90, size.height * 0.82), shadow);
+    final shadow = Paint()
+      ..color = Colors.black38
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawRect(
+        Rect.fromLTWH(size.width * 0.05, size.height * 0.05, size.width * 0.90,
+            size.height * 0.82),
+        shadow);
 
-    final line = Paint()..color = Colors.white..strokeWidth = 4..style = PaintingStyle.stroke;
-    final net = Paint()..color = Colors.white38..strokeWidth = 1.2..style = PaintingStyle.stroke;
-    final goal = Rect.fromLTWH(size.width * 0.05, size.height * 0.05, size.width * 0.90, size.height * 0.82);
+    final line = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke;
+    final net = Paint()
+      ..color = Colors.white38
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke;
+    final goal = Rect.fromLTWH(size.width * 0.05, size.height * 0.05,
+        size.width * 0.90, size.height * 0.82);
     canvas.drawRect(goal, line);
     for (var i = 1; i < 9; i++) {
       final x = goal.left + goal.width * i / 9;
@@ -627,7 +751,11 @@ class _GoalPainter extends CustomPainter {
 }
 
 class _PlayerPainter extends CustomPainter {
-  const _PlayerPainter({required this.primary, required this.secondary, required this.keeper, required this.pose});
+  const _PlayerPainter(
+      {required this.primary,
+      required this.secondary,
+      required this.keeper,
+      required this.pose});
 
   final Color primary;
   final Color secondary;
@@ -639,57 +767,131 @@ class _PlayerPainter extends CustomPainter {
     final centerX = size.width / 2;
     final skin = Paint()..color = const Color(0xFFD99A68);
     final hair = Paint()..color = const Color(0xFF24150F);
-    final shirt = Paint()..shader = LinearGradient(colors: <Color>[primary, secondary]).createShader(Rect.fromLTWH(0, size.height * 0.28, size.width, size.height * 0.38));
+    final shirt = Paint()
+      ..shader = LinearGradient(colors: <Color>[primary, secondary])
+          .createShader(Rect.fromLTWH(
+              0, size.height * 0.28, size.width, size.height * 0.38));
     final shorts = Paint()..color = secondary.withOpacity(0.92);
     final boots = Paint()..color = Colors.black87;
     final white = Paint()..color = Colors.white;
     final dark = Paint()..color = Colors.black87;
 
-    canvas.drawOval(Rect.fromCenter(center: Offset(centerX + (pose == 2 ? 4 : 0), size.height * 0.17), width: size.width * 0.28, height: size.height * 0.24), skin);
-    canvas.drawArc(Rect.fromCenter(center: Offset(centerX, size.height * 0.13), width: size.width * 0.31, height: size.height * 0.18), pi, pi, true, hair);
-    canvas.drawCircle(Offset(centerX - size.width * 0.055, size.height * 0.16), 2.2, dark);
-    canvas.drawCircle(Offset(centerX + size.width * 0.055, size.height * 0.16), 2.2, dark);
-    canvas.drawArc(Rect.fromCenter(center: Offset(centerX, size.height * 0.20), width: size.width * 0.10, height: size.height * 0.05), 0, pi, false, dark..strokeWidth = 1.5..style = PaintingStyle.stroke);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(centerX + (pose == 2 ? 4 : 0), size.height * 0.17),
+            width: size.width * 0.28,
+            height: size.height * 0.24),
+        skin);
+    canvas.drawArc(
+        Rect.fromCenter(
+            center: Offset(centerX, size.height * 0.13),
+            width: size.width * 0.31,
+            height: size.height * 0.18),
+        pi,
+        pi,
+        true,
+        hair);
+    canvas.drawCircle(
+        Offset(centerX - size.width * 0.055, size.height * 0.16), 2.2, dark);
+    canvas.drawCircle(
+        Offset(centerX + size.width * 0.055, size.height * 0.16), 2.2, dark);
+    canvas.drawArc(
+        Rect.fromCenter(
+            center: Offset(centerX, size.height * 0.20),
+            width: size.width * 0.10,
+            height: size.height * 0.05),
+        0,
+        pi,
+        false,
+        dark
+          ..strokeWidth = 1.5
+          ..style = PaintingStyle.stroke);
 
-    final body = RRect.fromRectAndRadius(Rect.fromLTWH(size.width * 0.28, size.height * 0.27, size.width * 0.44, size.height * 0.34), const Radius.circular(10));
+    final body = RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.28, size.height * 0.27, size.width * 0.44,
+            size.height * 0.34),
+        const Radius.circular(10));
     canvas.drawRRect(body, shirt);
     canvas.drawCircle(Offset(centerX, size.height * 0.38), 10, white);
     final number = TextPainter(
-      text: TextSpan(text: keeper ? '1' : '9', style: TextStyle(color: primary.computeLuminance() > 0.55 ? Colors.black : Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
+      text: TextSpan(
+          text: keeper ? '1' : '9',
+          style: TextStyle(
+              color: primary.computeLuminance() > 0.55
+                  ? Colors.black
+                  : Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 13)),
       textDirection: TextDirection.ltr,
     )..layout();
-    number.paint(canvas, Offset(centerX - number.width / 2, size.height * 0.38 - number.height / 2));
+    number.paint(
+        canvas,
+        Offset(centerX - number.width / 2,
+            size.height * 0.38 - number.height / 2));
 
-    final armPaint = Paint()..color = primary..strokeWidth = size.width * 0.10..strokeCap = StrokeCap.round;
+    final armPaint = Paint()
+      ..color = primary
+      ..strokeWidth = size.width * 0.10
+      ..strokeCap = StrokeCap.round;
     if (keeper || pose == 2) {
-      canvas.drawLine(Offset(size.width * 0.31, size.height * 0.34), Offset(size.width * 0.07, size.height * 0.18), armPaint);
-      canvas.drawLine(Offset(size.width * 0.69, size.height * 0.34), Offset(size.width * 0.93, size.height * 0.18), armPaint);
+      canvas.drawLine(Offset(size.width * 0.31, size.height * 0.34),
+          Offset(size.width * 0.07, size.height * 0.18), armPaint);
+      canvas.drawLine(Offset(size.width * 0.69, size.height * 0.34),
+          Offset(size.width * 0.93, size.height * 0.18), armPaint);
       canvas.drawCircle(Offset(size.width * 0.06, size.height * 0.17), 6, skin);
       canvas.drawCircle(Offset(size.width * 0.94, size.height * 0.17), 6, skin);
     } else {
-      canvas.drawLine(Offset(size.width * 0.31, size.height * 0.34), Offset(size.width * 0.18, size.height * 0.53), armPaint);
-      canvas.drawLine(Offset(size.width * 0.69, size.height * 0.34), Offset(size.width * 0.82, size.height * 0.53), armPaint);
+      canvas.drawLine(Offset(size.width * 0.31, size.height * 0.34),
+          Offset(size.width * 0.18, size.height * 0.53), armPaint);
+      canvas.drawLine(Offset(size.width * 0.69, size.height * 0.34),
+          Offset(size.width * 0.82, size.height * 0.53), armPaint);
     }
 
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.width * 0.29, size.height * 0.59, size.width * 0.42, size.height * 0.18), const Radius.circular(7)), shorts);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            Rect.fromLTWH(size.width * 0.29, size.height * 0.59,
+                size.width * 0.42, size.height * 0.18),
+            const Radius.circular(7)),
+        shorts);
 
-    final leg = Paint()..color = skin.color..strokeWidth = size.width * 0.11..strokeCap = StrokeCap.round;
+    final leg = Paint()
+      ..color = skin.color
+      ..strokeWidth = size.width * 0.11
+      ..strokeCap = StrokeCap.round;
     final leftStart = Offset(size.width * 0.40, size.height * 0.72);
     final rightStart = Offset(size.width * 0.60, size.height * 0.72);
     if (!keeper && pose == 2) {
-      canvas.drawLine(leftStart, Offset(size.width * 0.34, size.height * 0.94), leg);
-      canvas.drawLine(rightStart, Offset(size.width * 0.93, size.height * 0.78), leg);
-      canvas.drawLine(Offset(size.width * 0.88, size.height * 0.78), Offset(size.width * 0.98, size.height * 0.78), boots..strokeWidth = 7..strokeCap = StrokeCap.round);
+      canvas.drawLine(
+          leftStart, Offset(size.width * 0.34, size.height * 0.94), leg);
+      canvas.drawLine(
+          rightStart, Offset(size.width * 0.93, size.height * 0.78), leg);
+      canvas.drawLine(
+          Offset(size.width * 0.88, size.height * 0.78),
+          Offset(size.width * 0.98, size.height * 0.78),
+          boots
+            ..strokeWidth = 7
+            ..strokeCap = StrokeCap.round);
     } else {
-      canvas.drawLine(leftStart, Offset(size.width * 0.37, size.height * 0.94), leg);
-      canvas.drawLine(rightStart, Offset(size.width * 0.63, size.height * 0.94), leg);
-      canvas.drawLine(Offset(size.width * 0.31, size.height * 0.95), Offset(size.width * 0.44, size.height * 0.95), boots..strokeWidth = 7..strokeCap = StrokeCap.round);
-      canvas.drawLine(Offset(size.width * 0.57, size.height * 0.95), Offset(size.width * 0.70, size.height * 0.95), boots);
+      canvas.drawLine(
+          leftStart, Offset(size.width * 0.37, size.height * 0.94), leg);
+      canvas.drawLine(
+          rightStart, Offset(size.width * 0.63, size.height * 0.94), leg);
+      canvas.drawLine(
+          Offset(size.width * 0.31, size.height * 0.95),
+          Offset(size.width * 0.44, size.height * 0.95),
+          boots
+            ..strokeWidth = 7
+            ..strokeCap = StrokeCap.round);
+      canvas.drawLine(Offset(size.width * 0.57, size.height * 0.95),
+          Offset(size.width * 0.70, size.height * 0.95), boots);
     }
   }
 
   @override
   bool shouldRepaint(covariant _PlayerPainter oldDelegate) {
-    return oldDelegate.primary != primary || oldDelegate.secondary != secondary || oldDelegate.pose != pose || oldDelegate.keeper != keeper;
+    return oldDelegate.primary != primary ||
+        oldDelegate.secondary != secondary ||
+        oldDelegate.pose != pose ||
+        oldDelegate.keeper != keeper;
   }
 }

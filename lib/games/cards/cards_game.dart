@@ -70,8 +70,10 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
-  bool get isLocalTurn => isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
-  List<PlayingCardModel> get localHand => isNetworkGame && !isHost ? botHand : playerHand;
+  bool get isLocalTurn =>
+      isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
+  List<PlayingCardModel> get localHand =>
+      isNetworkGame && !isHost ? botHand : playerHand;
   String get localPlayerId {
     final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
     final own = players.where((p) => p.isHost == isHost);
@@ -81,7 +83,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   @override
   void initState() {
     super.initState();
-    networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
+    networkSubscription =
+        widget.networkCore?.messages.listen(_handleNetworkMessage);
     newRound(resetScore: true);
     if (isNetworkGame && isHost) {
       Future<void>.delayed(
@@ -89,7 +92,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         () => _sendRoundStart(resetScore: true),
       );
     } else if (isNetworkGame) {
-      Future<void>.delayed(const Duration(milliseconds: 300), _requestRoundState);
+      Future<void>.delayed(
+          const Duration(milliseconds: 300), _requestRoundState);
     }
   }
 
@@ -100,7 +104,21 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   }
 
   void newRound({bool resetScore = false, int? seed}) {
-    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    const ranks = [
+      'A',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      '10',
+      'J',
+      'Q',
+      'K'
+    ];
     const suits = ['♥', '♦', '♣', '♠'];
     final cards = <PlayingCardModel>[];
     for (final suit in suits) {
@@ -130,13 +148,17 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       botSteals = 0;
     }
     dealHands();
-    message = isNetworkGame ? (isLocalTurn ? 'دورك: اختر ورقة' : 'بانتظار اللاعب الآخر') : 'دورك: اختر ورقة متشابهة للالتقاط أو السرقة';
+    message = isNetworkGame
+        ? (isLocalTurn ? 'دورك: اختر ورقة' : 'بانتظار اللاعب الآخر')
+        : 'دورك: اختر ورقة متشابهة للالتقاط أو السرقة';
     setState(() {});
   }
 
   void _requestRoundState() {
     if (!isNetworkGame) return;
-    widget.networkCore!.sendMove(<String, dynamic>{'game': 'cards', 'action': 'stateRequest'}, senderId: localPlayerId);
+    widget.networkCore!.sendMove(
+        <String, dynamic>{'game': 'cards', 'action': 'stateRequest'},
+        senderId: localPlayerId);
   }
 
   void _sendRoundStart({bool resetScore = false}) {
@@ -150,11 +172,19 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   }
 
   void _sendCard(PlayingCardModel card) {
-    widget.networkCore?.sendMove(<String, dynamic>{'game': 'cards', 'action': 'play', 'rank': card.rank, 'suit': card.suit}, senderId: localPlayerId);
+    widget.networkCore?.sendMove(<String, dynamic>{
+      'game': 'cards',
+      'action': 'play',
+      'rank': card.rank,
+      'suit': card.suit
+    }, senderId: localPlayerId);
   }
 
   void _handleNetworkMessage(NetworkMessage networkMessage) {
-    if (!mounted || networkMessage.type != NetworkMessageType.move || networkMessage.senderId == localPlayerId || networkMessage.payload['game'] != 'cards') return;
+    if (!mounted ||
+        networkMessage.type != NetworkMessageType.move ||
+        networkMessage.senderId == localPlayerId ||
+        networkMessage.payload['game'] != 'cards') return;
     final p = networkMessage.payload;
     if (p['action'] == 'stateRequest') {
       if (isHost) _sendRoundStart(resetScore: true);
@@ -169,9 +199,12 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     }
     if (p['action'] != 'play' || roundFinished) return;
     final remoteHand = isHost ? botHand : playerHand;
-    final index = remoteHand.indexWhere((card) => card.rank == p['rank'] && card.suit == p['suit']);
+    final index = remoteHand
+        .indexWhere((card) => card.rank == p['rank'] && card.suit == p['suit']);
     if (index < 0) return;
-    playCard(remoteHand[index], remoteHand, isHost ? botPile : playerPile, isHost ? playerPile : botPile, isPlayer: !isHost);
+    playCard(remoteHand[index], remoteHand, isHost ? botPile : playerPile,
+        isHost ? playerPile : botPile,
+        isPlayer: !isHost);
     if (checkRoundEnd()) return;
     playerTurn = !playerTurn;
     message = isLocalTurn ? 'دورك: اختر ورقة' : 'بانتظار اللاعب الآخر';
@@ -205,20 +238,23 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     }
   }
 
-  int scoreOfCards(List<PlayingCardModel> cards) => cards.fold(0, (sum, card) => sum + card.scoreValue);
+  int scoreOfCards(List<PlayingCardModel> cards) =>
+      cards.fold(0, (sum, card) => sum + card.scoreValue);
 
   void playPlayerCard(PlayingCardModel card) {
     if (!isLocalTurn || roundFinished) return;
     GameFeedback.move();
     final ownPile = isNetworkGame && !isHost ? botPile : playerPile;
     final opponentPile = isNetworkGame && !isHost ? playerPile : botPile;
-    playCard(card, localHand, ownPile, opponentPile, isPlayer: !isNetworkGame || isHost);
+    playCard(card, localHand, ownPile, opponentPile,
+        isPlayer: !isNetworkGame || isHost);
     if (isNetworkGame) _sendCard(card);
     if (checkRoundEnd()) return;
     playerTurn = !playerTurn;
     message = isNetworkGame ? 'بانتظار اللاعب الآخر' : 'الكمبيوتر يفكر...';
     setState(() {});
-    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 550), botMove);
+    if (!isNetworkGame)
+      Future<void>.delayed(const Duration(milliseconds: 550), botMove);
   }
 
   void botMove() {
@@ -236,21 +272,30 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   PlayingCardModel? chooseBotCard() {
     if (botHand.isEmpty) return null;
 
-    final tablePlayable = botHand.where((card) => table.any((t) => t.value == card.value)).toList();
-    final stealPlayable = botHand.where((card) => playerPile.any((p) => p.value == card.value)).toList();
+    final tablePlayable = botHand
+        .where((card) => table.any((t) => t.value == card.value))
+        .toList();
+    final stealPlayable = botHand
+        .where((card) => playerPile.any((p) => p.value == card.value))
+        .toList();
 
     switch (settings.botDifficulty) {
       case BotDifficulty.easy:
-        if (tablePlayable.isNotEmpty && random.nextBool()) return tablePlayable.first;
+        if (tablePlayable.isNotEmpty && random.nextBool())
+          return tablePlayable.first;
         return botHand[random.nextInt(botHand.length)];
       case BotDifficulty.normal:
         if (tablePlayable.isNotEmpty) return tablePlayable.first;
-        if (stealPlayable.isNotEmpty && random.nextBool()) return stealPlayable.first;
+        if (stealPlayable.isNotEmpty && random.nextBool())
+          return stealPlayable.first;
         return botHand[random.nextInt(botHand.length)];
       case BotDifficulty.hard:
         final allGood = [...tablePlayable, ...stealPlayable];
         if (allGood.isNotEmpty) {
-          allGood.sort((a, b) => max(scorePotential(b, table), scorePotential(b, playerPile)).compareTo(max(scorePotential(a, table), scorePotential(a, playerPile))));
+          allGood.sort((a, b) => max(
+                  scorePotential(b, table), scorePotential(b, playerPile))
+              .compareTo(max(
+                  scorePotential(a, table), scorePotential(a, playerPile))));
           return allGood.first;
         }
         return botHand[random.nextInt(botHand.length)];
@@ -285,11 +330,15 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       if (isPlayer) {
         playerScore += gained + basraBonus;
         if (madeBasra) playerBasra++;
-        message = madeBasra ? 'بسرا! التقطت كل الأرض +10' : 'التقطت أوراقًا متشابهة وربحت $gained نقطة';
+        message = madeBasra
+            ? 'بسرا! التقطت كل الأرض +10'
+            : 'التقطت أوراقًا متشابهة وربحت $gained نقطة';
       } else {
         botScore += gained + basraBonus;
         if (madeBasra) botBasra++;
-        message = madeBasra ? 'الكمبيوتر عمل بسرا +10' : 'الكمبيوتر التقط أوراقًا متشابهة وربح $gained نقطة';
+        message = madeBasra
+            ? 'الكمبيوتر عمل بسرا +10'
+            : 'الكمبيوتر التقط أوراقًا متشابهة وربح $gained نقطة';
       }
       GameFeedback.win();
     } else {
@@ -313,7 +362,9 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         GameFeedback.win();
       } else {
         table.add(card);
-        message = isPlayer ? 'لا يوجد متشابه، وضعت الورقة على الأرض' : 'الكمبيوتر وضع ورقة على الأرض';
+        message = isPlayer
+            ? 'لا يوجد متشابه، وضعت الورقة على الأرض'
+            : 'الكمبيوتر وضع ورقة على الأرض';
       }
     }
 
@@ -354,7 +405,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   }
 
   bool canCaptureOrSteal(PlayingCardModel card) {
-    return table.any((t) => t.value == card.value) || botPile.any((p) => p.value == card.value);
+    return table.any((t) => t.value == card.value) ||
+        botPile.any((p) => p.value == card.value);
   }
 
   Color get tableColor {
@@ -378,7 +430,12 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('الشدة / السراقة'),
-            actions: [IconButton(onPressed: _resetMatch, tooltip: 'تصفير المباراة', icon: const Icon(Icons.refresh))],
+            actions: [
+              IconButton(
+                  onPressed: _resetMatch,
+                  tooltip: 'تصفير المباراة',
+                  icon: const Icon(Icons.refresh))
+            ],
           ),
           body: SafeArea(
             child: Padding(
@@ -405,17 +462,23 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [tableColor, tableColor.withOpacity(0.72)]),
+                        gradient: LinearGradient(
+                            colors: [tableColor, tableColor.withOpacity(0.72)]),
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: table.isEmpty
-                          ? const Center(child: Text('لا توجد أوراق على الأرض', style: TextStyle(color: Colors.white)))
+                          ? const Center(
+                              child: Text('لا توجد أوراق على الأرض',
+                                  style: TextStyle(color: Colors.white)))
                           : Wrap(
                               alignment: WrapAlignment.center,
                               runAlignment: WrapAlignment.center,
                               spacing: 8,
                               runSpacing: 8,
-                              children: [for (final card in table) PlayingCardView(card: card, compact: true)],
+                              children: [
+                                for (final card in table)
+                                  PlayingCardView(card: card, compact: true)
+                              ],
                             ),
                     ),
                   ),
@@ -431,10 +494,14 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                         for (final card in localHand)
                           InkWell(
                             borderRadius: BorderRadius.circular(14),
-                            onTap: isLocalTurn && !roundFinished ? () => playPlayerCard(card) : null,
+                            onTap: isLocalTurn && !roundFinished
+                                ? () => playPlayerCard(card)
+                                : null,
                             child: Opacity(
                               opacity: isLocalTurn && !roundFinished ? 1 : 0.5,
-                              child: PlayingCardView(card: card, highlight: canCaptureOrSteal(card)),
+                              child: PlayingCardView(
+                                  card: card,
+                                  highlight: canCaptureOrSteal(card)),
                             ),
                           ),
                       ],
@@ -495,7 +562,12 @@ class _StatusCard extends StatelessWidget {
               children: [
                 const Icon(Icons.style, color: Color(0xFF7B2CBF)),
                 const SizedBox(width: 8),
-                Expanded(child: Text(message, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold))),
+                Expanded(
+                    child: Text(message,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 15, fontWeight: FontWeight.bold))),
               ],
             ),
             const SizedBox(height: 8),
@@ -532,7 +604,8 @@ class _OpponentPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: Row(
         children: [
           const Icon(Icons.smart_toy, color: AppColors.primary),
@@ -556,11 +629,17 @@ class _MiniStat extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 3),
         padding: const EdgeInsets.symmetric(vertical: 5),
-        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12)),
         child: Column(
           children: [
-            Text(value, style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
-            Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: AppColors.muted)),
+            Text(value,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 10, color: AppColors.muted)),
           ],
         ),
       ),
@@ -569,7 +648,11 @@ class _MiniStat extends StatelessWidget {
 }
 
 class PlayingCardView extends StatelessWidget {
-  const PlayingCardView({super.key, required this.card, this.compact = false, this.highlight = false});
+  const PlayingCardView(
+      {super.key,
+      required this.card,
+      this.compact = false,
+      this.highlight = false});
 
   final PlayingCardModel card;
   final bool compact;
@@ -590,19 +673,43 @@ class PlayingCardView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: highlight ? AppColors.accent : mainColor.withOpacity(0.25), width: highlight ? 3 : 1.4),
-        boxShadow: [BoxShadow(color: highlight ? AppColors.accent.withOpacity(0.45) : Colors.black26, blurRadius: highlight ? 10 : 7, offset: const Offset(0, 3))],
+        border: Border.all(
+            color: highlight ? AppColors.accent : mainColor.withOpacity(0.25),
+            width: highlight ? 3 : 1.4),
+        boxShadow: [
+          BoxShadow(
+              color: highlight
+                  ? AppColors.accent.withOpacity(0.45)
+                  : Colors.black26,
+              blurRadius: highlight ? 10 : 7,
+              offset: const Offset(0, 3))
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(card.rank, maxLines: 1, style: TextStyle(fontSize: rankSize, fontWeight: FontWeight.w900, color: mainColor, height: 0.9)),
+            Text(card.rank,
+                maxLines: 1,
+                style: TextStyle(
+                    fontSize: rankSize,
+                    fontWeight: FontWeight.w900,
+                    color: mainColor,
+                    height: 0.9)),
             const SizedBox(height: 5),
-            Text(card.suit, style: TextStyle(fontSize: suitSize, fontWeight: FontWeight.bold, color: mainColor, height: 0.9)),
+            Text(card.suit,
+                style: TextStyle(
+                    fontSize: suitSize,
+                    fontWeight: FontWeight.bold,
+                    color: mainColor,
+                    height: 0.9)),
             const SizedBox(height: 3),
-            Text('${card.scoreValue}', style: TextStyle(fontSize: compact ? 10 : 11, fontWeight: FontWeight.bold, color: AppColors.muted)),
+            Text('${card.scoreValue}',
+                style: TextStyle(
+                    fontSize: compact ? 10 : 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.muted)),
           ],
         ),
       ),

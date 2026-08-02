@@ -10,8 +10,7 @@ class ChickenAchievementsScreen extends StatefulWidget {
       _ChickenAchievementsScreenState();
 }
 
-class _ChickenAchievementsScreenState
-    extends State<ChickenAchievementsScreen> {
+class _ChickenAchievementsScreenState extends State<ChickenAchievementsScreen> {
   late Future<List<ChickenAchievementStatus>> _statusesFuture;
 
   @override
@@ -54,7 +53,8 @@ class _ChickenAchievementsScreenState
                     const SizedBox(height: 12),
                     const Text(
                       'تعذر تحميل الإنجازات',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     FilledButton.icon(
@@ -69,8 +69,10 @@ class _ChickenAchievementsScreenState
           }
 
           final statuses = snapshot.data ?? const <ChickenAchievementStatus>[];
-          final unlockedCount = statuses.where((item) => item.isUnlocked).length;
-          final ratio = statuses.isEmpty ? 0.0 : unlockedCount / statuses.length;
+          final unlockedCount =
+              statuses.where((item) => item.isUnlocked).length;
+          final ratio =
+              statuses.isEmpty ? 0.0 : unlockedCount / statuses.length;
 
           return RefreshIndicator(
             onRefresh: _refresh,
@@ -133,7 +135,8 @@ class _ProgressCard extends StatelessWidget {
                     children: [
                       const Text(
                         'تقدم الإنجازات',
-                        style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 19, fontWeight: FontWeight.bold),
                       ),
                       Text('$unlockedCount من $totalCount — $percentage%'),
                     ],
@@ -219,9 +222,8 @@ class _AchievementCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: unlocked
-                          ? const Color(0xFF2E7D4A)
-                          : Colors.black45,
+                      color:
+                          unlocked ? const Color(0xFF2E7D4A) : Colors.black45,
                     ),
                   ),
                 ],

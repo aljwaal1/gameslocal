@@ -10,8 +10,7 @@ class DominoFourPlayerScreen extends StatefulWidget {
   const DominoFourPlayerScreen({super.key});
 
   @override
-  State<DominoFourPlayerScreen> createState() =>
-      _DominoFourPlayerScreenState();
+  State<DominoFourPlayerScreen> createState() => _DominoFourPlayerScreenState();
 }
 
 class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
@@ -41,9 +40,8 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
     final startingPlayer = selectDominoStartingPlayer(
       hands
           .map(
-            (hand) => hand
-                .map((tile) => (tile.a, tile.b))
-                .toList(growable: false),
+            (hand) =>
+                hand.map((tile) => (tile.a, tile.b)).toList(growable: false),
           )
           .toList(growable: false),
     );
@@ -68,9 +66,8 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
     final result = calculateDominoBlockedResult(
       hands
           .map(
-            (hand) => hand
-                .map((tile) => tile.a + tile.b)
-                .toList(growable: false),
+            (hand) =>
+                hand.map((tile) => tile.a + tile.b).toList(growable: false),
           )
           .toList(growable: false),
     );
@@ -241,9 +238,7 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
                   ? Colors.white
                   : Colors.grey.shade300,
               border: Border.all(
-                color: playable && _legal(tile)
-                    ? Colors.green
-                    : Colors.black54,
+                color: playable && _legal(tile) ? Colors.green : Colors.black54,
                 width: 2,
               ),
               borderRadius: BorderRadius.circular(8),
