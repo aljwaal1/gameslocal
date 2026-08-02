@@ -48,7 +48,7 @@ jobs:
             echo "Requested updates already applied."
           fi
 
-      - name: Enforce answer length with valid short-word exceptions
+      - name: Apply category-specific short-word rules
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -57,26 +57,38 @@ jobs:
           path = Path('lib/games/name_animal_object/name_animal_object_game.dart')
           text = path.read_text(encoding='utf-8')
 
+          text = text.replace(
+              ".replaceAll(RegExp(r'[إأآ]'), 'ا')",
+              ".replaceAll(RegExp(r'[إأآٱ]'), 'ا')\n      .replaceAll(RegExp(r'[ًٌٍَُِّْـ]'), '')",
+          )
+
           pattern = re.compile(
-              r"bool _isValid\(String a\) \{.*?\n  \}",
+              r"bool _isValid\(String a(?:, String c)?\) \{.*?\n  \}",
               re.DOTALL,
           )
-          replacement = """bool _isValid(String a) {
+          replacement = """bool _isValid(String a, String category) {
     final normalized = _normalize(a).replaceAll(RegExp(r'\\s+'), '');
-    const validShortWords = <String>{
-      'دب',
-      'قط',
-      'زر',
-      'رز',
-      'مي',
+    const shortWordsByCategory = <String, Set<String>>{
+      'اسم': <String>{'مي'},
+      'حيوان': <String>{'دب', 'قط', 'بط'},
+      'جماد': <String>{'زر'},
+      'نبات': <String>{'رز', 'بن'},
+      'بلاد': <String>{},
     };
-    final hasValidLength = normalized.length >= 3 || validShortWords.contains(normalized);
+    final acceptedShortWord =
+        shortWordsByCategory[category]?.contains(normalized) ?? false;
+    final hasValidLength = normalized.length >= 3 || acceptedShortWord;
     return hasValidLength && normalized.startsWith(_normalize(_letter));
   }"""
 
           updated, count = pattern.subn(replacement, text, count=1)
           if count != 1:
-              raise SystemExit('Could not locate _isValid for short-word exception update')
+              old = "bool _isValid(String a) =>\n      a.trim().isNotEmpty && _normalize(a).startsWith(_normalize(_letter));"
+              if old not in text:
+                  raise SystemExit('Could not locate _isValid for category update')
+              updated = text.replace(old, replacement)
+
+          updated = updated.replace('if (!_isValid(a)) return 0;', 'if (!_isValid(a, c)) return 0;')
           path.write_text(updated, encoding='utf-8')
           PY
 
@@ -165,5 +177,5 @@ jobs:
             echo "No source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Allow valid two-letter words in name game"
+          git commit -m "Use category-specific short words in name game"
           git push origin HEAD:main
