@@ -48,6 +48,21 @@ jobs:
             echo "Requested updates already applied."
           fi
 
+      - name: Enforce minimum answer length
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/games/name_animal_object/name_animal_object_game.dart')
+          text = path.read_text(encoding='utf-8')
+          old = "bool _isValid(String a) =>\n      a.trim().isNotEmpty && _normalize(a).startsWith(_normalize(_letter));"
+          new = "bool _isValid(String a) {\n    final normalized = _normalize(a).replaceAll(RegExp(r'\\s+'), '');\n    return normalized.length >= 3 &&\n        normalized.startsWith(_normalize(_letter));\n  }"
+          if old in text:
+              text = text.replace(old, new)
+          elif 'normalized.length >= 3' not in text:
+              raise SystemExit('Could not locate _isValid for minimum-length update')
+          path.write_text(text, encoding='utf-8')
+          PY
+
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
 
@@ -133,5 +148,5 @@ jobs:
             echo "No source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Add responsive results audio and iPhone XO checkers multiplayer"
+          git commit -m "Require three-letter minimum in name game"
           git push origin HEAD:main
