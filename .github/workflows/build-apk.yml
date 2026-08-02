@@ -6,7 +6,6 @@ on:
     paths:
       - 'lib/**'
       - 'assets/**'
-      - 'tools/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -22,6 +21,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -40,205 +40,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Apply requested game updates
-        run: |
-          if [ ! -f lib/core/network/browser_game_bridge.dart ]; then
-            python3 tools/apply_requested_updates.py
-          else
-            echo "Requested updates already applied."
-          fi
-
-      - name: Apply category-specific short-word rules
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          path = Path('lib/games/name_animal_object/name_animal_object_game.dart')
-          text = path.read_text(encoding='utf-8')
-
-          text = text.replace(
-              ".replaceAll(RegExp(r'[إأآ]'), 'ا')",
-              ".replaceAll(RegExp(r'[إأآٱ]'), 'ا')\n      .replaceAll(RegExp(r'[ًٌٍَُِّْـ]'), '')",
-          )
-
-          pattern = re.compile(
-              r"bool _isValid\(String a(?:, String c)?\) \{.*?\n  \}",
-              re.DOTALL,
-          )
-          replacement = """bool _isValid(String a, String category) {
-    final normalized = _normalize(a).replaceAll(RegExp(r'\\s+'), '');
-    const shortWordsByCategory = <String, Set<String>>{
-      'اسم': <String>{'مي'},
-      'حيوان': <String>{'دب', 'قط', 'بط'},
-      'جماد': <String>{'زر'},
-      'نبات': <String>{'رز', 'بن'},
-      'بلاد': <String>{},
-    };
-    final acceptedShortWord =
-        shortWordsByCategory[category]?.contains(normalized) ?? false;
-    final hasValidLength = normalized.length >= 3 || acceptedShortWord;
-    return hasValidLength && normalized.startsWith(_normalize(_letter));
-  }"""
-
-          updated, count = pattern.subn(replacement, text, count=1)
-          if count != 1:
-              old = "bool _isValid(String a) =>\n      a.trim().isNotEmpty && _normalize(a).startsWith(_normalize(_letter));"
-              if old not in text:
-                  raise SystemExit('Could not locate _isValid for category update')
-              updated = text.replace(old, replacement)
-
-          updated = updated.replace(
-              'if (!_isValid(a)) return 0;',
-              'if (!_isValid(a, c)) return 0;',
-          )
-          path.write_text(updated, encoding='utf-8')
-          PY
-
-      - name: Repair and format line games screen
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-
-          path = Path('lib/games/line_games/line_games.dart')
-          text = path.read_text(encoding='utf-8')
-          start_marker = "  @override\n  Widget build(BuildContext context) {"
-          end_marker = "\n}\n\nclass _LinePainter"
-          start = text.find(start_marker)
-          end = text.find(end_marker, start)
-          if start < 0 or end < 0:
-              raise SystemExit('Could not locate malformed line-games build method')
-
-          replacement = r'''  @override
-  Widget build(BuildContext context) {
-    final boardSize = MediaQuery.sizeOf(context).shortestSide;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.kind == LineGameKind.sheikhBeard
-              ? 'لحية الشيخ'
-              : 'المربعات',
-        ),
-      ),
-      body: Column(
-        children: <Widget>[
-          if (host && url.isNotEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: <Widget>[
-                    QrImageView(data: url, size: 90),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SelectableText(
-                        '$url\nافتحه من Safari على نفس الشبكة',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: <Widget>[
-                for (var i = 0; i < players.length; i++)
-                  Chip(
-                    avatar: CircleAvatar(backgroundColor: colors[i % 4]),
-                    label: Text(
-                      '${players[i]['name']}: '
-                      '${scores[players[i]['id']] ?? 0}',
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (BuildContext context, BoxConstraints constraints) {
-                final size = math.min(
-                  constraints.maxWidth,
-                  constraints.maxHeight,
-                );
-                return Center(
-                  child: GestureDetector(
-                    onTapDown: (TapDownDetails details) {
-                      if (turnId != myId || size <= 0) return;
-                      final scale = size / 700;
-                      final point = details.localPosition / scale;
-                      if (widget.kind == LineGameKind.sheikhBeard) {
-                        var best = -1;
-                        var distance = double.infinity;
-                        for (var i = 0; i < points.length; i++) {
-                          final candidate = (points[i] - point).distanceSquared;
-                          if (candidate < distance) {
-                            distance = candidate;
-                            best = i;
-                          }
-                        }
-                        if (best >= 0 && distance < 900) {
-                          _move(myId, best);
-                        }
-                        return;
-                      }
-
-                      var best = -1;
-                      var distance = double.infinity;
-                      for (var i = 0; i < edges.length; i++) {
-                        if (edgeOwners[i] != null) continue;
-                        final a = points[edges[i][0]];
-                        final b = points[edges[i][1]];
-                        final ab = b - a;
-                        final denominator = ab.distanceSquared;
-                        if (denominator == 0) continue;
-                        final rawT =
-                            ((point - a).dx * ab.dx +
-                                (point - a).dy * ab.dy) /
-                            denominator;
-                        final t = rawT.clamp(0.0, 1.0);
-                        final candidate =
-                            (point - (a + ab * t)).distanceSquared;
-                        if (candidate < distance) {
-                          distance = candidate;
-                          best = i;
-                        }
-                      }
-                      if (best >= 0 && distance < 500) {
-                        _move(myId, best);
-                      }
-                    },
-                    child: CustomPaint(
-                      size: Size.square(size),
-                      painter: _LinePainter(
-                        points,
-                        owners,
-                        edges,
-                        edgeOwners,
-                        claimedLines,
-                        players,
-                        colors,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          if (boardSize < 400) const SizedBox(height: 4),
-        ],
-      ),
-    );
-  }
-}
-
-class _LinePainter'''
-
-          path.write_text(text[:start] + replacement + text[end + len(end_marker):], encoding='utf-8')
-          PY
-
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
 
@@ -249,6 +50,7 @@ class _LinePainter'''
         run: |
           python3 - <<'PY'
           from pathlib import Path
+
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           text = manifest.read_text(encoding='utf-8')
           marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
@@ -267,17 +69,8 @@ class _LinePainter'''
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Format updated sources
-        run: |
-          dart format \
-            lib/main.dart \
-            lib/core/audio_feedback.dart \
-            lib/core/network/browser_game_bridge.dart \
-            lib/core/game_room.dart \
-            lib/games/name_animal_object/name_animal_object_game.dart \
-            lib/games/xo/xo_game.dart \
-            lib/games/checkers/checkers_game.dart \
-            lib/games/line_games/line_games.dart
+      - name: Format Dart sources
+        run: dart format --set-exit-if-changed lib
 
       - name: Analyze project
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -289,12 +82,10 @@ class _LinePainter'''
         run: |
           set -euo pipefail
           test -s build/app/outputs/flutter-apk/app-release.apk
-          mkdir -p release apk/modern /tmp/gameslocal-update
+          mkdir -p release apk/modern
           cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
           sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
-          cp -R lib /tmp/gameslocal-update/lib
-          cp pubspec.yaml pubspec.lock /tmp/gameslocal-update/
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -306,25 +97,16 @@ class _LinePainter'''
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish corrected source and APK to main
+      - name: Publish APK to main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
-          cp apk/modern/gameslocal-flutter.apk /tmp/gameslocal-flutter.apk
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git checkout -B main origin/main
-          rm -rf lib
-          cp -R /tmp/gameslocal-update/lib ./lib
-          cp /tmp/gameslocal-update/pubspec.yaml ./pubspec.yaml
-          cp /tmp/gameslocal-update/pubspec.lock ./pubspec.lock
-          mkdir -p apk/modern
-          cp /tmp/gameslocal-flutter.apk apk/modern/gameslocal-flutter.apk
-          git add lib pubspec.yaml pubspec.lock apk/modern/gameslocal-flutter.apk
+          git add apk/modern/gameslocal-flutter.apk
           if git diff --cached --quiet; then
-            echo "No source or APK changes to publish."
+            echo "APK is unchanged."
             exit 0
           fi
-          git commit -m "Fix line games and publish Android APK"
+          git commit -m "Publish latest Android APK"
           git push origin HEAD:main
