@@ -24,6 +24,12 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
 
   bool get _isNameGame => widget.game.id == 'name_animal_object';
 
+  bool get _supportsIphone => const <String>{
+        'name_animal_object',
+        'sheikh_beard',
+        'dots_boxes',
+      }.contains(widget.game.id);
+
   @override
   void initState() {
     super.initState();
@@ -77,9 +83,10 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
           final LocalNetworkState state = snap.data ?? LocalNetworkState.idle();
           final bool hostReady = state.mode == LocalNetworkMode.host;
           final bool canStart = hostReady &&
-              (_isNameGame
+              (_supportsIphone
                   ? state.players.isNotEmpty
                   : state.players.length >= 2);
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: <Widget>[
@@ -90,7 +97,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Text(
-                        _isNameGame
+                        _supportsIphone
                             ? 'العب من أندرويد أو الآيفون على نفس الشبكة'
                             : 'اختر طريقة اللعب',
                         textAlign: TextAlign.center,
@@ -176,8 +183,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                         onPressed: canStart ? _start : null,
                         icon: const Icon(Icons.play_arrow),
                         label: Text(
-                          _isNameGame
-                              ? 'فتح اللعبة واستقبال الآيفون'
+                          _supportsIphone
+                              ? 'فتح اللعبة وإظهار QR للآيفون'
                               : 'بدء اللعبة على الجميع',
                         ),
                       ),
@@ -185,7 +192,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   ),
                 ),
               ),
-              if (!_isNameGame) ...<Widget>[
+              if (!_supportsIphone) ...<Widget>[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () => _openGame(useNetwork: false),
