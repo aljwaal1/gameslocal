@@ -54,7 +54,9 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
   String get _localId {
     final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
     final matching = players.where((p) => p.isHost == _isHost);
-    return matching.isNotEmpty ? matching.first.id : (_isHost ? 'host' : 'guest');
+    return matching.isNotEmpty
+        ? matching.first.id
+        : (_isHost ? 'host' : 'guest');
   }
 
   bool get _finished {
@@ -158,10 +160,13 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
     final keeperZone = _robotKeeperZone(target, power);
     final keeper = _zoneCenter(keeperZone);
     final shotZone = _zone(target);
-    final accuracyError = (1.0 - power).abs() * 0.08 + (power > 0.92 ? 0.06 : 0.0);
+    final accuracyError =
+        (1.0 - power).abs() * 0.08 + (power > 0.92 ? 0.06 : 0.0);
     final actualTarget = Offset(
-      (target.dx + (_random.nextDouble() - 0.5) * accuracyError).clamp(0.01, 0.99),
-      (target.dy + (_random.nextDouble() - 0.5) * accuracyError).clamp(0.01, 0.99),
+      (target.dx + (_random.nextDouble() - 0.5) * accuracyError)
+          .clamp(0.01, 0.99),
+      (target.dy + (_random.nextDouble() - 0.5) * accuracyError)
+          .clamp(0.01, 0.99),
     );
     final distance = (actualTarget - keeper).distance;
     final saved = shotZone == keeperZone &&
@@ -279,10 +284,11 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
     if (!mounted) return;
 
     final robotTargetZone = _random.nextInt(9);
-    final target = _zoneCenter(robotTargetZone) + Offset(
-      (_random.nextDouble() - 0.5) * 0.10,
-      (_random.nextDouble() - 0.5) * 0.08,
-    );
+    final target = _zoneCenter(robotTargetZone) +
+        Offset(
+          (_random.nextDouble() - 0.5) * 0.10,
+          (_random.nextDouble() - 0.5) * 0.08,
+        );
     final power = 0.67 + _random.nextDouble() * 0.30;
     final saved = diveZone == robotTargetZone && _random.nextDouble() < 0.72;
     final goal = !saved;
@@ -315,8 +321,12 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
     final ky = (message.payload['keeperY'] as num?)?.toDouble();
     final power = (message.payload['power'] as num?)?.toDouble();
     final goal = message.payload['goal'];
-    if (tx == null || ty == null || kx == null || ky == null ||
-        power == null || goal is! bool) return;
+    if (tx == null ||
+        ty == null ||
+        kx == null ||
+        ky == null ||
+        power == null ||
+        goal is! bool) return;
     unawaited(_animateShot(
       target: Offset(tx, ty),
       keeper: Offset(kx, ky),
@@ -361,7 +371,8 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
               colors: <Color>[Color(0xFF102F4A), Color(0xFF087F5B)],
             ),
             boxShadow: const <BoxShadow>[
-              BoxShadow(color: Colors.black54, blurRadius: 22, offset: Offset(0, 10)),
+              BoxShadow(
+                  color: Colors.black54, blurRadius: 22, offset: Offset(0, 10)),
             ],
           ),
           child: const Column(
@@ -370,7 +381,10 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
               SizedBox(height: 12),
               Text(
                 'ركلات الأبطال',
-                style: TextStyle(color: Colors.white, fontSize: 31, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 31,
+                    fontWeight: FontWeight.w900),
               ),
               SizedBox(height: 7),
               Text(
@@ -426,9 +440,15 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Text(title, style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w900)),
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w900)),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: const TextStyle(color: Colors.white60, fontSize: 13)),
+                    Text(subtitle,
+                        style: const TextStyle(
+                            color: Colors.white60, fontSize: 13)),
                   ],
                 ),
               ),
@@ -459,7 +479,10 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
               child: Text(
                 _message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16),
               ),
             ),
             const SizedBox(height: 9),
@@ -476,12 +499,14 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
                       if (_phase != _PenaltyPhase.saving) return;
                       final point = Offset(
                         (d.localPosition.dx / size.width).clamp(0.0, 1.0),
-                        (d.localPosition.dy / (size.height * 0.58)).clamp(0.0, 1.0),
+                        (d.localPosition.dy / (size.height * 0.58))
+                            .clamp(0.0, 1.0),
                       );
                       _chooseDive(point);
                     },
                     child: AnimatedBuilder(
-                      animation: Listenable.merge(<Listenable>[_shotController, _crowdController]),
+                      animation: Listenable.merge(
+                          <Listenable>[_shotController, _crowdController]),
                       builder: (context, _) => CustomPaint(
                         painter: _ChampionsPenaltyPainter(
                           shotProgress: _shotController.value,
@@ -510,7 +535,10 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
               const Text(
                 'اضغط داخل المرمى لاختيار جهة قفز الحارس قبل تسديدة الروبوت.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFFFFD166), fontSize: 13, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                    color: Color(0xFFFFD166),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800),
               ),
             if (_phase == _PenaltyPhase.finished) ...<Widget>[
               const SizedBox(height: 10),
@@ -531,15 +559,23 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
       return Expanded(
         child: Column(
           children: <Widget>[
-            Text(name, maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
-            Text('$goals', style: const TextStyle(color: Color(0xFFFFD166), fontSize: 28, fontWeight: FontWeight.w900)),
+            Text(name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w900)),
+            Text('$goals',
+                style: const TextStyle(
+                    color: Color(0xFFFFD166),
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900)),
             Wrap(
               spacing: 2,
               children: <Widget>[
                 for (final result in results)
                   Icon(result ? Icons.check_circle : Icons.cancel,
-                      size: 14, color: result ? Colors.greenAccent : Colors.redAccent),
+                      size: 14,
+                      color: result ? Colors.greenAccent : Colors.redAccent),
               ],
             ),
           ],
@@ -559,9 +595,12 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
           side('اللاعب 1', _playerOneGoals, _playerOneResults),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8),
-            child: Text('VS', style: TextStyle(color: Color(0xFFFFD166), fontWeight: FontWeight.w900)),
+            child: Text('VS',
+                style: TextStyle(
+                    color: Color(0xFFFFD166), fontWeight: FontWeight.w900)),
           ),
-          side(_isRobotMatch ? 'الروبوت' : 'اللاعب 2', _playerTwoGoals, _playerTwoResults),
+          side(_isRobotMatch ? 'الروبوت' : 'اللاعب 2', _playerTwoGoals,
+              _playerTwoResults),
         ],
       ),
     );
@@ -598,14 +637,16 @@ class _ChampionsPenaltyPainter extends CustomPainter {
       end: Alignment.bottomCenter,
       colors: <Color>[Color(0xFF07121E), Color(0xFF12334B), Color(0xFF0A5D3E)],
     ).createShader(stadium);
-    canvas.drawRRect(RRect.fromRectAndRadius(stadium, const Radius.circular(24)), paint);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(stadium, const Radius.circular(24)), paint);
 
     paint.shader = null;
     for (var i = 0; i < 80; i++) {
       final x = (i * 47.0) % size.width;
       final y = 18 + (i % 5) * 12.0;
       final pulse = 0.45 + 0.45 * math.sin(crowdProgress * math.pi * 2 + i);
-      paint.color = Color.lerp(const Color(0xFF5AB0D8), const Color(0xFFFFD166), pulse)!;
+      paint.color =
+          Color.lerp(const Color(0xFF5AB0D8), const Color(0xFFFFD166), pulse)!;
       canvas.drawCircle(Offset(x, y), 1.6, paint);
     }
 
@@ -639,11 +680,13 @@ class _ChampionsPenaltyPainter extends CustomPainter {
     paint.color = Colors.white38;
     for (var i = 1; i < 8; i++) {
       final x = goalRect.left + goalRect.width * i / 8;
-      canvas.drawLine(Offset(x, goalRect.top), Offset(x, goalRect.bottom), paint);
+      canvas.drawLine(
+          Offset(x, goalRect.top), Offset(x, goalRect.bottom), paint);
     }
     for (var i = 1; i < 5; i++) {
       final y = goalRect.top + goalRect.height * i / 5;
-      canvas.drawLine(Offset(goalRect.left, y), Offset(goalRect.right, y), paint);
+      canvas.drawLine(
+          Offset(goalRect.left, y), Offset(goalRect.right, y), paint);
     }
 
     final keeperPoint = Offset(
@@ -674,7 +717,10 @@ class _ChampionsPenaltyPainter extends CustomPainter {
       paint.color = const Color(0xCC081521);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromCenter(center: Offset(size.width * 0.5, size.height * 0.94), width: size.width * 0.55, height: 28),
+          Rect.fromCenter(
+              center: Offset(size.width * 0.5, size.height * 0.94),
+              width: size.width * 0.55,
+              height: 28),
           const Radius.circular(12),
         ),
         paint,
@@ -682,7 +728,8 @@ class _ChampionsPenaltyPainter extends CustomPainter {
       paint.color = power > 0.92 ? Colors.redAccent : const Color(0xFFFFD166);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(size.width * 0.225, size.height * 0.925, size.width * 0.55 * power, 10),
+          Rect.fromLTWH(size.width * 0.225, size.height * 0.925,
+              size.width * 0.55 * power, 10),
           const Radius.circular(6),
         ),
         paint,
@@ -697,12 +744,15 @@ class _ChampionsPenaltyPainter extends CustomPainter {
             color: goal ? const Color(0xFFFFD166) : Colors.white,
             fontSize: size.width * 0.12,
             fontWeight: FontWeight.w900,
-            shadows: const <Shadow>[Shadow(color: Colors.black, blurRadius: 12)],
+            shadows: const <Shadow>[
+              Shadow(color: Colors.black, blurRadius: 12)
+            ],
           ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      textPainter.paint(canvas, Offset((size.width - textPainter.width) / 2, size.height * 0.53));
+      textPainter.paint(canvas,
+          Offset((size.width - textPainter.width) / 2, size.height * 0.53));
     }
   }
 
@@ -711,11 +761,16 @@ class _ChampionsPenaltyPainter extends CustomPainter {
     paint.strokeCap = StrokeCap.round;
     paint.strokeWidth = scale * 0.32;
     paint.color = const Color(0xFFFFB703);
-    canvas.drawLine(center + Offset(0, -scale), center + Offset(0, scale), paint);
-    canvas.drawLine(center + Offset(0, -scale * 0.45), center + Offset(-scale * 1.35, 0), paint);
-    canvas.drawLine(center + Offset(0, -scale * 0.45), center + Offset(scale * 1.35, 0), paint);
-    canvas.drawLine(center + Offset(0, scale), center + Offset(-scale * 0.72, scale * 1.75), paint);
-    canvas.drawLine(center + Offset(0, scale), center + Offset(scale * 0.72, scale * 1.75), paint);
+    canvas.drawLine(
+        center + Offset(0, -scale), center + Offset(0, scale), paint);
+    canvas.drawLine(center + Offset(0, -scale * 0.45),
+        center + Offset(-scale * 1.35, 0), paint);
+    canvas.drawLine(center + Offset(0, -scale * 0.45),
+        center + Offset(scale * 1.35, 0), paint);
+    canvas.drawLine(center + Offset(0, scale),
+        center + Offset(-scale * 0.72, scale * 1.75), paint);
+    canvas.drawLine(center + Offset(0, scale),
+        center + Offset(scale * 0.72, scale * 1.75), paint);
     paint.style = PaintingStyle.fill;
     paint.color = const Color(0xFFFFD6A5);
     canvas.drawCircle(center + Offset(0, -scale * 1.55), scale * 0.48, paint);

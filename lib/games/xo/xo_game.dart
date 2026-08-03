@@ -128,7 +128,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
       });
       return;
     }
-    if (connectionLost || networkMessage.type != NetworkMessageType.move) return;
+    if (connectionLost || networkMessage.type != NetworkMessageType.move)
+      return;
     final action = networkMessage.payload['action']?.toString();
     if (action == 'reset') {
       _resetBoard(notifyPeer: false);
@@ -150,17 +151,17 @@ class _XoGameScreenState extends State<XoGameScreen> {
         xWins = (networkMessage.payload['xWins'] as num?)?.toInt() ?? xWins;
         oWins = (networkMessage.payload['oWins'] as num?)?.toInt() ?? oWins;
         draws = (networkMessage.payload['draws'] as num?)?.toInt() ?? draws;
-        winLine = (networkMessage.payload['winLine'] as List<dynamic>? ?? const [])
-            .map((value) => (value as num).toInt())
-            .toList();
+        winLine =
+            (networkMessage.payload['winLine'] as List<dynamic>? ?? const [])
+                .map((value) => (value as num).toInt())
+                .toList();
         roundCounted = networkMessage.payload['finished'] == true;
       });
       return;
     }
     final index = (networkMessage.payload['index'] as num?)?.toInt() ?? -1;
-    final mark = networkMessage.payload['mark'] == XoCell.x.name
-        ? XoCell.x
-        : XoCell.o;
+    final mark =
+        networkMessage.payload['mark'] == XoCell.x.name ? XoCell.x : XoCell.o;
     if (action == 'place') {
       _place(index, mark, senderId: networkMessage.senderId, notify: false);
     }
@@ -287,7 +288,9 @@ class _XoGameScreenState extends State<XoGameScreen> {
   void _broadcastWebState() {
     _iphoneBridge?.broadcast(<String, dynamic>{
       'type': 'state',
-      'cells': cells.map((cell) => cell == XoCell.empty ? '' : cell.name.toUpperCase()).toList(),
+      'cells': cells
+          .map((cell) => cell == XoCell.empty ? '' : cell.name.toUpperCase())
+          .toList(),
       'turnId': _turnId,
       'message': message,
       'xWins': xWins,
@@ -311,7 +314,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
     if (win >= 0) return win;
     final block = findBestMoveFor(XoCell.x);
     if (block >= 0) return block;
-    if (settings.botDifficulty == BotDifficulty.hard && cells[4] == XoCell.empty) {
+    if (settings.botDifficulty == BotDifficulty.hard &&
+        cells[4] == XoCell.empty) {
       return 4;
     }
     final empty = <int>[
@@ -332,9 +336,14 @@ class _XoGameScreenState extends State<XoGameScreen> {
 
   XoCell? findWinner() {
     const lines = <List<int>>[
-      <int>[0, 1, 2], <int>[3, 4, 5], <int>[6, 7, 8],
-      <int>[0, 3, 6], <int>[1, 4, 7], <int>[2, 5, 8],
-      <int>[0, 4, 8], <int>[2, 4, 6],
+      <int>[0, 1, 2],
+      <int>[3, 4, 5],
+      <int>[6, 7, 8],
+      <int>[0, 3, 6],
+      <int>[1, 4, 7],
+      <int>[2, 5, 8],
+      <int>[0, 4, 8],
+      <int>[2, 4, 6],
     ];
     for (final line in lines) {
       final first = cells[line.first];
@@ -350,9 +359,14 @@ class _XoGameScreenState extends State<XoGameScreen> {
 
   XoCell? winnerOf(List<XoCell> board) {
     const lines = <List<int>>[
-      <int>[0, 1, 2], <int>[3, 4, 5], <int>[6, 7, 8],
-      <int>[0, 3, 6], <int>[1, 4, 7], <int>[2, 5, 8],
-      <int>[0, 4, 8], <int>[2, 4, 6],
+      <int>[0, 1, 2],
+      <int>[3, 4, 5],
+      <int>[6, 7, 8],
+      <int>[0, 3, 6],
+      <int>[1, 4, 7],
+      <int>[2, 5, 8],
+      <int>[0, 4, 8],
+      <int>[2, 4, 6],
     ];
     for (final line in lines) {
       final first = board[line.first];
@@ -370,7 +384,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
         title: const Text('إكس أو'),
         actions: <Widget>[
           IconButton(onPressed: reset, icon: const Icon(Icons.refresh)),
-          IconButton(onPressed: resetScore, icon: const Icon(Icons.restart_alt)),
+          IconButton(
+              onPressed: resetScore, icon: const Icon(Icons.restart_alt)),
         ],
       ),
       body: ListView(
@@ -383,10 +398,15 @@ class _XoGameScreenState extends State<XoGameScreen> {
                 padding: const EdgeInsets.all(14),
                 child: Column(
                   children: <Widget>[
-                    const Text('دخول الآيفون', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                    const Text('دخول الآيفون',
+                        style: TextStyle(
+                            fontSize: 19, fontWeight: FontWeight.w900)),
                     if (_iphoneUrl.startsWith('http')) ...<Widget>[
                       const SizedBox(height: 8),
-                      QrImageView(data: _iphoneUrl, size: 165, backgroundColor: Colors.white),
+                      QrImageView(
+                          data: _iphoneUrl,
+                          size: 165,
+                          backgroundColor: Colors.white),
                     ],
                     const SizedBox(height: 7),
                     SelectableText(
@@ -404,13 +424,21 @@ class _XoGameScreenState extends State<XoGameScreen> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: <Widget>[
-                  Text(message, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(message,
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold)),
                   if (!isNetworkGame) ...<Widget>[
                     const SizedBox(height: 12),
                     SegmentedButton<bool>(
                       segments: const <ButtonSegment<bool>>[
-                        ButtonSegment<bool>(value: false, label: Text('لاعبان'), icon: Icon(Icons.people)),
-                        ButtonSegment<bool>(value: true, label: Text('روبوت'), icon: Icon(Icons.smart_toy)),
+                        ButtonSegment<bool>(
+                            value: false,
+                            label: Text('لاعبان'),
+                            icon: Icon(Icons.people)),
+                        ButtonSegment<bool>(
+                            value: true,
+                            label: Text('روبوت'),
+                            icon: Icon(Icons.smart_toy)),
                       ],
                       selected: <bool>{playVsBot},
                       onSelectionChanged: (value) {
@@ -426,11 +454,17 @@ class _XoGameScreenState extends State<XoGameScreen> {
           const SizedBox(height: 12),
           Row(
             children: <Widget>[
-              Expanded(child: _ScoreTile(label: 'X', value: xWins, color: AppColors.danger)),
+              Expanded(
+                  child: _ScoreTile(
+                      label: 'X', value: xWins, color: AppColors.danger)),
               const SizedBox(width: 8),
-              Expanded(child: _ScoreTile(label: 'تعادل', value: draws, color: AppColors.muted)),
+              Expanded(
+                  child: _ScoreTile(
+                      label: 'تعادل', value: draws, color: AppColors.muted)),
               const SizedBox(width: 8),
-              Expanded(child: _ScoreTile(label: 'O', value: oWins, color: AppColors.primaryDark)),
+              Expanded(
+                  child: _ScoreTile(
+                      label: 'O', value: oWins, color: AppColors.primaryDark)),
             ],
           ),
           const SizedBox(height: 20),
@@ -456,7 +490,10 @@ class _XoGameScreenState extends State<XoGameScreen> {
                       color: winning ? AppColors.accent : Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: const <BoxShadow>[
-                        BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4)),
+                        BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 10,
+                            offset: Offset(0, 4)),
                       ],
                     ),
                     child: Center(
@@ -465,7 +502,9 @@ class _XoGameScreenState extends State<XoGameScreen> {
                         style: TextStyle(
                           fontSize: 58,
                           fontWeight: FontWeight.w900,
-                          color: cell == XoCell.x ? AppColors.danger : AppColors.primaryDark,
+                          color: cell == XoCell.x
+                              ? AppColors.danger
+                              : AppColors.primaryDark,
                         ),
                       ),
                     ),
@@ -481,7 +520,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
 }
 
 class _ScoreTile extends StatelessWidget {
-  const _ScoreTile({required this.label, required this.value, required this.color});
+  const _ScoreTile(
+      {required this.label, required this.value, required this.color});
 
   final String label;
   final int value;
@@ -497,8 +537,11 @@ class _ScoreTile extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w900)),
-          Text('$value', style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.w900)),
+          Text(label,
+              style: TextStyle(color: color, fontWeight: FontWeight.w900)),
+          Text('$value',
+              style: TextStyle(
+                  color: color, fontSize: 24, fontWeight: FontWeight.w900)),
         ],
       ),
     );
