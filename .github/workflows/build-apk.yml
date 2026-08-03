@@ -47,6 +47,9 @@ jobs:
       - name: Fix Champions Penalty Dart types
         run: python3 tools/fix_champions_penalty_types.py
 
+      - name: Enable Checkers on iPhone Safari
+        run: python3 tools/enable_checkers_iphone.py
+
       - name: Apply name game validation and vote rules
         run: python3 tools/fix_name_game_rules.py
 
@@ -145,5 +148,5 @@ jobs:
             echo "No corrected source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Publish Champions Penalty game and Android APK"
+          git commit -m "Publish iPhone QR games and Android APK"
           git push origin HEAD:main
