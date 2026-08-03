@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import 'game_definition.dart';
 import 'network/local_network_core.dart';
+import 'network/local_room_discovery.dart';
 import 'network/local_wifi_transport.dart';
 import 'network/network_message.dart';
 
@@ -17,10 +18,14 @@ class GameRoomScreen extends StatefulWidget {
 
 class _GameRoomScreenState extends State<GameRoomScreen> {
   late final LocalNetworkCore networkCore;
+  final LocalRoomDiscovery _discovery = LocalRoomDiscovery();
   StreamSubscription<NetworkMessage>? _subscription;
+  StreamSubscription<LocalNetworkState>? _stateSubscription;
   final TextEditingController _hostController = TextEditingController();
   bool _isHost = true;
   bool _opened = false;
+  bool _searching = false;
+  List<DiscoveredRoom> _rooms = const <DiscoveredRoom>[];
 
   bool get _isNameGame => widget.game.id == 'name_animal_object';
 
@@ -36,9 +41,24 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   void initState() {
     super.initState();
     networkCore = LocalNetworkCore(gameId: widget.game.id);
-    _subscription = networkCore.messages.listen((NetworkMessage message) {
+    _subscription = networkCore.messages.listen((message) {
       if (message.type == NetworkMessageType.startGame && !_opened) {
         _openGame(useNetwork: true);
+      }
+    });
+    _stateSubscription = networkCore.stateStream.listen((state) {
+      if (state.mode == LocalNetworkMode.host &&
+          state.status == LocalNetworkStatus.ready &&
+          state.hostAddress.isNotEmpty) {
+        unawaited(_discovery.startAdvertising(
+          gameId: widget.game.id,
+          host: state.hostAddress,
+          port: state.port,
+          roomCode: state.roomCode,
+          name: '${widget.game.name} • ${state.roomCode}',
+        ));
+      } else if (state.mode != LocalNetworkMode.host) {
+        unawaited(_discovery.stopAdvertising());
       }
     });
   }
@@ -46,7 +66,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _stateSubscription?.cancel();
     _hostController.dispose();
+    unawaited(_discovery.dispose());
     networkCore.dispose();
     super.dispose();
   }
@@ -57,7 +79,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (BuildContext context) => widget.game.builder(
+        builder: (context) => widget.game.builder(
           context,
           useNetwork ? networkCore : null,
         ),
@@ -74,6 +96,31 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     }
   }
 
+  Future<void> _findRooms() async {
+    if (_searching) return;
+    setState(() {
+      _searching = true;
+      _rooms = const <DiscoveredRoom>[];
+    });
+    final rooms = await _discovery.discover(gameId: widget.game.id);
+    if (!mounted) return;
+    setState(() {
+      _searching = false;
+      _rooms = rooms;
+    });
+    if (rooms.length == 1) {
+      await _joinDiscoveredRoom(rooms.first);
+    }
+  }
+
+  Future<void> _joinDiscoveredRoom(DiscoveredRoom room) async {
+    await networkCore.joinRoom(
+      hostAddress: room.host,
+      port: room.port,
+      roomCode: room.roomCode,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,10 +128,10 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       body: StreamBuilder<LocalNetworkState>(
         stream: networkCore.stateStream,
         initialData: networkCore.state,
-        builder: (BuildContext context, AsyncSnapshot<LocalNetworkState> snap) {
-          final LocalNetworkState state = snap.data ?? LocalNetworkState.idle();
-          final bool hostReady = state.mode == LocalNetworkMode.host;
-          final bool canStart = hostReady &&
+        builder: (context, snap) {
+          final state = snap.data ?? LocalNetworkState.idle();
+          final hostReady = state.mode == LocalNetworkMode.host;
+          final canStart = hostReady &&
               (_supportsIphone
                   ? state.players.isNotEmpty
                   : state.players.length >= 2);
@@ -118,40 +165,82 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                           ),
                           ButtonSegment<bool>(
                             value: false,
-                            icon: Icon(Icons.login),
-                            label: Text('انضمام'),
+                            icon: Icon(Icons.search),
+                            label: Text('العثور على غرفة'),
                           ),
                         ],
                         selected: <bool>{_isHost},
-                        onSelectionChanged: (Set<bool> value) {
-                          setState(() => _isHost = value.first);
+                        onSelectionChanged: (value) {
+                          setState(() {
+                            _isHost = value.first;
+                            _rooms = const <DiscoveredRoom>[];
+                          });
                         },
                       ),
                       const SizedBox(height: 14),
-                      if (!_isHost)
-                        TextField(
-                          controller: _hostController,
-                          decoration: const InputDecoration(
-                            labelText: 'عنوان جهاز المضيف',
-                            hintText: '192.168.1.8',
-                            border: OutlineInputBorder(),
+                      if (_isHost)
+                        FilledButton.icon(
+                          onPressed: networkCore.createRoom,
+                          icon: const Icon(Icons.add_link),
+                          label: const Text('إنشاء الغرفة'),
+                        )
+                      else ...<Widget>[
+                        FilledButton.icon(
+                          onPressed: _searching ? null : _findRooms,
+                          icon: _searching
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.radar),
+                          label: Text(
+                            _searching
+                                ? 'جاري البحث على الشبكة...'
+                                : 'بحث عن الغرف تلقائيًا',
                           ),
                         ),
-                      if (!_isHost) const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: () {
-                          if (_isHost) {
-                            networkCore.createRoom();
-                          } else {
-                            networkCore.joinRoom(
-                              hostAddress: _hostController.text,
-                              port: LocalWifiTransport.defaultPort,
-                            );
-                          }
-                        },
-                        icon: Icon(_isHost ? Icons.add_link : Icons.link),
-                        label: Text(_isHost ? 'إنشاء الغرفة' : 'الانضمام'),
-                      ),
+                        if (_rooms.isEmpty && !_searching) ...<Widget>[
+                          const SizedBox(height: 10),
+                          ExpansionTile(
+                            title: const Text('الإدخال اليدوي كخيار احتياطي'),
+                            children: <Widget>[
+                              TextField(
+                                controller: _hostController,
+                                decoration: const InputDecoration(
+                                  labelText: 'IP جهاز المضيف',
+                                  hintText: '192.168.1.8',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              OutlinedButton.icon(
+                                onPressed: () => networkCore.joinRoom(
+                                  hostAddress: _hostController.text,
+                                  port: LocalWifiTransport.defaultPort,
+                                ),
+                                icon: const Icon(Icons.link),
+                                label: const Text('اتصال يدوي'),
+                              ),
+                            ],
+                          ),
+                        ],
+                        for (final room in _rooms)
+                          Card(
+                            color: const Color(0xFFEAF7F2),
+                            child: ListTile(
+                              leading: const Icon(Icons.sports_esports),
+                              title: Text(room.name),
+                              subtitle: Text('رمز الغرفة: ${room.roomCode}'),
+                              trailing: FilledButton(
+                                onPressed: () => _joinDiscoveredRoom(room),
+                                child: const Text('دخول'),
+                              ),
+                            ),
+                          ),
+                      ],
                     ],
                   ),
                 ),
@@ -168,11 +257,12 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-                      if (state.hostAddress.isNotEmpty) ...<Widget>[
+                      if (state.roomCode.isNotEmpty) ...<Widget>[
                         const SizedBox(height: 8),
-                        SelectableText(
-                          '${state.hostAddress}:${state.port}',
+                        Text(
+                          'رمز الغرفة: ${state.roomCode}',
                           textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ],
                       const SizedBox(height: 12),
