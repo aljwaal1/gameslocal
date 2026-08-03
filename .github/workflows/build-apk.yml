@@ -41,6 +41,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Register Champions Penalty game
+        run: python3 tools/register_champions_penalty.py
+
       - name: Apply name game validation and vote rules
         run: python3 tools/fix_name_game_rules.py
 
@@ -139,5 +142,5 @@ jobs:
             echo "No corrected source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Publish enlarged Sheikh Beard board and capture scoring"
+          git commit -m "Publish Champions Penalty game and Android APK"
           git push origin HEAD:main
