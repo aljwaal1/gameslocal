@@ -47,6 +47,9 @@ jobs:
       - name: Apply responsive screens and compact result columns
         run: python3 tools/apply_responsive_ui.py
 
+      - name: Apply Sheikh Beard board and capture scoring
+        run: python3 tools/fix_sheikh_beard_rules.py
+
       - name: Normalize line games source
         run: |
           python3 - <<'PY'
@@ -136,5 +139,5 @@ jobs:
             echo "No corrected source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Publish responsive screens and compact score table"
+          git commit -m "Publish enlarged Sheikh Beard board and capture scoring"
           git push origin HEAD:main
