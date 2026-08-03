@@ -44,6 +44,9 @@ jobs:
       - name: Register Champions Penalty game
         run: python3 tools/register_champions_penalty.py
 
+      - name: Fix Champions Penalty Dart types
+        run: python3 tools/fix_champions_penalty_types.py
+
       - name: Apply name game validation and vote rules
         run: python3 tools/fix_name_game_rules.py
 
