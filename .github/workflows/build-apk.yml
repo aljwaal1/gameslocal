@@ -6,7 +6,6 @@ on:
     paths:
       - 'lib/**'
       - 'assets/**'
-      - 'tools/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -41,37 +40,6 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Register Champions Penalty game
-        run: python3 tools/register_champions_penalty.py
-
-      - name: Fix Champions Penalty Dart types
-        run: python3 tools/fix_champions_penalty_types.py
-
-      - name: Enable Checkers on iPhone Safari
-        run: python3 tools/enable_checkers_iphone.py
-
-      - name: Apply name game validation and vote rules
-        run: python3 tools/fix_name_game_rules.py
-
-      - name: Apply responsive screens and compact result columns
-        run: python3 tools/apply_responsive_ui.py
-
-      - name: Apply Sheikh Beard board and capture scoring
-        run: python3 tools/fix_sheikh_beard_rules.py
-
-      - name: Normalize line games source
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('lib/games/line_games/line_games.dart')
-          text = path.read_text(encoding='utf-8')
-          text = text.replace(
-              'final t = rawT.clamp(0.0, 1.0);',
-              'final t = rawT.clamp(0.0, 1.0).toDouble();',
-          )
-          path.write_text(text, encoding='utf-8')
-          PY
-
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
 
@@ -82,7 +50,6 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
           manifest = Path('android/app/src/main/AndroidManifest.xml')
           text = manifest.read_text(encoding='utf-8')
           marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
@@ -131,7 +98,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish corrected source and APK to main
+      - name: Publish source and APK to main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
@@ -145,8 +112,8 @@ jobs:
           cp /tmp/gameslocal-release/gameslocal-flutter.apk apk/modern/gameslocal-flutter.apk
           git add lib apk/modern/gameslocal-flutter.apk
           if git diff --cached --quiet; then
-            echo "No corrected source or APK changes to publish."
+            echo "No source or APK changes to publish."
             exit 0
           fi
-          git commit -m "Publish iPhone QR games and Android APK"
+          git commit -m "Publish Android APK"
           git push origin HEAD:main
