@@ -43,9 +43,6 @@ jobs:
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
 
-      - name: Remove generated tests
-        run: rm -rf test
-
       - name: Configure Android network permissions
         run: |
           python3 - <<'PY'
@@ -68,27 +65,41 @@ jobs:
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Format Dart sources
-        run: dart format lib
-
-      - name: Analyze project
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Build release APK
-        run: flutter build apk --release
-
-      - name: Prepare release
+      - name: Analyze and build with diagnostics
+        id: compile
+        shell: bash
         run: |
-          set -euo pipefail
-          test -s build/app/outputs/flutter-apk/app-release.apk
-          mkdir -p release apk/modern /tmp/gameslocal-release
-          cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
-          sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
-          cp -R lib /tmp/gameslocal-release/lib
-          cp apk/modern/gameslocal-flutter.apk /tmp/gameslocal-release/gameslocal-flutter.apk
+          set +e
+          mkdir -p build-status release apk/modern
+          : > build-status/latest.log
+          echo "Commit: $GITHUB_SHA" | tee -a build-status/latest.log
+          echo "Run: $GITHUB_RUN_ID" | tee -a build-status/latest.log
+          echo "=== DART FORMAT CHECK ===" | tee -a build-status/latest.log
+          dart format --output=none --set-exit-if-changed lib 2>&1 | tee -a build-status/latest.log
+          FORMAT_CODE=${PIPESTATUS[0]}
+          echo "=== FLUTTER ANALYZE ===" | tee -a build-status/latest.log
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log
+          ANALYZE_CODE=${PIPESTATUS[0]}
+          echo "=== FLUTTER BUILD APK ===" | tee -a build-status/latest.log
+          flutter build apk --release 2>&1 | tee -a build-status/latest.log
+          BUILD_CODE=${PIPESTATUS[0]}
+          echo "FORMAT_CODE=$FORMAT_CODE" | tee -a build-status/latest.log
+          echo "ANALYZE_CODE=$ANALYZE_CODE" | tee -a build-status/latest.log
+          echo "BUILD_CODE=$BUILD_CODE" | tee -a build-status/latest.log
+          if [ "$BUILD_CODE" -eq 0 ] && [ -s build/app/outputs/flutter-apk/app-release.apk ]; then
+            cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
+            cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
+            sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
+            echo "RESULT=SUCCESS" | tee -a build-status/latest.log
+            echo "success=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "RESULT=FAILED" | tee -a build-status/latest.log
+            echo "success=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
 
       - name: Upload APK artifact
+        if: steps.compile.outputs.success == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: gameslocal-flutter-apk-${{ github.run_number }}
@@ -98,22 +109,32 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish source and APK to main
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Publish APK or failure report
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout -B main origin/main
-          rm -rf lib
-          cp -R /tmp/gameslocal-release/lib ./lib
-          mkdir -p apk/modern
-          cp /tmp/gameslocal-release/gameslocal-flutter.apk apk/modern/gameslocal-flutter.apk
-          git add lib apk/modern/gameslocal-flutter.apk
+          mkdir -p build-status apk/modern
+          cp "$GITHUB_WORKSPACE/build-status/latest.log" build-status/latest.log
+          if [ -s "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" ]; then
+            cp "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" apk/modern/gameslocal-flutter.apk
+          fi
+          git add build-status/latest.log apk/modern/gameslocal-flutter.apk || true
           if git diff --cached --quiet; then
-            echo "No source or APK changes to publish."
+            echo "Nothing new to publish."
             exit 0
           fi
-          git commit -m "Publish Android APK"
+          if grep -q 'RESULT=SUCCESS' build-status/latest.log; then
+            git commit -m "Publish Android APK build success"
+          else
+            git commit -m "Publish Android APK build failure report"
+          fi
           git push origin HEAD:main
+
+      - name: Fail workflow when APK build failed
+        if: steps.compile.outputs.success != 'true'
+        run: exit 1
