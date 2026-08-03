@@ -362,16 +362,16 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
   void _buildBoard() {
     if (widget.kind == LineGameKind.sheikhBeard) {
-      const rows = 7;
+      const rows = 8;
       final rowStarts = <int>[];
 
       for (var row = 0; row < rows; row++) {
         rowStarts.add(_points.length);
         final count = row + 1;
-        final y = 80.0 + row * 85;
-        final startX = 350.0 - (count - 1) * 43;
+        final y = 65.0 + row * 78;
+        final startX = 350.0 - (count - 1) * 38;
         for (var column = 0; column < count; column++) {
-          _points.add(Offset(startX + column * 86, y));
+          _points.add(Offset(startX + column * 76, y));
         }
       }
       _pointOwners.addAll(List<int>.filled(_points.length, -1));
@@ -388,15 +388,6 @@ class _LineGameScreenState extends State<LineGameScreen> {
       for (var column = 0; column < rows; column++) {
         final line = <int>[];
         for (var row = column; row < rows; row++) {
-          line.add(rowStarts[row] + column);
-        }
-        if (line.length >= 3) _sheikhLines.add(line);
-      }
-
-      for (var diagonal = 0; diagonal < rows; diagonal++) {
-        final line = <int>[];
-        for (var row = diagonal; row < rows; row++) {
-          final column = row - diagonal;
           line.add(rowStarts[row] + column);
         }
         if (line.length >= 3) _sheikhLines.add(line);
@@ -543,13 +534,18 @@ class _LineGameScreenState extends State<LineGameScreen> {
   int _claimCompletedSheikhLines(int ownerIndex, String playerId) {
     var gained = 0;
     for (final line in _sheikhLines) {
-      if (!line.every((pointIndex) => _pointOwners[pointIndex] == ownerIndex)) {
-        continue;
-      }
       final key = line.join('-');
       if (_claimedSheikhLines.containsKey(key)) continue;
+      if (!line.every((pointIndex) => _pointOwners[pointIndex] >= 0)) {
+        continue;
+      }
+
+      // The player who places the final point captures the whole completed line.
+      for (final pointIndex in line) {
+        _pointOwners[pointIndex] = ownerIndex;
+      }
       _claimedSheikhLines[key] = playerId;
-      gained++;
+      gained += line.length;
     }
     return gained;
   }
