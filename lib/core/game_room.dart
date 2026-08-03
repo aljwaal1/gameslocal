@@ -28,6 +28,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         'name_animal_object',
         'sheikh_beard',
         'dots_boxes',
+        'xo',
       }.contains(widget.game.id);
 
   @override
