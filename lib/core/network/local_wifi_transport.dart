@@ -16,10 +16,13 @@ class LocalWifiTransport {
       StreamController<String>.broadcast();
 
   ServerSocket? _server;
+  StreamSubscription<Socket>? _serverSubscription;
   Socket? _clientSocket;
   StreamSubscription<String>? _clientSubscription;
   final Map<Socket, StreamSubscription<String>> _hostClients =
       <Socket, StreamSubscription<String>>{};
+  final Map<Socket, String> _socketPlayerIds = <Socket, String>{};
+  bool _disposed = false;
 
   Stream<NetworkMessage> get messages => _messagesController.stream;
   Stream<String> get status => _statusController.stream;
@@ -28,6 +31,7 @@ class LocalWifiTransport {
   int get connectedClients => _hostClients.length;
 
   Future<String> startHost({int port = defaultPort}) async {
+    _ensureAlive();
     await close();
     _server = await ServerSocket.bind(
       InternetAddress.anyIPv4,
@@ -35,16 +39,20 @@ class LocalWifiTransport {
       shared: true,
     );
     final String address = await _localAddress();
-    _statusController.add('تم تشغيل Host على $address:$port');
+    _emitStatus('تم تشغيل Host على $address:$port');
 
-    _server!.listen((Socket client) {
-      _attachHostClient(client);
-      _statusController.add(
-        'انضم لاعب من ${client.remoteAddress.address} — العدد ${_hostClients.length}',
-      );
-    }, onError: (Object error) {
-      _statusController.add('خطأ في Host: $error');
-    });
+    _serverSubscription = _server!.listen(
+      (Socket client) {
+        _attachHostClient(client);
+        _emitStatus(
+          'انضم جهاز من ${client.remoteAddress.address} — الاتصالات ${_hostClients.length}',
+        );
+      },
+      onError: (Object error) {
+        _emitStatus('خطأ في Host: $error');
+      },
+      cancelOnError: false,
+    );
 
     return '$address:$port';
   }
@@ -53,24 +61,27 @@ class LocalWifiTransport {
     required String host,
     int port = defaultPort,
   }) async {
+    _ensureAlive();
     await close();
-    _statusController.add('جاري الاتصال بـ $host:$port ...');
+    _emitStatus('جاري الاتصال بـ $host:$port ...');
     final Socket socket = await Socket.connect(
       host,
       port,
       timeout: const Duration(seconds: 8),
     );
+    socket.setOption(SocketOption.tcpNoDelay, true);
     _clientSocket = socket;
     _clientSubscription = _listenToSocket(socket, relayFromHostClient: false);
-    _statusController.add('تم الاتصال بـ $host:$port');
+    _emitStatus('تم الاتصال بـ $host:$port');
   }
 
   void send(NetworkMessage message) {
+    if (_disposed) return;
     final String line = jsonEncode(message.toJson());
 
     if (_server != null) {
       if (_hostClients.isEmpty) {
-        _statusController.add('لا يوجد لاعب متصل حاليًا.');
+        _emitStatus('لا يوجد لاعب متصل حاليًا.');
         return;
       }
       for (final Socket socket in List<Socket>.from(_hostClients.keys)) {
@@ -81,13 +92,14 @@ class LocalWifiTransport {
 
     final Socket? socket = _clientSocket;
     if (socket == null) {
-      _statusController.add('لا يوجد اتصال نشط لإرسال الرسالة.');
+      _emitStatus('لا يوجد اتصال نشط لإرسال الرسالة.');
       return;
     }
     _write(socket, line);
   }
 
   void _attachHostClient(Socket socket) {
+    socket.setOption(SocketOption.tcpNoDelay, true);
     _hostClients[socket] = _listenToSocket(socket, relayFromHostClient: true);
   }
 
@@ -96,22 +108,45 @@ class LocalWifiTransport {
     required bool relayFromHostClient,
   }) {
     return socket
-        .map<List<int>>((data) => data)
+        .map<List<int>>((List<int> data) => data)
         .transform(utf8.decoder)
         .transform(const LineSplitter())
-        .listen((String line) {
-      _handleLine(line);
-      if (relayFromHostClient) {
-        for (final Socket other in List<Socket>.from(_hostClients.keys)) {
-          if (other != socket) _write(other, line);
+        .listen(
+      (String line) {
+        final NetworkMessage? message = _decodeLine(line);
+        if (message == null) return;
+
+        if (relayFromHostClient && message.senderId.isNotEmpty) {
+          _socketPlayerIds[socket] = message.senderId;
         }
+        _emitMessage(message);
+
+        if (relayFromHostClient) {
+          for (final Socket other in List<Socket>.from(_hostClients.keys)) {
+            if (other != socket) _write(other, line);
+          }
+        }
+      },
+      onDone: () => _removeSocket(socket),
+      onError: (Object error) {
+        _emitStatus('خطأ في الاتصال: $error');
+        _removeSocket(socket);
+      },
+      cancelOnError: true,
+    );
+  }
+
+  NetworkMessage? _decodeLine(String line) {
+    try {
+      final Object? decoded = jsonDecode(line);
+      if (decoded is Map<String, dynamic>) {
+        return NetworkMessage.fromJson(decoded);
       }
-    }, onDone: () {
-      _removeSocket(socket);
-    }, onError: (Object error) {
-      _statusController.add('خطأ في الاتصال: $error');
-      _removeSocket(socket);
-    });
+      _emitStatus('وصلت رسالة غير صالحة.');
+    } catch (_) {
+      _emitStatus('وصلت رسالة غير صالحة.');
+    }
+    return null;
   }
 
   void _write(Socket socket, String line) {
@@ -127,25 +162,45 @@ class LocalWifiTransport {
       _clientSubscription?.cancel();
       _clientSubscription = null;
       _clientSocket = null;
-      _statusController.add('تم قطع الاتصال بالمضيف.');
+      socket.destroy();
+      _emitStatus('تم قطع الاتصال بالمضيف.');
+      _emitMessage(NetworkMessage(
+        type: NetworkMessageType.disconnect,
+        gameId: gameId,
+        senderId: 'host-connection',
+      ));
       return;
     }
 
-    final StreamSubscription<String>? subscription =
-        _hostClients.remove(socket);
+    final String? playerId = _socketPlayerIds.remove(socket);
+    final StreamSubscription<String>? subscription = _hostClients.remove(socket);
     subscription?.cancel();
     socket.destroy();
-    _statusController.add('غادر لاعب — المتصلون الآن ${_hostClients.length}');
+    _emitStatus('غادر جهاز — المتصلون الآن ${_hostClients.length}');
+
+    if (playerId != null && playerId.isNotEmpty) {
+      final NetworkMessage disconnect = NetworkMessage(
+        type: NetworkMessageType.disconnect,
+        gameId: gameId,
+        senderId: playerId,
+      );
+      _emitMessage(disconnect);
+      final String encoded = jsonEncode(disconnect.toJson());
+      for (final Socket other in List<Socket>.from(_hostClients.keys)) {
+        _write(other, encoded);
+      }
+    }
   }
 
-  void _handleLine(String line) {
-    try {
-      final Object? decoded = jsonDecode(line);
-      if (decoded is Map<String, dynamic>) {
-        _messagesController.add(NetworkMessage.fromJson(decoded));
-      }
-    } catch (_) {
-      _statusController.add('وصلت رسالة غير صالحة.');
+  void _emitMessage(NetworkMessage message) {
+    if (!_disposed && !_messagesController.isClosed) {
+      _messagesController.add(message);
+    }
+  }
+
+  void _emitStatus(String message) {
+    if (!_disposed && !_statusController.isClosed) {
+      _statusController.add(message);
     }
   }
 
@@ -157,7 +212,10 @@ class LocalWifiTransport {
       );
       for (final NetworkInterface interface in interfaces) {
         for (final InternetAddress address in interface.addresses) {
-          if (!address.address.startsWith('127.')) return address.address;
+          if (!address.address.startsWith('127.') &&
+              !address.address.startsWith('169.254.')) {
+            return address.address;
+          }
         }
       }
     } catch (_) {}
@@ -178,14 +236,23 @@ class LocalWifiTransport {
       socket.destroy();
     }
     _hostClients.clear();
+    _socketPlayerIds.clear();
 
+    await _serverSubscription?.cancel();
+    _serverSubscription = null;
     await _server?.close();
     _server = null;
   }
 
+  void _ensureAlive() {
+    if (_disposed) throw StateError('LocalWifiTransport is disposed.');
+  }
+
   Future<void> dispose() async {
+    if (_disposed) return;
     await close();
-    await _messagesController.close();
-    await _statusController.close();
+    _disposed = true;
+    if (!_messagesController.isClosed) await _messagesController.close();
+    if (!_statusController.isClosed) await _statusController.close();
   }
 }
