@@ -47,7 +47,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         _openGame(useNetwork: true);
       }
     });
-    _stateSubscription = networkCore.stateStream.listen((LocalNetworkState state) {
+    _stateSubscription =
+        networkCore.stateStream.listen((LocalNetworkState state) {
       if (state.mode == LocalNetworkMode.host &&
           (state.status == LocalNetworkStatus.ready ||
               state.status == LocalNetworkStatus.connected) &&
@@ -183,8 +184,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       body: StreamBuilder<LocalNetworkState>(
         stream: networkCore.stateStream,
         initialData: networkCore.state,
-        builder: (BuildContext context,
-            AsyncSnapshot<LocalNetworkState> snapshot) {
+        builder:
+            (BuildContext context, AsyncSnapshot<LocalNetworkState> snapshot) {
           final LocalNetworkState state =
               snapshot.data ?? LocalNetworkState.idle();
           final bool hostReady = state.mode == LocalNetworkMode.host &&
@@ -246,7 +247,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.add_link),
                           label: const Text('إنشاء الغرفة'),
@@ -258,7 +260,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Icon(Icons.radar),
                           label: Text(
@@ -292,7 +295,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                                         try {
                                           await networkCore.joinRoom(
                                             hostAddress: _hostController.text,
-                                            port: LocalWifiTransport.defaultPort,
+                                            port:
+                                                LocalWifiTransport.defaultPort,
                                           );
                                         } finally {
                                           if (mounted) {

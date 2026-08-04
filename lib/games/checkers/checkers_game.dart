@@ -136,6 +136,10 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   bool get localPlayerIsRed =>
       widget.networkCore?.state.mode != LocalNetworkMode.client;
   bool get isMyNetworkTurn => !networkMode || redTurn == localPlayerIsRed;
+  bool get hasAndroidGuest =>
+      widget.networkCore?.state.players
+          .any((LocalPlayer player) => !player.isHost) ??
+      false;
   Set<String> get forcedCaptureSources => allLegalMoves(forRed: redTurn)
       .where((move) => move.isCapture)
       .map((move) => '${move.fromRow},${move.fromCol}')
@@ -587,10 +591,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   }
 
   String _localPlayerId() {
-    final LocalNetworkState? state = widget.networkCore?.state;
-    if (state == null || state.players.isEmpty)
+    final LocalNetworkCore? core = widget.networkCore;
+    if (core == null || core.localPlayerId == 'system') {
       return localPlayerIsRed ? 'host-checkers' : 'client-checkers';
-    return state.players.first.id;
+    }
+    return core.localPlayerId;
   }
 
   void _handleNetworkMessage(NetworkMessage networkMessage) {
@@ -640,7 +645,9 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       _broadcastIphoneState();
     });
     _iphoneEventsSub = bridge.events.stream.listen((event) {
-      if (event.type != 'tap' || redTurn || gameFinished) return;
+      if (event.type != 'tap' || redTurn || gameFinished || hasAndroidGuest) {
+        return;
+      }
       final row = (event.data['row'] as num?)?.toInt() ?? -1;
       final col = (event.data['col'] as num?)?.toInt() ?? -1;
       if (!inside(row, col)) return;
@@ -663,7 +670,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
       'type': 'state',
       'message': message,
       'redTurn': redTurn,
-      'canPlay': !redTurn && !gameFinished,
+      'canPlay': !redTurn && !gameFinished && !hasAndroidGuest,
       'finished': gameFinished,
       'redCount': redPieceCount,
       'blackCount': blackPieceCount,
@@ -676,6 +683,19 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   Widget _iphoneCard() {
     if (!networkMode || !localPlayerIsRed) return const SizedBox.shrink();
+    if (hasAndroidGuest) {
+      return const Card(
+        color: Color(0xFFFFF4D8),
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: Text(
+            'تم اتصال لاعب أندرويد؛ تم تعطيل دخول Safari لأن الضامة مخصصة للاعبين فقط.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+      );
+    }
     return Card(
       color: const Color(0xFFEAF8F1),
       child: Padding(

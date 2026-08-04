@@ -387,6 +387,19 @@ class _GameCard extends StatelessWidget {
 
   final GameDefinition game;
 
+  bool get usesGameRoom => const <String>{
+        'battle',
+        'football_penalties',
+        'champions_penalties',
+        'xo',
+        'checkers',
+        'domino',
+        'cards',
+        'name_animal_object',
+        'sheikh_beard',
+        'dots_boxes',
+      }.contains(game.id);
+
   bool get experimental => !const <String>{
         'xo',
         'checkers',
@@ -468,9 +481,11 @@ class _GameCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => Directionality(
+            builder: (routeContext) => Directionality(
               textDirection: TextDirection.rtl,
-              child: GameRoomScreen(game: game),
+              child: usesGameRoom
+                  ? GameRoomScreen(game: game)
+                  : game.builder(routeContext, null),
             ),
           ),
         );

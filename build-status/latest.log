@@ -1,5 +1,5 @@
-COMMIT=02127e6b8d03b9730e6bbadcdb16b0bf9ba65b3e
-RUN_ID=30898682046
+COMMIT=3d7730bccd5cedadbfedf6ba6e63648c696056c1
+RUN_ID=30899129105
 === APPLY VERIFIED SOURCE FIXES ===
 === SANITY ===
 PROJECT SANITY CHECK PASSED
@@ -241,16 +241,27 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:528:41 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:530:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
-  error • The name 'MyApp' isn't a class. Try correcting the name to match an existing class • test/widget_test.dart:16:35 • creation_with_non_type
 
-126 issues found. (ran in 8.5s)
-APK build skipped because a required check failed.
+125 issues found. (ran in 7.9s)
+=== BUILD APK ===
+Running Gradle task 'assembleRelease'...                        
+Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
+License for package CMake 3.22.1 accepted.
+Preparing "Install CMake 3.22.1 v.3.22.1".
+"Install CMake 3.22.1 v.3.22.1" ready.
+Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
+"Install CMake 3.22.1 v.3.22.1" complete.
+"Install CMake 3.22.1 v.3.22.1" finished.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 12072 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
+Running Gradle task 'assembleRelease'...                          206.3s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (54.2MB)
 ROUTING_CODE=0
 SANITY_CODE=0
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
 FORMAT_CODE=0
-ANALYZE_CODE=1
-BUILD_CODE=1
-RESULT=FAILED
+ANALYZE_CODE=0
+BUILD_CODE=0
+RESULT=SUCCESS
