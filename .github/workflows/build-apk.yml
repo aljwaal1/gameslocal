@@ -57,6 +57,7 @@ jobs:
           echo "=== CREATE ANDROID ===" | tee -a build-status/latest.log
           flutter create --platforms=android --org com.explapp --no-pub . 2>&1 | tee -a build-status/latest.log
           CREATE=${PIPESTATUS[0]}
+          rm -f test/widget_test.dart
 
           python3 - <<'PY' 2>&1 | tee -a build-status/latest.log
           from pathlib import Path
