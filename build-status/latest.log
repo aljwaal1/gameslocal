@@ -1,11 +1,8 @@
-COMMIT=1c0c24f8e03daa0a9e28d16ef635b3c6f9ea99fc
-RUN_ID=30896878537
+COMMIT=02127e6b8d03b9730e6bbadcdb16b0bf9ba65b3e
+RUN_ID=30898682046
+=== APPLY VERIFIED SOURCE FIXES ===
 === SANITY ===
-PROJECT SANITY CHECK FAILED
-- MISSING: Network-capability routing
-- MISSING: Conditional room navigation
-- CATASTROPHIC: local-only game routed through LAN: 'chess'
-- CATASTROPHIC: local-only game routed through LAN: 'chicken'
+PROJECT SANITY CHECK PASSED
 === CREATE ANDROID ===
 Recreating project ....
   android/settings.gradle.kts (created)
@@ -240,15 +237,16 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:178:32 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:362:24 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:364:43 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:502:45 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:513:41 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:515:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:517:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:528:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:530:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
   error • The name 'MyApp' isn't a class. Try correcting the name to match an existing class • test/widget_test.dart:16:35 • creation_with_non_type
 
-126 issues found. (ran in 8.1s)
+126 issues found. (ran in 8.5s)
 APK build skipped because a required check failed.
-SANITY_CODE=1
+ROUTING_CODE=0
+SANITY_CODE=0
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
