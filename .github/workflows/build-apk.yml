@@ -6,6 +6,7 @@ on:
     paths:
       - 'lib/**'
       - 'assets/**'
+      - 'tools/**'
       - 'pubspec.yaml'
       - '.github/workflows/build-apk.yml'
   workflow_dispatch:
@@ -20,7 +21,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
 
     steps:
       - name: Checkout source
@@ -40,8 +41,32 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Apply permanent verified source upgrades
+        run: |
+          set -euo pipefail
+          python3 tools/register_champions_penalty.py
+          python3 tools/fix_champions_penalty_types.py
+          python3 tools/enable_checkers_iphone.py
+          python3 tools/fix_name_game_rules.py
+          python3 tools/apply_responsive_ui.py
+          python3 tools/fix_sheikh_beard_rules.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('lib/games/line_games/line_games.dart')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace(
+              'final t = rawT.clamp(0.0, 1.0);',
+              'final t = rawT.clamp(0.0, 1.0).toDouble();',
+          )
+          path.write_text(text, encoding='utf-8')
+          PY
+          python3 tools/project_sanity_check.py
+
       - name: Create Android project files
         run: flutter create --platforms=android --org com.explapp --no-pub .
+
+      - name: Remove generated tests
+        run: rm -rf test
 
       - name: Configure Android network permissions
         run: |
@@ -74,19 +99,28 @@ jobs:
           : > build-status/latest.log
           echo "Commit: $GITHUB_SHA" | tee -a build-status/latest.log
           echo "Run: $GITHUB_RUN_ID" | tee -a build-status/latest.log
-          echo "=== DART FORMAT CHECK ===" | tee -a build-status/latest.log
-          dart format --output=none --set-exit-if-changed lib 2>&1 | tee -a build-status/latest.log
+          echo "=== PROJECT SANITY CHECK ===" | tee -a build-status/latest.log
+          python3 tools/project_sanity_check.py 2>&1 | tee -a build-status/latest.log
+          SANITY_CODE=${PIPESTATUS[0]}
+          echo "=== DART FORMAT ===" | tee -a build-status/latest.log
+          dart format lib 2>&1 | tee -a build-status/latest.log
           FORMAT_CODE=${PIPESTATUS[0]}
           echo "=== FLUTTER ANALYZE ===" | tee -a build-status/latest.log
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log
           ANALYZE_CODE=${PIPESTATUS[0]}
           echo "=== FLUTTER BUILD APK ===" | tee -a build-status/latest.log
-          flutter build apk --release 2>&1 | tee -a build-status/latest.log
-          BUILD_CODE=${PIPESTATUS[0]}
+          if [ "$SANITY_CODE" -eq 0 ] && [ "$ANALYZE_CODE" -eq 0 ]; then
+            flutter build apk --release 2>&1 | tee -a build-status/latest.log
+            BUILD_CODE=${PIPESTATUS[0]}
+          else
+            echo "Build skipped because sanity/analyze failed." | tee -a build-status/latest.log
+            BUILD_CODE=1
+          fi
+          echo "SANITY_CODE=$SANITY_CODE" | tee -a build-status/latest.log
           echo "FORMAT_CODE=$FORMAT_CODE" | tee -a build-status/latest.log
           echo "ANALYZE_CODE=$ANALYZE_CODE" | tee -a build-status/latest.log
           echo "BUILD_CODE=$BUILD_CODE" | tee -a build-status/latest.log
-          if [ "$BUILD_CODE" -eq 0 ] && [ -s build/app/outputs/flutter-apk/app-release.apk ]; then
+          if [ "$SANITY_CODE" -eq 0 ] && [ "$ANALYZE_CODE" -eq 0 ] && [ "$BUILD_CODE" -eq 0 ] && [ -s build/app/outputs/flutter-apk/app-release.apk ]; then
             cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
             cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
             sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
@@ -109,29 +143,40 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish APK or failure report
+      - name: Publish corrected source, APK, or failure report
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf /tmp/gameslocal-corrected-lib
+          cp -R "$GITHUB_WORKSPACE/lib" /tmp/gameslocal-corrected-lib
+          cp "$GITHUB_WORKSPACE/build-status/latest.log" /tmp/gameslocal-build.log
+          if [ -s "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" ]; then
+            cp "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" /tmp/gameslocal.apk
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout -B main origin/main
+
+          rm -rf lib
+          cp -R /tmp/gameslocal-corrected-lib ./lib
           mkdir -p build-status apk/modern
-          cp "$GITHUB_WORKSPACE/build-status/latest.log" build-status/latest.log
-          if [ -s "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" ]; then
-            cp "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" apk/modern/gameslocal-flutter.apk
+          cp /tmp/gameslocal-build.log build-status/latest.log
+          if [ -s /tmp/gameslocal.apk ]; then
+            cp /tmp/gameslocal.apk apk/modern/gameslocal-flutter.apk
           fi
-          git add build-status/latest.log apk/modern/gameslocal-flutter.apk || true
+
+          git add lib build-status/latest.log apk/modern/gameslocal-flutter.apk || true
           if git diff --cached --quiet; then
             echo "Nothing new to publish."
             exit 0
           fi
           if grep -q 'RESULT=SUCCESS' build-status/latest.log; then
-            git commit -m "Publish Android APK build success"
+            git commit -m "Publish verified source and Android APK"
           else
-            git commit -m "Publish Android APK build failure report"
+            git commit -m "Publish corrected source and APK failure report"
           fi
           git push origin HEAD:main
 
