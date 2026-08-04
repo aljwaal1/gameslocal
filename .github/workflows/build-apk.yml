@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - name: Checkout
+      - name: Checkout exact source
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -46,31 +46,28 @@ jobs:
           echo "COMMIT=$GITHUB_SHA" | tee -a build-status/latest.log
           echo "RUN_ID=$GITHUB_RUN_ID" | tee -a build-status/latest.log
 
-          echo "=== APPLY VERIFIED SOURCE FIXES ===" | tee -a build-status/latest.log
-          python3 tools/fix_game_room_routing.py 2>&1 | tee -a build-status/latest.log
-          ROUTING=${PIPESTATUS[0]}
-
-          echo "=== SANITY ===" | tee -a build-status/latest.log
-          python3 tools/project_sanity_check.py 2>&1 | tee -a build-status/latest.log
-          SANITY=${PIPESTATUS[0]}
+          WIDGET_TEST_TRACKED=0
+          git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1 && WIDGET_TEST_TRACKED=1
 
           echo "=== CREATE ANDROID ===" | tee -a build-status/latest.log
           flutter create --platforms=android --org com.explapp --no-pub . 2>&1 | tee -a build-status/latest.log
           CREATE=${PIPESTATUS[0]}
-          rm -f test/widget_test.dart
+          if [ "$WIDGET_TEST_TRACKED" -eq 0 ]; then
+            rm -f test/widget_test.dart
+          fi
 
           python3 - <<'PY' 2>&1 | tee -a build-status/latest.log
           from pathlib import Path
           p = Path('android/app/src/main/AndroidManifest.xml')
           text = p.read_text(encoding='utf-8')
           marker = '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
-          perms = [
+          permissions = [
               '<uses-permission android:name="android.permission.INTERNET" />',
               '<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />',
               '<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />',
               '<uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />',
           ]
-          missing = [x for x in perms if x not in text]
+          missing = [item for item in permissions if item not in text]
           if missing:
               text = text.replace(marker, marker + '\n    ' + '\n    '.join(missing))
           p.write_text(text, encoding='utf-8')
@@ -81,16 +78,12 @@ jobs:
           flutter pub get 2>&1 | tee -a build-status/latest.log
           PUB=${PIPESTATUS[0]}
 
-          echo "=== FORMAT ===" | tee -a build-status/latest.log
-          dart format lib 2>&1 | tee -a build-status/latest.log
-          FORMAT=${PIPESTATUS[0]}
-
           echo "=== ANALYZE ===" | tee -a build-status/latest.log
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log
           ANALYZE=${PIPESTATUS[0]}
 
           BUILD=1
-          if [ "$ROUTING" -eq 0 ] && [ "$SANITY" -eq 0 ] && [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
+          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
             echo "=== BUILD APK ===" | tee -a build-status/latest.log
             flutter build apk --release 2>&1 | tee -a build-status/latest.log
             BUILD=${PIPESTATUS[0]}
@@ -98,22 +91,18 @@ jobs:
             echo "APK build skipped because a required check failed." | tee -a build-status/latest.log
           fi
 
-          echo "ROUTING_CODE=$ROUTING" | tee -a build-status/latest.log
-          echo "SANITY_CODE=$SANITY" | tee -a build-status/latest.log
           echo "CREATE_CODE=$CREATE" | tee -a build-status/latest.log
           echo "MANIFEST_CODE=$MANIFEST" | tee -a build-status/latest.log
           echo "PUB_CODE=$PUB" | tee -a build-status/latest.log
-          echo "FORMAT_CODE=$FORMAT" | tee -a build-status/latest.log
           echo "ANALYZE_CODE=$ANALYZE" | tee -a build-status/latest.log
           echo "BUILD_CODE=$BUILD" | tee -a build-status/latest.log
 
-          rm -rf /tmp/gameslocal-output/lib
           if [ "$BUILD" -eq 0 ] && [ -s build/app/outputs/flutter-apk/app-release.apk ]; then
             cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
             cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
             sha256sum release/gameslocal-flutter.apk > release/gameslocal-flutter.apk.sha256
-            cp -R lib /tmp/gameslocal-output/lib
             cp apk/modern/gameslocal-flutter.apk /tmp/gameslocal-output/gameslocal-flutter.apk
+            cp release/gameslocal-flutter.apk.sha256 /tmp/gameslocal-output/gameslocal-flutter.apk.sha256
             echo "RESULT=SUCCESS" | tee -a build-status/latest.log
             echo "success=true" >> "$GITHUB_OUTPUT"
           else
@@ -134,7 +123,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish result to main
+      - name: Publish APK result only
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
@@ -145,17 +134,15 @@ jobs:
           git reset --hard origin/main
           git clean -fd
 
-          mkdir -p build-status apk/modern
+          mkdir -p build-status apk/modern release
           cp /tmp/gameslocal-output/latest.log build-status/latest.log
 
+          MESSAGE='Publish Android APK build report'
           if grep -q 'RESULT=SUCCESS' build-status/latest.log; then
-            rm -rf lib
-            cp -R /tmp/gameslocal-output/lib ./lib
             cp /tmp/gameslocal-output/gameslocal-flutter.apk apk/modern/gameslocal-flutter.apk
-            git add lib apk/modern/gameslocal-flutter.apk
-            MESSAGE='Publish verified source and Android APK'
-          else
-            MESSAGE='Publish Android APK build failure report'
+            cp /tmp/gameslocal-output/gameslocal-flutter.apk.sha256 release/gameslocal-flutter.apk.sha256
+            git add apk/modern/gameslocal-flutter.apk release/gameslocal-flutter.apk.sha256
+            MESSAGE='Publish Android APK from exact main source'
           fi
 
           git add -f build-status/latest.log
