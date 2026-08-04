@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -52,7 +53,6 @@ jobs:
           echo "=== CREATE ANDROID ===" | tee -a build-status/latest.log
           flutter create --platforms=android --org com.explapp --no-pub . 2>&1 | tee -a build-status/latest.log
           CREATE=${PIPESTATUS[0]}
-          rm -rf test
 
           python3 - <<'PY' 2>&1 | tee -a build-status/latest.log
           from pathlib import Path
@@ -101,6 +101,7 @@ jobs:
           echo "ANALYZE_CODE=$ANALYZE" | tee -a build-status/latest.log
           echo "BUILD_CODE=$BUILD" | tee -a build-status/latest.log
 
+          rm -rf /tmp/gameslocal-output/lib
           if [ "$BUILD" -eq 0 ] && [ -s build/app/outputs/flutter-apk/app-release.apk ]; then
             cp build/app/outputs/flutter-apk/app-release.apk release/gameslocal-flutter.apk
             cp build/app/outputs/flutter-apk/app-release.apk apk/modern/gameslocal-flutter.apk
@@ -135,7 +136,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin main
-          git checkout -B main origin/main
+          git reset --hard origin/main
+          git clean -fd
+
           mkdir -p build-status apk/modern
           cp /tmp/gameslocal-output/latest.log build-status/latest.log
 
@@ -143,13 +146,13 @@ jobs:
             rm -rf lib
             cp -R /tmp/gameslocal-output/lib ./lib
             cp /tmp/gameslocal-output/gameslocal-flutter.apk apk/modern/gameslocal-flutter.apk
-            git add lib apk/modern/gameslocal-flutter.apk build-status/latest.log
+            git add lib apk/modern/gameslocal-flutter.apk
             MESSAGE='Publish verified source and Android APK'
           else
-            git add build-status/latest.log
             MESSAGE='Publish Android APK build failure report'
           fi
 
+          git add -f build-status/latest.log
           if git diff --cached --quiet; then
             echo 'Nothing changed.'
             exit 0
