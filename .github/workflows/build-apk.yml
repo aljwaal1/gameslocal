@@ -3,12 +3,6 @@ name: Build Verified Android APK
 on:
   push:
     branches: [main]
-    paths:
-      - 'lib/**'
-      - 'assets/**'
-      - 'tools/project_sanity_check.py'
-      - 'pubspec.yaml'
-      - '.github/workflows/build-apk.yml'
   workflow_dispatch:
 
 permissions:
