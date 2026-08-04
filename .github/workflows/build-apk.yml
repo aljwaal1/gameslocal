@@ -47,6 +47,7 @@ jobs:
           python3 tools/register_champions_penalty.py
           python3 tools/fix_champions_penalty_types.py
           python3 tools/enable_checkers_iphone.py
+          python3 tools/fix_game_room_routing.py
           python3 tools/fix_name_game_rules.py
           python3 tools/apply_responsive_ui.py
           python3 tools/fix_sheikh_beard_rules.py
@@ -96,6 +97,8 @@ jobs:
         run: |
           set +e
           mkdir -p build-status release apk/modern
+          rm -f release/gameslocal-flutter.apk release/gameslocal-flutter.apk.sha256
+          rm -f apk/modern/gameslocal-flutter.apk
           : > build-status/latest.log
           echo "Commit: $GITHUB_SHA" | tee -a build-status/latest.log
           echo "Run: $GITHUB_RUN_ID" | tee -a build-status/latest.log
@@ -143,15 +146,17 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish corrected source, APK, or failure report
+      - name: Publish verified source and APK or failure report
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf /tmp/gameslocal-corrected-lib
-          cp -R "$GITHUB_WORKSPACE/lib" /tmp/gameslocal-corrected-lib
           cp "$GITHUB_WORKSPACE/build-status/latest.log" /tmp/gameslocal-build.log
-          if [ -s "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" ]; then
+          SUCCESS=false
+          if grep -q 'RESULT=SUCCESS' /tmp/gameslocal-build.log; then
+            SUCCESS=true
+            rm -rf /tmp/gameslocal-corrected-lib
+            cp -R "$GITHUB_WORKSPACE/lib" /tmp/gameslocal-corrected-lib
             cp "$GITHUB_WORKSPACE/apk/modern/gameslocal-flutter.apk" /tmp/gameslocal.apk
           fi
 
@@ -160,23 +165,24 @@ jobs:
           git fetch origin main
           git checkout -B main origin/main
 
-          rm -rf lib
-          cp -R /tmp/gameslocal-corrected-lib ./lib
           mkdir -p build-status apk/modern
           cp /tmp/gameslocal-build.log build-status/latest.log
-          if [ -s /tmp/gameslocal.apk ]; then
+          if [ "$SUCCESS" = true ]; then
+            rm -rf lib
+            cp -R /tmp/gameslocal-corrected-lib ./lib
             cp /tmp/gameslocal.apk apk/modern/gameslocal-flutter.apk
+            git add lib apk/modern/gameslocal-flutter.apk
           fi
+          git add build-status/latest.log
 
-          git add lib build-status/latest.log apk/modern/gameslocal-flutter.apk || true
           if git diff --cached --quiet; then
             echo "Nothing new to publish."
             exit 0
           fi
-          if grep -q 'RESULT=SUCCESS' build-status/latest.log; then
+          if [ "$SUCCESS" = true ]; then
             git commit -m "Publish verified source and Android APK"
           else
-            git commit -m "Publish corrected source and APK failure report"
+            git commit -m "Publish Android APK build failure report"
           fi
           git push origin HEAD:main
 
