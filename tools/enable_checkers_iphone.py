@@ -3,6 +3,12 @@ from pathlib import Path
 path = Path('lib/games/checkers/checkers_game.dart')
 text = path.read_text(encoding='utf-8')
 
+# The patch is intentionally one-shot. Once the source contains the bridge,
+# future builds must leave it untouched instead of duplicating imports/fields.
+if 'IphoneGameBridge? _iphoneBridge;' in text and "import 'checkers_iphone_web.dart';" in text:
+    print('Checkers iPhone integration already applied.')
+    raise SystemExit(0)
+
 text = text.replace(
 "import 'package:flutter/material.dart';\n",
 "import 'package:flutter/material.dart';\nimport 'package:qr_flutter/qr_flutter.dart';\n",
@@ -24,7 +30,9 @@ field_insert = """  StreamSubscription<NetworkMessage>? networkSubscription;
   String _iphoneUrl = '';
   int _iphonePlayers = 0;
 """
-text = text.replace(field_anchor, field_insert)
+if field_anchor not in text:
+    raise SystemExit('Checkers field anchor not found')
+text = text.replace(field_anchor, field_insert, 1)
 
 init_old = """    networkSubscription =
         widget.networkCore?.messages.listen(_handleNetworkMessage);
@@ -39,7 +47,9 @@ init_new = """    networkSubscription =
     }
   }
 """
-text = text.replace(init_old, init_new)
+if init_old not in text:
+    raise SystemExit('Checkers init anchor not found')
+text = text.replace(init_old, init_new, 1)
 
 dispose_old = """  void dispose() {
     networkSubscription?.cancel();
@@ -54,7 +64,9 @@ dispose_new = """  void dispose() {
     super.dispose();
   }
 """
-text = text.replace(dispose_old, dispose_new)
+if dispose_old not in text:
+    raise SystemExit('Checkers dispose anchor not found')
+text = text.replace(dispose_old, dispose_new, 1)
 
 reset_old = """    message = currentTurnMessage();
     if (mounted) setState(() {});
@@ -65,11 +77,14 @@ reset_new = """    message = currentTurnMessage();
     _broadcastIphoneState();
   }
 """
+if reset_old not in text:
+    raise SystemExit('Checkers reset anchor not found')
 text = text.replace(reset_old, reset_new, 1)
 
 text = text.replace(
 "  void tapCell(int r, int c) {\n",
 "  void tapCell(int r, int c) => _tapCell(r, c);\n\n  void _tapCell(int r, int c, {bool fromIphone = false}) {\n",
+1,
 )
 text = text.replace(
 "    if (networkMode && !isMyNetworkTurn) {\n",
@@ -95,7 +110,9 @@ finish_new = """    message = currentTurnMessage();
     if (playVsBot && !redTurn) runBotMove();
   }
 """
-text = text.replace(finish_old, finish_new)
+if finish_old not in text:
+    raise SystemExit('Checkers finish-turn anchor not found')
+text = text.replace(finish_old, finish_new, 1)
 
 runbot_old = """    message = 'أنت الأحمر - دورك';
     setState(() {});
@@ -106,7 +123,8 @@ runbot_new = """    message = 'أنت الأحمر - دورك';
     _broadcastIphoneState();
   }
 """
-text = text.replace(runbot_old, runbot_new)
+if runbot_old in text:
+    text = text.replace(runbot_old, runbot_new, 1)
 
 helper_anchor = "  @override\n  Widget build(BuildContext context) {\n"
 helpers = r'''  Future<void> _startIphoneBridge() async {
@@ -175,7 +193,9 @@ helpers = r'''  Future<void> _startIphoneBridge() async {
   }
 
 '''
-text = text.replace(helper_anchor, helpers + helper_anchor)
+if helper_anchor not in text:
+    raise SystemExit('Checkers build anchor not found')
+text = text.replace(helper_anchor, helpers + helper_anchor, 1)
 
 body_anchor = """          body: Column(
             children: [
@@ -188,6 +208,9 @@ body_new = """          body: Column(
                   child: _iphoneCard(),
                 ),
 """
+if body_anchor not in text:
+    raise SystemExit('Checkers body anchor not found')
 text = text.replace(body_anchor, body_new, 1)
 
 path.write_text(text, encoding='utf-8')
+print('Checkers iPhone integration applied.')
