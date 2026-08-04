@@ -16,4 +16,23 @@ replacements = {
 for old, new in replacements.items():
     text = text.replace(old, new)
 
+old_finished = """  bool get _finished {
+    if (_playerOneShots < 5 || _playerTwoShots < 5) return false;
+    return _playerOneGoals != _playerTwoGoals;
+  }
+"""
+new_finished = """  bool get _finished {
+    if (_playerOneShots < 5 || _playerTwoShots < 5) return false;
+    // In sudden death both players must complete the same number of shots.
+    // Otherwise the match could end after player one's shot before player two
+    // receives the matching attempt.
+    if (_playerOneShots != _playerTwoShots) return false;
+    return _playerOneGoals != _playerTwoGoals;
+  }
+"""
+if old_finished in text:
+    text = text.replace(old_finished, new_finished, 1)
+elif 'if (_playerOneShots != _playerTwoShots) return false;' not in text:
+    raise SystemExit('Champions finished-state function not found')
+
 path.write_text(text, encoding='utf-8')
