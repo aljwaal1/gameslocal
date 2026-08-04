@@ -1,5 +1,10 @@
 from pathlib import Path
+import runpy
 import sys
+
+# This repair is intentionally idempotent and runs before the assertions so
+# every build verifies the corrected source rather than only detecting it.
+runpy.run_path('tools/fix_checkers_player_identity.py')
 
 errors: list[str] = []
 
@@ -89,6 +94,9 @@ require(transport, '_socketPlayerIds', 'Socket-to-player tracking')
 require(transport, "type: NetworkMessageType.disconnect", 'Automatic disconnect event')
 require(room, 'Future<void> _changeMode', 'Safe room-mode switching')
 require(room, 'finally {', 'Discovery/join cleanup')
+require(checkers, 'return core.localPlayerId;', 'Correct Checkers local identity')
+require(checkers, 'bool get hasAndroidGuest =>', 'Single Checkers opponent guard')
+require(checkers, 'gameFinished || hasAndroidGuest', 'Safari/Android role exclusion')
 
 # Basic dangerous regressions.
 if "'checkers'," in room and 'IphoneGameBridge? _iphoneBridge;' not in checkers:
