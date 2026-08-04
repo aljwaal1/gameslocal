@@ -46,6 +46,10 @@ jobs:
           echo "COMMIT=$GITHUB_SHA" | tee -a build-status/latest.log
           echo "RUN_ID=$GITHUB_RUN_ID" | tee -a build-status/latest.log
 
+          echo "=== APPLY VERIFIED SOURCE FIXES ===" | tee -a build-status/latest.log
+          python3 tools/fix_game_room_routing.py 2>&1 | tee -a build-status/latest.log
+          ROUTING=${PIPESTATUS[0]}
+
           echo "=== SANITY ===" | tee -a build-status/latest.log
           python3 tools/project_sanity_check.py 2>&1 | tee -a build-status/latest.log
           SANITY=${PIPESTATUS[0]}
@@ -85,7 +89,7 @@ jobs:
           ANALYZE=${PIPESTATUS[0]}
 
           BUILD=1
-          if [ "$SANITY" -eq 0 ] && [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
+          if [ "$ROUTING" -eq 0 ] && [ "$SANITY" -eq 0 ] && [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
             echo "=== BUILD APK ===" | tee -a build-status/latest.log
             flutter build apk --release 2>&1 | tee -a build-status/latest.log
             BUILD=${PIPESTATUS[0]}
@@ -93,6 +97,7 @@ jobs:
             echo "APK build skipped because a required check failed." | tee -a build-status/latest.log
           fi
 
+          echo "ROUTING_CODE=$ROUTING" | tee -a build-status/latest.log
           echo "SANITY_CODE=$SANITY" | tee -a build-status/latest.log
           echo "CREATE_CODE=$CREATE" | tee -a build-status/latest.log
           echo "MANIFEST_CODE=$MANIFEST" | tee -a build-status/latest.log
