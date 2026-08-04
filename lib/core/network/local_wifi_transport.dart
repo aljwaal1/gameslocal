@@ -112,28 +112,28 @@ class LocalWifiTransport {
         .transform(utf8.decoder)
         .transform(const LineSplitter())
         .listen(
-      (String line) {
-        final NetworkMessage? message = _decodeLine(line);
-        if (message == null) return;
+          (String line) {
+            final NetworkMessage? message = _decodeLine(line);
+            if (message == null) return;
 
-        if (relayFromHostClient && message.senderId.isNotEmpty) {
-          _socketPlayerIds[socket] = message.senderId;
-        }
-        _emitMessage(message);
+            if (relayFromHostClient && message.senderId.isNotEmpty) {
+              _socketPlayerIds[socket] = message.senderId;
+            }
+            _emitMessage(message);
 
-        if (relayFromHostClient) {
-          for (final Socket other in List<Socket>.from(_hostClients.keys)) {
-            if (other != socket) _write(other, line);
-          }
-        }
-      },
-      onDone: () => _removeSocket(socket),
-      onError: (Object error) {
-        _emitStatus('خطأ في الاتصال: $error');
-        _removeSocket(socket);
-      },
-      cancelOnError: true,
-    );
+            if (relayFromHostClient) {
+              for (final Socket other in List<Socket>.from(_hostClients.keys)) {
+                if (other != socket) _write(other, line);
+              }
+            }
+          },
+          onDone: () => _removeSocket(socket),
+          onError: (Object error) {
+            _emitStatus('خطأ في الاتصال: $error');
+            _removeSocket(socket);
+          },
+          cancelOnError: true,
+        );
   }
 
   NetworkMessage? _decodeLine(String line) {
@@ -173,7 +173,8 @@ class LocalWifiTransport {
     }
 
     final String? playerId = _socketPlayerIds.remove(socket);
-    final StreamSubscription<String>? subscription = _hostClients.remove(socket);
+    final StreamSubscription<String>? subscription =
+        _hostClients.remove(socket);
     subscription?.cancel();
     socket.destroy();
     _emitStatus('غادر جهاز — المتصلون الآن ${_hostClients.length}');

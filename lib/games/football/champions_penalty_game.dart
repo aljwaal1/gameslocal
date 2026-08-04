@@ -61,6 +61,10 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
 
   bool get _finished {
     if (_playerOneShots < 5 || _playerTwoShots < 5) return false;
+    // In sudden death both players must complete the same number of shots.
+    // Otherwise the match could end after player one's shot before player two
+    // receives the matching attempt.
+    if (_playerOneShots != _playerTwoShots) return false;
     return _playerOneGoals != _playerTwoGoals;
   }
 
@@ -132,13 +136,18 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
     final goalTop = size.height * 0.13;
     final goalBottom = size.height * 0.49;
     final normalized = Offset(
-      ((position.dx - goalLeft) / (goalRight - goalLeft)).clamp(0.02, 0.98),
-      ((position.dy - goalTop) / (goalBottom - goalTop)).clamp(0.03, 0.97),
+      ((position.dx - goalLeft) / (goalRight - goalLeft))
+          .clamp(0.02, 0.98)
+          .toDouble(),
+      ((position.dy - goalTop) / (goalBottom - goalTop))
+          .clamp(0.03, 0.97)
+          .toDouble(),
     );
     final distance = (_dragStart - position).distance;
     setState(() {
       _aim = normalized;
-      _power = (0.48 + distance / (size.height * 0.44)).clamp(0.48, 1.0);
+      _power =
+          (0.48 + distance / (size.height * 0.44)).clamp(0.48, 1.0).toDouble();
     });
   }
 
@@ -498,7 +507,9 @@ class _ChampionsPenaltyGameScreenState extends State<ChampionsPenaltyGameScreen>
                     onTapDown: (d) {
                       if (_phase != _PenaltyPhase.saving) return;
                       final point = Offset(
-                        (d.localPosition.dx / size.width).clamp(0.0, 1.0),
+                        (d.localPosition.dx / size.width)
+                            .clamp(0.0, 1.0)
+                            .toDouble(),
                         (d.localPosition.dy / (size.height * 0.58))
                             .clamp(0.0, 1.0),
                       );

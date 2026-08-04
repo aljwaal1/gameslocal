@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/app_settings.dart';
+import '../../core/iphone_game_bridge.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import '../../design/app_theme.dart';
 
 import 'checkers_match_status.dart';
+import 'checkers_iphone_web.dart';
 
 enum Piece { empty, red, black, redKing, blackKing }
 
@@ -107,6 +110,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   late List<List<Piece>> board;
   StreamSubscription<NetworkMessage>? networkSubscription;
+  IphoneGameBridge? _iphoneBridge;
+  StreamSubscription<List<IphoneWebPlayer>>? _iphonePlayersSub;
+  StreamSubscription<IphoneWebEvent>? _iphoneEventsSub;
+  String _iphoneUrl = '';
+  int _iphonePlayers = 0;
   int? selectedRow;
   int? selectedCol;
   bool redTurn = true;
@@ -140,11 +148,17 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     networkSubscription =
         widget.networkCore?.messages.listen(_handleNetworkMessage);
     resetBoard();
+    if (networkMode && localPlayerIsRed) {
+      unawaited(_startIphoneBridge());
+    }
   }
 
   @override
   void dispose() {
     networkSubscription?.cancel();
+    _iphonePlayersSub?.cancel();
+    _iphoneEventsSub?.cancel();
+    unawaited(_iphoneBridge?.dispose());
     super.dispose();
   }
 
@@ -171,6 +185,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     resultDialogVisible = false;
     message = currentTurnMessage();
     if (mounted) setState(() {});
+    _broadcastIphoneState();
   }
 
   void requestBoardReset() {
@@ -216,10 +231,12 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     return moves;
   }
 
-  void tapCell(int r, int c) {
+  void tapCell(int r, int c) => _tapCell(r, c);
+
+  void _tapCell(int r, int c, {bool fromIphone = false}) {
     if (gameFinished || botThinking) return;
     if (playVsBot && !redTurn) return;
-    if (networkMode && !isMyNetworkTurn) {
+    if (networkMode && !(fromIphone ? !redTurn : isMyNetworkTurn)) {
       GameFeedback.error();
       setState(() => message = 'انتظر حركة اللاعب الآخر');
       return;
@@ -281,7 +298,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     GameFeedback.move();
     applyMove(move);
-    if (networkMode) {
+    if (networkMode && !fromIphone) {
       widget.networkCore!.sendMove(move.toJson(), senderId: _localPlayerId());
     }
     if (updateMatchStatus()) {
@@ -433,6 +450,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     selectedCol = null;
     message = currentTurnMessage();
     setState(() {});
+    _broadcastIphoneState();
 
     if (playVsBot && !redTurn) runBotMove();
   }
@@ -485,6 +503,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     botThinking = false;
     message = 'أنت الأحمر - دورك';
     setState(() {});
+    _broadcastIphoneState();
   }
 
   CheckersMove? chooseBotMove() {
@@ -612,6 +631,73 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     }
   }
 
+  Future<void> _startIphoneBridge() async {
+    final bridge = IphoneGameBridge(html: checkersIphoneHtml, port: 40450);
+    _iphoneBridge = bridge;
+    _iphonePlayersSub = bridge.players.stream.listen((players) {
+      if (!mounted) return;
+      setState(() => _iphonePlayers = players.length);
+      _broadcastIphoneState();
+    });
+    _iphoneEventsSub = bridge.events.stream.listen((event) {
+      if (event.type != 'tap' || redTurn || gameFinished) return;
+      final row = (event.data['row'] as num?)?.toInt() ?? -1;
+      final col = (event.data['col'] as num?)?.toInt() ?? -1;
+      if (!inside(row, col)) return;
+      _tapCell(row, col, fromIphone: true);
+      _broadcastIphoneState();
+    });
+    try {
+      final url = await bridge.start();
+      if (mounted) setState(() => _iphoneUrl = url);
+      _broadcastIphoneState();
+    } catch (_) {
+      if (mounted) setState(() => _iphoneUrl = 'تعذر تشغيل رابط الآيفون');
+    }
+  }
+
+  void _broadcastIphoneState() {
+    final bridge = _iphoneBridge;
+    if (bridge == null) return;
+    bridge.broadcast(<String, dynamic>{
+      'type': 'state',
+      'message': message,
+      'redTurn': redTurn,
+      'canPlay': !redTurn && !gameFinished,
+      'finished': gameFinished,
+      'redCount': redPieceCount,
+      'blackCount': blackPieceCount,
+      'selected': selectedRow == null ? '' : '$selectedRow,$selectedCol',
+      'targets': possibleTargets.toList(),
+      'board':
+          board.map((row) => row.map((piece) => piece.name).toList()).toList(),
+    });
+  }
+
+  Widget _iphoneCard() {
+    if (!networkMode || !localPlayerIsRed) return const SizedBox.shrink();
+    return Card(
+      color: const Color(0xFFEAF8F1),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: <Widget>[
+            const Text('دخول الآيفون',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+            const SizedBox(height: 8),
+            if (_iphoneUrl.startsWith('http'))
+              QrImageView(
+                  data: _iphoneUrl, size: 150, backgroundColor: Colors.white),
+            SelectableText(
+                _iphoneUrl.isEmpty ? 'جاري تجهيز الرابط...' : _iphoneUrl,
+                textAlign: TextAlign.center),
+            Text('لاعبو Safari: $_iphonePlayers'),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -628,6 +714,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
           ),
           body: Column(
             children: [
+              if (networkMode && localPlayerIsRed)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: _iphoneCard(),
+                ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Card(
