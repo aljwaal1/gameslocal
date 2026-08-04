@@ -57,8 +57,6 @@ class IphoneGameBridge {
         shared: true,
       );
     } on SocketException {
-      // A previous game screen may still be releasing its port. Falling back to
-      // an ephemeral port prevents the QR feature from failing completely.
       _server = await HttpServer.bind(
         InternetAddress.anyIPv4,
         0,
@@ -159,7 +157,7 @@ class IphoneGameBridge {
             final String rawName = (message['name'] ?? '').toString().trim();
             final String name = rawName.isEmpty
                 ? 'لاعب آيفون'
-                : rawName.substring(0, rawName.length.clamp(0, 32));
+                : (rawName.length > 32 ? rawName.substring(0, 32) : rawName);
             playerId = 'web-${DateTime.now().microsecondsSinceEpoch}';
             final IphoneWebPlayer player = IphoneWebPlayer(
               id: playerId!,
