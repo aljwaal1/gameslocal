@@ -159,9 +159,12 @@ class LocalWifiTransport {
 
   void _removeSocket(Socket socket) {
     if (identical(socket, _clientSocket)) {
-      _clientSubscription?.cancel();
+      final StreamSubscription<String>? subscription = _clientSubscription;
       _clientSubscription = null;
       _clientSocket = null;
+      if (subscription != null) {
+        unawaited(subscription.cancel());
+      }
       socket.destroy();
       _emitStatus('تم قطع الاتصال بالمضيف.');
       _emitMessage(NetworkMessage(
@@ -173,9 +176,10 @@ class LocalWifiTransport {
     }
 
     final String? playerId = _socketPlayerIds.remove(socket);
-    final StreamSubscription<String>? subscription =
-        _hostClients.remove(socket);
-    subscription?.cancel();
+    final StreamSubscription<String>? subscription = _hostClients.remove(socket);
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
     socket.destroy();
     _emitStatus('غادر جهاز — المتصلون الآن ${_hostClients.length}');
 
@@ -211,38 +215,104 @@ class LocalWifiTransport {
         includeLoopback: false,
         type: InternetAddressType.IPv4,
       );
+      final List<_AddressCandidate> candidates = <_AddressCandidate>[];
+
       for (final NetworkInterface interface in interfaces) {
         for (final InternetAddress address in interface.addresses) {
-          if (!address.address.startsWith('127.') &&
-              !address.address.startsWith('169.254.')) {
-            return address.address;
+          final String value = address.address;
+          if (value.startsWith('127.') || value.startsWith('169.254.')) {
+            continue;
           }
+          candidates.add(
+            _AddressCandidate(
+              address: value,
+              score: _scoreAddress(interface.name, value),
+            ),
+          );
         }
+      }
+
+      if (candidates.isNotEmpty) {
+        candidates.sort(
+          (_AddressCandidate a, _AddressCandidate b) => b.score.compareTo(a.score),
+        );
+        return candidates.first.address;
       }
     } catch (_) {}
     return '0.0.0.0';
   }
 
+  int _scoreAddress(String interfaceName, String address) {
+    final String name = interfaceName.toLowerCase();
+    int score = 0;
+
+    if (name.contains('wlan') || name.contains('wifi') || name.startsWith('wl')) {
+      score += 100;
+    } else if (name.contains('hotspot') || name.contains('ap')) {
+      score += 90;
+    } else if (name.startsWith('eth') || name.startsWith('en')) {
+      score += 60;
+    }
+
+    if (name.contains('tun') ||
+        name.contains('tap') ||
+        name.contains('vpn') ||
+        name.contains('ppp')) {
+      score -= 120;
+    }
+
+    if (address.startsWith('192.168.')) {
+      score += 60;
+    } else if (address.startsWith('10.')) {
+      score += 50;
+    } else if (_isPrivate172(address)) {
+      score += 45;
+    }
+
+    return score;
+  }
+
+  bool _isPrivate172(String address) {
+    if (!address.startsWith('172.')) return false;
+    final List<String> parts = address.split('.');
+    if (parts.length < 2) return false;
+    final int? second = int.tryParse(parts[1]);
+    return second != null && second >= 16 && second <= 31;
+  }
+
   Future<void> close() async {
-    await _clientSubscription?.cancel();
+    final StreamSubscription<String>? clientSubscription = _clientSubscription;
+    final Socket? clientSocket = _clientSocket;
     _clientSubscription = null;
-    _clientSocket?.destroy();
     _clientSocket = null;
 
-    for (final StreamSubscription<String> subscription
-        in List<StreamSubscription<String>>.from(_hostClients.values)) {
-      await subscription.cancel();
+    if (clientSubscription != null) {
+      await clientSubscription.cancel();
     }
-    for (final Socket socket in List<Socket>.from(_hostClients.keys)) {
-      socket.destroy();
-    }
+    clientSocket?.destroy();
+
+    final List<StreamSubscription<String>> hostSubscriptions =
+        List<StreamSubscription<String>>.from(_hostClients.values);
+    final List<Socket> hostSockets = List<Socket>.from(_hostClients.keys);
     _hostClients.clear();
     _socketPlayerIds.clear();
 
-    await _serverSubscription?.cancel();
+    for (final StreamSubscription<String> subscription in hostSubscriptions) {
+      await subscription.cancel();
+    }
+    for (final Socket socket in hostSockets) {
+      socket.destroy();
+    }
+
+    final StreamSubscription<Socket>? serverSubscription = _serverSubscription;
+    final ServerSocket? server = _server;
     _serverSubscription = null;
-    await _server?.close();
     _server = null;
+
+    if (serverSubscription != null) {
+      await serverSubscription.cancel();
+    }
+    await server?.close();
   }
 
   void _ensureAlive() {
@@ -256,4 +326,11 @@ class LocalWifiTransport {
     if (!_messagesController.isClosed) await _messagesController.close();
     if (!_statusController.isClosed) await _statusController.close();
   }
+}
+
+class _AddressCandidate {
+  const _AddressCandidate({required this.address, required this.score});
+
+  final String address;
+  final int score;
 }
