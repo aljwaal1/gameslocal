@@ -1,1 +1,1 @@
-export 'elite_penalty_game.dart' show ProPenaltyShootoutGameScreen;
+export 'elite_penalty_game_v2.dart' show ProPenaltyShootoutGameScreen;
