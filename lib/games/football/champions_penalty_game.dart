@@ -1,1 +1,1 @@
-export 'elite_penalty_game_v2.dart' show ChampionsPenaltyGameScreen;
+export 'world_class_penalty_game.dart' show ChampionsPenaltyGameScreen;
