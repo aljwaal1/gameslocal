@@ -3,13 +3,15 @@ name: Build Verified Android APK
 on:
   push:
     branches: [main, feature/world-class-football]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: gameslocal-verified-apk
+  group: gameslocal-verified-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
