@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flame: 1.17.0
   flutter_svg: ^2.0.17
   shared_preferences: ^2.2.3
   qr_flutter: ^4.1.0
