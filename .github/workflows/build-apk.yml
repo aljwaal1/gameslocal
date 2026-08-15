@@ -123,6 +123,36 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish branch verification result
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/feature/world-class-football'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin feature/world-class-football
+          git reset --hard origin/feature/world-class-football
+          git clean -fd
+
+          mkdir -p build-status apk/world-class release
+          cp /tmp/gameslocal-output/latest.log build-status/world-class-football.log
+
+          MESSAGE='Publish world-class football build report'
+          if grep -q 'RESULT=SUCCESS' build-status/world-class-football.log; then
+            cp /tmp/gameslocal-output/gameslocal-flutter.apk apk/world-class/gameslocal-world-class.apk
+            cp /tmp/gameslocal-output/gameslocal-flutter.apk.sha256 release/gameslocal-world-class.apk.sha256
+            git add apk/world-class/gameslocal-world-class.apk release/gameslocal-world-class.apk.sha256
+            MESSAGE='Publish verified world-class football APK'
+          fi
+
+          git add -f build-status/world-class-football.log
+          if git diff --cached --quiet; then
+            echo 'Nothing changed.'
+            exit 0
+          fi
+          git commit -m "$MESSAGE"
+          git push origin HEAD:feature/world-class-football
+
       - name: Publish APK result only
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
         shell: bash
