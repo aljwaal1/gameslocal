@@ -1,5 +1,5 @@
-COMMIT=e8de15eebd7563a82fcaa2a920e38cb4e4a259ca
-RUN_ID=31873533479
+COMMIT=420ea92d4183d1097b5b72e139a63c111c201be6
+RUN_ID=31873734487
 === CREATE ANDROID ===
 Recreating project ....
   android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
@@ -56,7 +56,7 @@ Downloading packages...
 + fake_async 1.3.3
 + ffi 2.2.0
 + file 7.0.1
-+ flame 1.17.0 (1.38.0 available)
++ flame 1.38.0
 + flutter 0.0.0 from sdk flutter
 + flutter_lints 6.0.0
 + flutter_svg 2.3.0
@@ -71,7 +71,7 @@ Downloading packages...
 + matcher 0.12.20
   material_color_utilities 0.13.0 (from direct dependency to transitive dependency) (0.13.1 available)
   meta 1.18.3 (from direct dependency to transitive dependency) (1.19.0 available)
-+ ordered_set 5.0.3 (8.0.1 available)
++ ordered_set 8.0.1
 + path 1.9.1
 + path_parsing 1.1.0
 + path_provider_linux 2.2.2
@@ -106,7 +106,7 @@ Downloading packages...
 + xdg_directories 1.1.0
 + xml 7.0.1
 Changed 58 dependencies!
-7 packages have newer versions incompatible with dependency constraints.
+5 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 === ANALYZE ===
 Analyzing gameslocal...                                         
@@ -245,35 +245,16 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:530:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
 
-133 issues found. (ran in 8.5s)
+133 issues found. (ran in 8.6s)
 === BUILD APK ===
 Running Gradle task 'assembleRelease'...                        
-../../../.pub-cache/hosted/pub.dev/flame-1.17.0/lib/src/game/notifying_vector2.dart:189:30: Error: The method 'UnmodifiableFloat64ListView' isn't defined for the type 'NotifyingVector2'.
- - 'NotifyingVector2' is from 'package:flame/src/game/notifying_vector2.dart' ('../../../.pub-cache/hosted/pub.dev/flame-1.17.0/lib/src/game/notifying_vector2.dart').
-Try correcting the name to the name of an existing method, or defining a method named 'UnmodifiableFloat64ListView'.
-  Float64List get storage => UnmodifiableFloat64ListView(super.storage);
-                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Target kernel_snapshot_program failed: Exception
-
-
-FAILURE: Build failed with an exception.
-
-* What went wrong:
-Execution failed for task ':app:compileFlutterBuildRelease'.
-> Process 'command '/opt/hostedtoolcache/flutter/stable-3.47.0-x64/flutter/bin/flutter'' finished with non-zero exit value 1
-
-* Try:
-> Run with --stacktrace option to get the stack trace.
-> Run with --info or --debug option to get more log output.
-> Run with --scan to get full insights from a Build Scan (powered by Develocity).
-> Get more help at https://help.gradle.org.
-
-BUILD FAILED in 1m 59s
-Running Gradle task 'assembleRelease'...                          119.7s
-Gradle task assembleRelease failed with exit code 1
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 11248 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
+Running Gradle task 'assembleRelease'...                          238.2s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (54.6MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
 ANALYZE_CODE=0
-BUILD_CODE=1
-RESULT=FAILED
+BUILD_CODE=0
+RESULT=SUCCESS
