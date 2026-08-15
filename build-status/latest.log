@@ -1,35 +1,35 @@
-COMMIT=343e1cfc1e14c6d273172f4fd4bcc861f8107f0f
-RUN_ID=31182830504
+COMMIT=e31b67db4aa3b5df3e171a361905e57e4a1cbe87
+RUN_ID=31874092006
 === CREATE ANDROID ===
 Recreating project ....
-  android/settings.gradle.kts (created)
-  android/app/src/debug/AndroidManifest.xml (created)
-  android/app/src/profile/AndroidManifest.xml (created)
-  android/app/src/main/res/values/styles.xml (created)
-  android/app/src/main/res/mipmap-hdpi/ic_launcher.png (created)
-  android/app/src/main/res/mipmap-xhdpi/ic_launcher.png (created)
-  android/app/src/main/res/drawable-v21/launch_background.xml (created)
-  android/app/src/main/res/drawable/launch_background.xml (created)
-  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (created)
-  android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png (created)
-  android/app/src/main/res/mipmap-mdpi/ic_launcher.png (created)
-  android/app/src/main/res/values-night/styles.xml (created)
-  android/app/src/main/AndroidManifest.xml (created)
-  android/gradle.properties (created)
-  android/gradle/wrapper/gradle-wrapper.properties (created)
-  android/.gitignore (created)
-  analysis_options.yaml (created)
+  android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
+  android/app/build.gradle.kts (created)
+  android/gameslocal_android.iml (created)
+  android/build.gradle.kts (created)
+  .gitignore (created)
   gameslocal.iml (created)
-  .idea/workspace.xml (created)
   .idea/runConfigurations/main_dart.xml (created)
+  .idea/workspace.xml (created)
+  .idea/modules.xml (created)
   .idea/libraries/Dart_SDK.xml (created)
   .idea/libraries/KotlinJavaRuntime.xml (created)
-  .idea/modules.xml (created)
-  android/build.gradle.kts (created)
-  android/app/build.gradle.kts (created)
-  android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
-  android/gameslocal_android.iml (created)
-  .gitignore (created)
+  android/app/src/profile/AndroidManifest.xml (created)
+  android/app/src/main/res/mipmap-xhdpi/ic_launcher.png (created)
+  android/app/src/main/res/mipmap-hdpi/ic_launcher.png (created)
+  android/app/src/main/res/drawable-v21/launch_background.xml (created)
+  android/app/src/main/res/mipmap-mdpi/ic_launcher.png (created)
+  android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png (created)
+  android/app/src/main/res/values-night/styles.xml (created)
+  android/app/src/main/res/drawable/launch_background.xml (created)
+  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (created)
+  android/app/src/main/res/values/styles.xml (created)
+  android/app/src/main/AndroidManifest.xml (created)
+  android/app/src/debug/AndroidManifest.xml (created)
+  android/settings.gradle.kts (created)
+  android/.gitignore (created)
+  android/gradle.properties (created)
+  android/gradle/wrapper/gradle-wrapper.properties (created)
+  analysis_options.yaml (created)
   test/widget_test.dart (created)
 Wrote 32 files.
 
@@ -56,6 +56,7 @@ Downloading packages...
 + fake_async 1.3.3
 + ffi 2.2.0
 + file 7.0.1
++ flame 1.38.0
 + flutter 0.0.0 from sdk flutter
 + flutter_lints 6.0.0
 + flutter_svg 2.3.0
@@ -67,9 +68,10 @@ Downloading packages...
 + leak_tracker_flutter_testing 3.0.10
 + leak_tracker_testing 3.0.2
 + lints 6.1.0
-+ matcher 0.12.19 (0.12.20 available)
-  material_color_utilities 0.13.0 (from direct dependency to transitive dependency)
-  meta 1.18.0 (from direct dependency to transitive dependency) (1.19.0 available)
++ matcher 0.12.20
+  material_color_utilities 0.13.0 (from direct dependency to transitive dependency) (0.13.1 available)
+  meta 1.18.3 (from direct dependency to transitive dependency) (1.19.0 available)
++ ordered_set 8.0.1
 + path 1.9.1
 + path_parsing 1.1.0
 + path_provider_linux 2.2.2
@@ -93,17 +95,17 @@ Downloading packages...
 + stream_channel 2.1.4
 + string_scanner 1.4.1
 + term_glyph 1.2.2
-+ test_api 0.7.11 (0.7.13 available)
++ test_api 0.7.12 (0.7.13 available)
 + typed_data 1.4.0
 + vector_graphics 1.2.3
 + vector_graphics_codec 1.1.13
 + vector_graphics_compiler 1.3.0
-  vector_math 2.2.0 (from direct dependency to transitive dependency) (2.4.2 available)
+  vector_math 2.4.0 (from direct dependency to transitive dependency) (2.4.2 available)
 + vm_service 15.2.0
 + web 1.1.1
 + xdg_directories 1.1.0
 + xml 7.0.1
-Changed 56 dependencies!
+Changed 58 dependencies!
 5 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 === ANALYZE ===
@@ -243,20 +245,13 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:530:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
 
-133 issues found. (ran in 8.2s)
+133 issues found. (ran in 8.7s)
 === BUILD APK ===
 Running Gradle task 'assembleRelease'...                        
-Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
-License for package CMake 3.22.1 accepted.
-Preparing "Install CMake 3.22.1 v.3.22.1".
-"Install CMake 3.22.1 v.3.22.1" ready.
-Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
-"Install CMake 3.22.1 v.3.22.1" complete.
-"Install CMake 3.22.1 v.3.22.1" finished.
 Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 11248 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          216.5s
-✓ Built build/app/outputs/flutter-apk/app-release.apk (53.4MB)
+Running Gradle task 'assembleRelease'...                          223.3s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (54.6MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
