@@ -1,5 +1,5 @@
-COMMIT=59e0822a37218c97be6604605e839147ad2be2df
-RUN_ID=31866534791
+COMMIT=e8de15eebd7563a82fcaa2a920e38cb4e4a259ca
+RUN_ID=31873533479
 === CREATE ANDROID ===
 Recreating project ....
   android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
@@ -245,7 +245,7 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:530:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
 
-133 issues found. (ran in 8.4s)
+133 issues found. (ran in 8.5s)
 === BUILD APK ===
 Running Gradle task 'assembleRelease'...                        
 ../../../.pub-cache/hosted/pub.dev/flame-1.17.0/lib/src/game/notifying_vector2.dart:189:30: Error: The method 'UnmodifiableFloat64ListView' isn't defined for the type 'NotifyingVector2'.
@@ -268,8 +268,8 @@ Execution failed for task ':app:compileFlutterBuildRelease'.
 > Run with --scan to get full insights from a Build Scan (powered by Develocity).
 > Get more help at https://help.gradle.org.
 
-BUILD FAILED in 1m 54s
-Running Gradle task 'assembleRelease'...                          115.0s
+BUILD FAILED in 1m 59s
+Running Gradle task 'assembleRelease'...                          119.7s
 Gradle task assembleRelease failed with exit code 1
 CREATE_CODE=0
 MANIFEST_CODE=0
