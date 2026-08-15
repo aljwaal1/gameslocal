@@ -1,5 +1,5 @@
-COMMIT=e31b67db4aa3b5df3e171a361905e57e4a1cbe87
-RUN_ID=31874092006
+COMMIT=b46876b3077d65f3127798c79d87699af59390dc
+RUN_ID=31878786250
 === CREATE ANDROID ===
 Recreating project ....
   android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
@@ -245,12 +245,12 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:530:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
 
-133 issues found. (ran in 8.7s)
+133 issues found. (ran in 7.8s)
 === BUILD APK ===
 Running Gradle task 'assembleRelease'...                        
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 11248 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 11656 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          223.3s
+Running Gradle task 'assembleRelease'...                          185.0s
 ✓ Built build/app/outputs/flutter-apk/app-release.apk (54.6MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
