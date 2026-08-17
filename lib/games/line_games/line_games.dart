@@ -198,6 +198,15 @@ const kind='$gameName';
 let ws,id,state={};
 const canvas=document.getElementById('board');
 const ctx=canvas.getContext('2d');
+let audioCtx=null,lastScoreTotal=0;
+function beep(freq=660,duration=.07,gain=.055){
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.frequency.value=freq;g.gain.value=gain;o.connect(g);g.connect(audioCtx.destination);o.start();
+    g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.stop(audioCtx.currentTime+duration);
+  }catch(e){}
+}
 
 document.getElementById('joinBtn').addEventListener('click',()=>{
   const name=document.getElementById('name').value.trim();
@@ -231,6 +240,7 @@ canvas.addEventListener('pointerdown',(event)=>{
       if(d<dist){dist=d;best=index;}
     });
     if(best>=0&&dist<1000){
+      beep(720,.055,.045);
       ws.send(JSON.stringify({type:'move',index:best}));
     }
   }else{
@@ -246,6 +256,7 @@ canvas.addEventListener('pointerdown',(event)=>{
       if(d<dist){dist=d;best=index;}
     });
     if(best>=0&&dist<650){
+      beep(720,.055,.045);
       ws.send(JSON.stringify({type:'move',index:best}));
     }
   }
@@ -261,6 +272,9 @@ function draw(){
   }else{
     status.textContent=state.message||'';
   }
+  const scoreTotal=(state.players||[]).reduce((n,p)=>n+(p.score||0),0);
+  if(scoreTotal>lastScoreTotal)beep(1040,.14,.075);
+  lastScoreTotal=scoreTotal;
   document.getElementById('scores').innerHTML=(state.players||[])
     .map(p=>`<div class="pill"><span class="player-name" style="color:\${p.color||'#241a2e'}">\${p.name}</span><br><b>\${p.score||0}</b></div>`).join('');
 
@@ -383,33 +397,36 @@ class _LineGameScreenState extends State<LineGameScreen> {
       }
       _pointOwners.addAll(List<int>.filled(_points.length, -1));
 
-      // A triangular board has three straight-line axes. Only real lines
-      // of three or more points can score.
+      // Every visible contiguous 3-point segment scores independently.
+      // This covers horizontal and both diagonal/cross axes.
+      void addTriples(List<int> axis) {
+        if (axis.length < 3) return;
+        for (var start = 0; start <= axis.length - 3; start++) {
+          _sheikhLines.add(axis.sublist(start, start + 3));
+        }
+      }
+
       for (var row = 0; row < rows; row++) {
-        final line = List<int>.generate(
+        addTriples(List<int>.generate(
           row + 1,
           (index) => rowStarts[row] + index,
-        );
-        if (line.length >= 3) _sheikhLines.add(line);
+        ));
       }
 
-      // First diagonal direction.
       for (var column = 0; column < rows; column++) {
-        final line = <int>[];
+        final axis = <int>[];
         for (var row = column; row < rows; row++) {
-          line.add(rowStarts[row] + column);
+          axis.add(rowStarts[row] + column);
         }
-        if (line.length >= 3) _sheikhLines.add(line);
+        addTriples(axis);
       }
 
-      // Second diagonal direction (the previously missing cross axis).
       for (var diagonal = 0; diagonal < rows; diagonal++) {
-        final line = <int>[];
+        final axis = <int>[];
         for (var row = diagonal; row < rows; row++) {
-          final column = row - diagonal;
-          line.add(rowStarts[row] + column);
+          axis.add(rowStarts[row] + (row - diagonal));
         }
-        if (line.length >= 3) _sheikhLines.add(line);
+        addTriples(axis);
       }
       return;
     }
@@ -564,7 +581,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
         _pointOwners[pointIndex] = ownerIndex;
       }
       _claimedSheikhLines[key] = playerId;
-      gained += line.length;
+      gained++;
     }
     return gained;
   }
