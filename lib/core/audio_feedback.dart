@@ -155,32 +155,42 @@ class GameFeedback {
       switch (sound) {
         case GameSound.uiTap:
           value = note(t, 1450, duration) * .40;
+          break;
         case GameSound.tap:
           value = (note(t, 1050, duration) + note(t, 1480, duration) * .42) * .52;
+          break;
         case GameSound.move:
           value = (note(t, 620, duration) + note(t, 880, duration) * .48) * .62;
+          break;
         case GameSound.capture:
           final frequency = 460 + progress * 1150;
           value = math.sin(2 * math.pi * frequency * t) * envelope * .72;
+          break;
         case GameSound.win:
           final segment = duration / 3;
           final frequencies = <double>[523.25, 659.25, 783.99];
           final index = math.min(2, (t / segment).floor());
           value = note(t - index * segment, frequencies[index], segment) * .86;
+          break;
         case GameSound.error:
           value = (note(t, 185, duration) + note(t, 128, duration) * .52) * .72;
+          break;
         case GameSound.kick:
           final noise = random.nextDouble() * 2 - 1;
           value = (noise * .72 + math.sin(2 * math.pi * 115 * t) * .28) * envelope * .82;
+          break;
         case GameSound.goal:
           final shimmer = math.sin(2 * math.pi * (620 + progress * 330) * t);
           final upper = math.sin(2 * math.pi * 930 * t) * .38;
           value = (shimmer + upper) * envelope * .70;
+          break;
         case GameSound.save:
           final noise = random.nextDouble() * 2 - 1;
           value = (noise * .50 + math.sin(2 * math.pi * 255 * t) * .50) * envelope * .75;
+          break;
         case GameSound.post:
           value = (note(t, 2350, duration) + note(t, 3150, duration) * .55) * .62;
+          break;
       }
 
       pcm[i] = (value.clamp(-1.0, 1.0) * 32767).round();
