@@ -35,6 +35,11 @@ class GamesLocalApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'ألعاب محلية',
       theme: AppThemeFactory.light(),
+      builder: (context, child) => Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => GameFeedback.uiTap(),
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: Directionality(
         textDirection: TextDirection.rtl,
         child: HomeScreen(),
