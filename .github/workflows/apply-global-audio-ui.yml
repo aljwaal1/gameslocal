@@ -1,0 +1,37 @@
+name: Apply global game audio UI hook
+
+on:
+  push:
+    branches: [feature/global-game-audio]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/global-game-audio
+          fetch-depth: 0
+      - name: Add global interaction audio hook
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text()
+          anchor = "      theme: AppThemeFactory.light(),\n      home: Directionality("
+          replacement = "      theme: AppThemeFactory.light(),\n      builder: (context, child) => Listener(\n        behavior: HitTestBehavior.translucent,\n        onPointerDown: (_) => GameFeedback.uiTap(),\n        child: child ?? const SizedBox.shrink(),\n      ),\n      home: Directionality("
+          if anchor not in s:
+              raise SystemExit('MaterialApp anchor not found')
+          s = s.replace(anchor, replacement, 1)
+          p.write_text(s)
+      - name: Commit hook
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          git commit -m "Enable real interaction sounds across all games"
+          git push origin HEAD:feature/global-game-audio
