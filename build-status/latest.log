@@ -1,5 +1,5 @@
-COMMIT=28d379000c1510d7911d4568952ef5119d7ad639
-RUN_ID=32040134600
+COMMIT=0e35f26340612b6d5a819dc732d244a7e752e2c1
+RUN_ID=32040441256
 === CREATE ANDROID ===
 Recreating project ....
   android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
@@ -185,6 +185,8 @@ warning • Unnecessary cast. Try removing the cast • lib/games/checkers/check
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:483:25 • curly_braces_in_flow_control_structures
 warning • The value of the local variable 'col' isn't used. Try removing the variable or using it • lib/games/football/penalty_shootout_game.dart:484:29 • unused_local_variable
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_shootout_game.dart:774:47 • deprecated_member_use
+warning • The value of the field '_outcome' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:70:19 • unused_field
+warning • The value of the field '_power' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:73:10 • unused_field
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_football_sprite.dart:65:51 • deprecated_member_use
 warning • The value of the local variable 'plantT' isn't used. Try removing the variable or using it • lib/games/football/realistic_penalty_scene.dart:49:15 • unused_local_variable
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:174:39 • deprecated_member_use
@@ -245,13 +247,13 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:530:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
 
-133 issues found. (ran in 8.8s)
+135 issues found. (ran in 10.1s)
 === BUILD APK ===
 Running Gradle task 'assembleRelease'...                        
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 11656 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 11248 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          203.6s
-✓ Built build/app/outputs/flutter-apk/app-release.apk (54.7MB)
+Running Gradle task 'assembleRelease'...                          228.1s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (54.5MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
