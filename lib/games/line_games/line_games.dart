@@ -177,7 +177,7 @@ class _LineWebBridge {
 h1{text-align:center}input,button{width:100%;font-size:18px;padding:13px;border-radius:14px;margin:6px 0}
 input{border:1px solid #d8cdea}button{border:0;background:#6f2dbd;color:#fff;font-weight:800}.hidden{display:none}
 canvas{width:100%;aspect-ratio:1;background:#fff;border-radius:18px;touch-action:none}
-.scores{display:flex;gap:8px;flex-wrap:wrap}.pill{flex:1;min-width:110px;background:#eee8ff;border-radius:14px;padding:10px;text-align:center}
+.scores{display:flex;gap:8px;flex-wrap:wrap}.pill{flex:1;min-width:110px;background:#eee8ff;border-radius:14px;padding:10px;text-align:center}.turn{font-size:18px;font-weight:800;text-align:center;margin-bottom:12px}.turn-name{font-size:28px;font-weight:950;display:inline-block;margin-inline-start:6px}.player-name{font-weight:900;font-size:18px}
 </style>
 </head>
 <body>
@@ -253,9 +253,16 @@ canvas.addEventListener('pointerdown',(event)=>{
 
 function draw(){
   ctx.clearRect(0,0,700,700);
-  document.getElementById('status').textContent=state.message||'';
+  const turnPlayer=(state.players||[]).find(p=>p.id===state.turnId);
+  const status=document.getElementById('status');
+  status.className='turn';
+  if(turnPlayer){
+    status.innerHTML=`الدور: <span class="turn-name" style="color:\${turnPlayer.color||'#6f2dbd'}">\${turnPlayer.name}</span>`;
+  }else{
+    status.textContent=state.message||'';
+  }
   document.getElementById('scores').innerHTML=(state.players||[])
-    .map(p=>`<div class="pill">\${p.name}<br><b>\${p.score||0}</b></div>`).join('');
+    .map(p=>`<div class="pill"><span class="player-name" style="color:\${p.color||'#241a2e'}">\${p.name}</span><br><b>\${p.score||0}</b></div>`).join('');
 
   (state.boxes||[]).forEach(box=>{
     if(!box.color)return;
@@ -376,18 +383,30 @@ class _LineGameScreenState extends State<LineGameScreen> {
       }
       _pointOwners.addAll(List<int>.filled(_points.length, -1));
 
+      // A triangular board has three straight-line axes. Only real lines
+      // of three or more points can score.
       for (var row = 0; row < rows; row++) {
-        _sheikhLines.add(
-          List<int>.generate(
-            row + 1,
-            (index) => rowStarts[row] + index,
-          ),
+        final line = List<int>.generate(
+          row + 1,
+          (index) => rowStarts[row] + index,
         );
+        if (line.length >= 3) _sheikhLines.add(line);
       }
 
+      // First diagonal direction.
       for (var column = 0; column < rows; column++) {
         final line = <int>[];
         for (var row = column; row < rows; row++) {
+          line.add(rowStarts[row] + column);
+        }
+        if (line.length >= 3) _sheikhLines.add(line);
+      }
+
+      // Second diagonal direction (the previously missing cross axis).
+      for (var diagonal = 0; diagonal < rows; diagonal++) {
+        final line = <int>[];
+        for (var row = diagonal; row < rows; row++) {
+          final column = row - diagonal;
           line.add(rowStarts[row] + column);
         }
         if (line.length >= 3) _sheikhLines.add(line);
@@ -883,16 +902,49 @@ class _LineGameScreenState extends State<LineGameScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-            child: Text(
-              players.length < 2
-                  ? 'بانتظار لاعب آخر'
-                  : _turnId == _myId
-                      ? 'دورك الآن'
-                      : 'بانتظار دور اللاعب الآخر',
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
+            child: Builder(
+              builder: (context) {
+                if (players.length < 2) {
+                  return const Text(
+                    'بانتظار لاعب آخر',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                  );
+                }
+                final turnPlayerIndex = players.indexWhere(
+                  (player) => player['id'] == _turnId,
+                );
+                final turnPlayerName = turnPlayerIndex >= 0
+                    ? players[turnPlayerIndex]['name'] ?? ''
+                    : '';
+                final turnColor = turnPlayerIndex >= 0
+                    ? _colors[turnPlayerIndex % _colors.length]
+                    : Theme.of(context).colorScheme.primary;
+                return RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                    children: <InlineSpan>[
+                      const TextSpan(text: 'الدور: '),
+                      TextSpan(
+                        text: turnPlayerName,
+                        style: TextStyle(
+                          color: turnColor,
+                          fontSize: 25,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (_turnId == _myId)
+                        const TextSpan(
+                          text: '  • دورك',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ],
