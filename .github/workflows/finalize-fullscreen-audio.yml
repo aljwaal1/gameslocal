@@ -1,0 +1,29 @@
+name: Finalize Fullscreen Audio
+
+on:
+  push:
+    branches: [feature/fullscreen-polish]
+    paths:
+      - '.github/workflows/finalize-fullscreen-audio.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/fullscreen-polish
+          fetch-depth: 0
+      - name: Apply final fullscreen and audio pass
+        run: python tools/finalize_fullscreen_audio.py
+      - name: Commit final pass
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/games
+          git commit -m "Finish fullscreen layouts and game audio"
+          git push origin HEAD:feature/fullscreen-polish
