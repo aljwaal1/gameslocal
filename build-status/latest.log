@@ -1,5 +1,5 @@
-COMMIT=87fc59859f5c53a56dbb64ba750a6487a530744f
-RUN_ID=32041849479
+COMMIT=69ce7bc563447b5bc4b896e05f5618a95d0cdab9
+RUN_ID=32102582030
 === CREATE ANDROID ===
 Recreating project ....
   android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
@@ -174,15 +174,6 @@ warning • Unnecessary cast. Try removing the cast • lib/games/checkers/check
    info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:277:12 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:288:54 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:317:33 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chicken/chicken_game.dart:114:9 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chicken/chicken_game.dart:423:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chicken/chicken_game.dart:425:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chicken/chicken_game.dart:428:7 • curly_braces_in_flow_control_structures
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/chicken/chicken_game.dart:506:60 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/chicken/chicken_game.dart:568:52 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/chicken/chicken_game.dart:579:44 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/chicken/chicken_game.dart:596:59 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/chicken/chicken_game.dart:806:29 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:151:53 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:239:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:282:7 • curly_braces_in_flow_control_structures
@@ -212,7 +203,8 @@ warning • The value of the local variable 'col' isn't used. Try removing the v
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_shootout_game.dart:774:47 • deprecated_member_use
 warning • The value of the field '_outcome' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:70:19 • unused_field
 warning • The value of the field '_power' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:73:10 • unused_field
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_football_sprite.dart:65:51 • deprecated_member_use
+warning • The declaration '_playerTeam' isn't referenced. Try removing the declaration of '_playerTeam' • lib/games/football/photo_penalty_game_v3.dart:84:20 • unused_element
+warning • The declaration '_robotTeam' isn't referenced. Try removing the declaration of '_robotTeam' • lib/games/football/photo_penalty_game_v3.dart:85:20 • unused_element
 warning • The value of the local variable 'plantT' isn't used. Try removing the variable or using it • lib/games/football/realistic_penalty_scene.dart:49:15 • unused_local_variable
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:174:39 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:177:39 • deprecated_member_use
@@ -251,8 +243,8 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:855:25 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:864:32 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:873:43 • deprecated_member_use
-   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:608:51 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:1004:30 • deprecated_member_use
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:625:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:1021:30 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/iphone_web_bridge.dart:148:11 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:214:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:224:7 • curly_braces_in_flow_control_structures
@@ -265,17 +257,17 @@ warning • The value of the local variable 'plantT' isn't used. Try removing th
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/xo/xo_game.dart:535:22 • deprecated_member_use
    info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:122:21 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:178:32 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:367:24 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:369:43 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:522:45 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:533:41 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:535:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:350:24 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:352:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:495:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:506:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:508:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
 
-135 issues found. (ran in 9.4s)
+127 issues found. (ran in 9.0s)
 === BUILD APK ===
 Running Gradle task 'assembleRelease'...                        
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 11248 bytes (99.3% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 10432 bytes (99.4% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
 License for package CMake 3.22.1 accepted.
 Preparing "Install CMake 3.22.1 v.3.22.1".
@@ -284,8 +276,8 @@ Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
 Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          266.3s
-✓ Built build/app/outputs/flutter-apk/app-release.apk (55.1MB)
+Running Gradle task 'assembleRelease'...                          250.6s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (54.8MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
