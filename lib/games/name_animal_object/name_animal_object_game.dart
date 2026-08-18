@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import 'iphone_web_bridge.dart';
@@ -549,6 +550,27 @@ class _NameAnimalObjectGameScreenState
     _receiveResults(payload);
   }
 
+  Future<void> _showWebQrDialog() async {
+    if (!_webUrl.startsWith('http')) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('اللعب عبر QR'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            QrImageView(data: _webUrl, size: 220, backgroundColor: Colors.white),
+            const SizedBox(height: 8),
+            SelectableText(_webUrl, textAlign: TextAlign.center),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_network == null)
@@ -566,143 +588,146 @@ class _NameAnimalObjectGameScreenState
     );
   }
 
-  Widget _profile() => ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          const Icon(Icons.edit_note, size: 88, color: Color(0xFF6F2DBD)),
-          const SizedBox(height: 16),
-          const Text(
-            'اكتب اسمك',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 18),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'اسم اللاعب',
-              border: OutlineInputBorder(),
+  Widget _profile() => Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 430),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Icon(Icons.edit_note_rounded, size: 74, color: Color(0xFF6D28D9)),
+                const SizedBox(height: 12),
+                const Text('اكتب اسمك', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: _nameController,
+                  textAlign: TextAlign.center,
+                  decoration: const InputDecoration(labelText: 'اسم اللاعب'),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(width: double.infinity, child: FilledButton(onPressed: _saveName, child: const Text('دخول اللعبة'))),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          FilledButton(onPressed: _saveName, child: const Text('دخول اللعبة')),
-        ],
+        ),
       );
 
-  Widget _waiting() => ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (_isHost)
-            Card(
-              color: const Color(0xFFEDE4FF),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Text(
-                      'دخول الآيفون',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 10),
-                    if (_webUrl.startsWith('http'))
-                      QrImageView(
-                        data: _webUrl,
-                        size: 190,
-                        backgroundColor: Colors.white,
+  Widget _waiting() => LayoutBuilder(
+        builder: (context, constraints) {
+          final androidPlayers = _network!.state.players;
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: <Widget>[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: <Color>[Color(0xFF6D28D9), Color(0xFF0EA5E9)]),
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Column(
+                    children: <Widget>[
+                      Text('اللاعبون: $_totalPlayers', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 6),
+                      if (_isHost && _webUrl.startsWith('http'))
+                        FilledButton.icon(
+                          onPressed: _showWebQrDialog,
+                          icon: const Icon(Icons.qr_code_2_rounded),
+                          label: const Text('إظهار QR'),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.topCenter,
+                    child: SizedBox(
+                      width: 380,
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
+                        children: <Widget>[
+                          for (final p in androidPlayers)
+                            Chip(avatar: Icon(p.isHost ? Icons.star : Icons.android, size: 18), label: Text(_playerNames[p.id] ?? p.name)),
+                          for (final p in _webPlayers.values)
+                            Chip(avatar: const Icon(Icons.public, size: 18), label: Text(p.name)),
+                        ],
                       ),
-                    const SizedBox(height: 10),
-                    SelectableText(
-                      _webUrl.isEmpty ? 'جاري تجهيز الرابط...' : _webUrl,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'امسح QR أو اكتب الرابط كاملًا في Safari على نفس الشبكة.',
-                      textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (_isHost)
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _totalPlayers >= 2 ? _startRound : null,
+                      icon: const Icon(Icons.play_arrow),
+                      label: Text(_totalPlayers >= 2 ? 'ابدأ الحرف' : 'بانتظار لاعب آخر'),
                     ),
+                  )
+                else
+                  const Text('بانتظار المضيف...', textAlign: TextAlign.center),
+              ],
+            ),
+          );
+        },
+      );
+
+  Widget _playing() => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 600;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(10, compact ? 6 : 10, 10, 8),
+            child: Column(
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Expanded(child: _info('الجولة', '$_round')),
+                    const SizedBox(width: 6),
+                    Expanded(child: _info('الحرف', _letter)),
+                    const SizedBox(width: 6),
+                    Expanded(child: _info('الوقت', '$_secondsLeft')),
                   ],
                 ),
-              ),
-            ),
-          const SizedBox(height: 8),
-          Text(
-            'اللاعبون: $_totalPlayers',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-          ),
-          ..._network!.state.players.map(
-            (p) => ListTile(
-              leading: Icon(p.isHost ? Icons.star : Icons.android),
-              title: Text(_playerNames[p.id] ?? p.name),
-              subtitle: const Text('أندرويد'),
-            ),
-          ),
-          ..._webPlayers.values.map(
-            (p) => ListTile(
-              leading: const Icon(Icons.phone_iphone),
-              title: Text(p.name),
-              subtitle: const Text('آيفون / Safari'),
-            ),
-          ),
-          if (_isHost)
-            FilledButton.icon(
-              onPressed: _totalPlayers >= 2 ? _startRound : null,
-              icon: const Icon(Icons.play_arrow),
-              label:
-                  Text(_totalPlayers >= 2 ? 'ابدأ الحرف' : 'بانتظار لاعب آخر'),
-            )
-          else
-            const Text('بانتظار المضيف...', textAlign: TextAlign.center),
-        ],
-      );
-
-  Widget _playing() => ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final itemWidth = constraints.maxWidth < 430
-                  ? (constraints.maxWidth - 8) / 2
-                  : (constraints.maxWidth - 16) / 3;
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  SizedBox(width: itemWidth, child: _info('الجولة', '$_round')),
-                  SizedBox(width: itemWidth, child: _info('الحرف', _letter)),
-                  SizedBox(
-                      width: itemWidth, child: _info('الوقت', '$_secondsLeft')),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-          ..._categories.map(
-            (c) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: TextField(
-                controller: _answers[c],
-                enabled: !_submitted,
-                decoration: InputDecoration(
-                  labelText: c,
-                  hintText: '$c يبدأ بحرف $_letter',
-                  border: const OutlineInputBorder(),
+                SizedBox(height: compact ? 5 : 8),
+                for (final c in _categories)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: TextField(
+                        controller: _answers[c],
+                        enabled: !_submitted,
+                        textInputAction: c == _categories.last ? TextInputAction.done : TextInputAction.next,
+                        decoration: InputDecoration(
+                          labelText: c,
+                          hintText: '$c يبدأ بحرف $_letter',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 5),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _submitted ? null : () {
+                      GameFeedback.win();
+                      _submitAnswers(endAll: true);
+                    },
+                    icon: const Icon(Icons.flag),
+                    label: Text(_submitted ? 'تم التسليم' : 'إنهاء الجولة للجميع'),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ),
-          FilledButton.icon(
-            onPressed: _submitted ? null : () => _submitAnswers(endAll: true),
-            icon: const Icon(Icons.flag),
-            label: Text(_submitted ? 'تم التسليم' : 'إنهاء الجولة للجميع'),
-          ),
-        ],
+          );
+        },
       );
 
   Widget _results() {
@@ -719,11 +744,9 @@ class _NameAnimalObjectGameScreenState
       fontWeight: FontWeight.w900,
     );
 
-    return ListView(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 4 : 14,
-        vertical: 10,
-      ),
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 14, vertical: 8),
+      child: Column(
       children: [
         Text(
           'نتائج حرف $_letter',
@@ -734,7 +757,8 @@ class _NameAnimalObjectGameScreenState
           ),
         ),
         const SizedBox(height: 8),
-        Card(
+        Expanded(
+          child: Card(
           clipBehavior: Clip.antiAlias,
           child: Padding(
             padding: EdgeInsets.all(compact ? 2 : 6),
@@ -844,6 +868,7 @@ class _NameAnimalObjectGameScreenState
             ),
           ),
         ),
+        ),
         if (_isHost) ...[
           const SizedBox(height: 6),
           const Card(
@@ -874,6 +899,7 @@ class _NameAnimalObjectGameScreenState
             textAlign: TextAlign.center,
           ),
       ],
+      ),
     );
   }
 

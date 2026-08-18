@@ -476,7 +476,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
           ),
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              padding: const EdgeInsets.fromLTRB(10, 3, 10, 7),
               child: Column(
                 children: [
                   _InfoPanel(
@@ -602,7 +602,7 @@ class _PlayerHand extends StatelessWidget {
       builder: (context, constraints) {
         final compact = tiles.length > 8 || constraints.maxWidth < 360;
         return SizedBox(
-          height: compact ? 138 : 152,
+          height: compact ? 116 : 134,
           child: Wrap(
             alignment: WrapAlignment.center,
             runAlignment: WrapAlignment.center,
@@ -710,7 +710,7 @@ class _InfoPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(9),
         child: Column(
           children: [
             Row(children: [

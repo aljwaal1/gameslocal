@@ -439,7 +439,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
           ),
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
+              padding: const EdgeInsets.fromLTRB(10, 3, 10, 7),
               child: Column(
                 children: [
                   _StatusCard(
@@ -484,7 +484,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
-                    height: 116,
+                    height: 104,
                     child: Wrap(
                       alignment: WrapAlignment.center,
                       runAlignment: WrapAlignment.center,
@@ -555,7 +555,7 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(9),
         child: Column(
           children: [
             Row(

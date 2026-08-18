@@ -351,13 +351,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       body: SafeArea(
           child: Column(children: [
         Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
             child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(message,
                       style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.bold)),
+                          fontSize: 18, fontWeight: FontWeight.bold)),
                   Chip(label: Text('نقلة $moveCount'))
                 ])),
         Expanded(
@@ -379,11 +379,11 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           child: Container(
                             decoration: BoxDecoration(
                               color: dark
-                                  ? const Color(0xFF769656)
-                                  : const Color(0xFFEEEED2),
+                                  ? const Color(0xFF1F5D50)
+                                  : const Color(0xFFF0E5C9),
                               border: selected == i
                                   ? Border.all(
-                                      color: Colors.orange.shade800, width: 3)
+                                      color: const Color(0xFFFFB703), width: 3)
                                   : null,
                             ),
                             alignment: Alignment.center,
@@ -408,17 +408,13 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                                               width: 3))),
                                 Text(board[i]?.symbol ?? '',
                                     style: const TextStyle(
-                                        fontSize: 34, color: Colors.black)),
+                                        fontSize: 32, color: Color(0xFF0F172A))),
                               ],
                             ),
                           ),
                         );
                       },
                     )))),
-        const Padding(
-            padding: EdgeInsets.all(12),
-            child:
-                Text('شطرنج قانوني: كش وكش مات وتعادل • تراجع • ترقية البيدق')),
       ])),
     );
   }

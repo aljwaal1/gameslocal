@@ -718,6 +718,28 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     );
   }
 
+  Future<void> _showBrowserQr() async {
+    if (!_iphoneUrl.startsWith('http') || hasAndroidGuest) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('الضامة عبر QR'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            QrImageView(data: _iphoneUrl, size: 220, backgroundColor: Colors.white),
+            const SizedBox(height: 8),
+            SelectableText(_iphoneUrl, textAlign: TextAlign.center),
+            Text('المتصلون: $_iphonePlayers'),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -728,25 +750,21 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
           appBar: AppBar(
             title: const Text('الضامة'),
             actions: [
-              IconButton(
-                  onPressed: requestBoardReset, icon: const Icon(Icons.refresh))
+              if (networkMode && localPlayerIsRed && _iphoneUrl.startsWith('http') && !hasAndroidGuest)
+                IconButton(tooltip: 'QR للمتصفح', onPressed: _showBrowserQr, icon: const Icon(Icons.qr_code_2_rounded)),
+              IconButton(onPressed: requestBoardReset, icon: const Icon(Icons.refresh))
             ],
           ),
           body: Column(
             children: [
-              if (networkMode && localPlayerIsRed)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: _iphoneCard(),
-                ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
                 child: Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18)),
                   child: Padding(
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(9),
                     child: Column(
                       children: [
                         Row(
@@ -757,7 +775,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                             Expanded(
                                 child: Text(message,
                                     style: const TextStyle(
-                                        fontSize: 18,
+                                        fontSize: 16,
                                         fontWeight: FontWeight.bold))),
                           ],
                         ),
@@ -883,13 +901,6 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                       ),
                     ),
                   ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, 18),
-                child: Text(
-                  'التوزيع: 16 حجرًا لكل لاعب، صف خلفي فارغ وصفّان كاملان من 8 أحجار، مع صفّين فارغين بين اللاعبين.',
-                  textAlign: TextAlign.center,
                 ),
               ),
             ],
