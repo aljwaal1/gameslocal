@@ -5,7 +5,6 @@ import 'core/app_settings.dart';
 import 'core/game_definition.dart';
 import 'core/game_room.dart';
 import 'design/app_theme.dart';
-import 'games/battle/battle_mode_screen.dart';
 import 'games/cards/cards_game.dart';
 import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_game.dart';
@@ -50,13 +49,6 @@ class HomeScreen extends StatelessWidget {
   HomeScreen({super.key});
 
   final List<GameDefinition> games = [
-    GameDefinition(
-      id: 'battle',
-      name: 'Battle Mode',
-      playersText: '1 ضد 1',
-      status: 'ضد الكمبيوتر أو لاعب عبر الشبكة',
-      builder: (_, networkCore) => BattleModeScreen(networkCore: networkCore),
-    ),
     GameDefinition(
       id: 'football_penalties',
       name: 'ركلات الترجيح',
@@ -273,7 +265,7 @@ class _ModeStrip extends StatelessWidget {
                 const SnackBar(
                   behavior: SnackBarBehavior.floating,
                   content: Text(
-                    'اختر كرة القدم أو Battle أو إكس أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.',
+                    'اختر كرة القدم أو إكس أو أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.',
                   ),
                 ),
               );
@@ -376,7 +368,6 @@ class _GameCard extends StatelessWidget {
   final GameDefinition game;
 
   bool get usesGameRoom => const <String>{
-        'battle',
         'football_penalties',
         'xo',
         'checkers',
@@ -402,8 +393,6 @@ class _GameCard extends StatelessWidget {
 
   IconData get icon {
     switch (game.id) {
-      case 'battle':
-        return Icons.sports_martial_arts;
       case 'football_penalties':
         return Icons.sports_soccer;
       case 'xo':
@@ -427,8 +416,6 @@ class _GameCard extends StatelessWidget {
 
   Color get color {
     switch (game.id) {
-      case 'battle':
-        return const Color(0xFFD62828);
       case 'football_penalties':
         return const Color(0xFF0B7A3B);
       case 'xo':
