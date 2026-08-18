@@ -45,8 +45,23 @@ class BattleQuickMatchChoice {
   bool differsFrom({
     required int characterIndex,
     required String botLevel,
-  }) =>
-      this.characterIndex != characterIndex || this.botLevel != botLevel;
+  }) {
+    if (characterIndex < 0 || characterIndex >= characterCount) {
+      throw ArgumentError.value(
+        characterIndex,
+        'characterIndex',
+        'فهرس الشخصية الحالية خارج النطاق المتاح للمقارنة',
+      );
+    }
+    if (!battleBotLevels.contains(botLevel)) {
+      throw ArgumentError.value(
+        botLevel,
+        'botLevel',
+        'مستوى الروبوت الحالي غير معروف للمقارنة',
+      );
+    }
+    return this.characterIndex != characterIndex || this.botLevel != botLevel;
+  }
 
   @override
   bool operator ==(Object other) =>
