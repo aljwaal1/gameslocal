@@ -1,0 +1,29 @@
+name: Apply Fullscreen Game Polish
+
+on:
+  push:
+    branches: [feature/fullscreen-polish]
+    paths:
+      - '.github/workflows/apply-fullscreen-polish.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/fullscreen-polish
+          fetch-depth: 0
+      - name: Apply strict fullscreen polish
+        run: python tools/apply_fullscreen_game_polish.py
+      - name: Commit polished gameplay screens
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/games lib/design/app_theme.dart
+          git commit -m "Make game screens fixed, responsive and polished"
+          git push origin HEAD:feature/fullscreen-polish
