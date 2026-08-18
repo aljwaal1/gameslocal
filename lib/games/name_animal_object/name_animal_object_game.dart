@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/audio_feedback.dart';
@@ -123,10 +122,6 @@ class _NameAnimalObjectGameScreenState
     }
   }
 
-  void _sound([SystemSoundType type = SystemSoundType.click]) {
-    SystemSound.play(type);
-    HapticFeedback.selectionClick();
-  }
 
   Future<void> _startWebBridge() async {
     final bridge = IphoneWebBridge();
@@ -172,7 +167,7 @@ class _NameAnimalObjectGameScreenState
     _playerNames[_myId] = name;
     _scores.putIfAbsent(_myId, () => 0);
     _network?.updateLocalPlayerName(name);
-    _sound();
+    GameFeedback.tap();
     setState(() => _stage = _Stage.waiting);
   }
 
@@ -203,7 +198,7 @@ class _NameAnimalObjectGameScreenState
       'letter': payload['letter'],
       'seconds': _roundSeconds,
     });
-    _sound(SystemSoundType.alert);
+    GameFeedback.move();
   }
 
   void _handleNetworkMessage(NetworkMessage message) {
@@ -275,7 +270,7 @@ class _NameAnimalObjectGameScreenState
       _finishing = false;
       _stage = _Stage.playing;
     });
-    _sound(SystemSoundType.alert);
+    GameFeedback.move();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_secondsLeft <= 1) {
@@ -291,7 +286,7 @@ class _NameAnimalObjectGameScreenState
     if (_submitted || _stage != _Stage.playing) return;
     final values = {for (final c in _categories) c: _answers[c]!.text.trim()};
     setState(() => _submitted = true);
-    _sound();
+    GameFeedback.tap();
     _network?.sendMove({
       'action': 'categories_submit',
       'round': _round,
@@ -427,7 +422,7 @@ class _NameAnimalObjectGameScreenState
       _finishing = false;
       _stage = _Stage.results;
     });
-    _sound(SystemSoundType.alert);
+    GameFeedback.win();
   }
 
   Future<void> _proposeScoreEdit(String playerId) async {
