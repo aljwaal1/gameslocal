@@ -838,12 +838,31 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   ),
                 ),
               ],
-              if (!_supportsBrowserQr) ...<Widget>[
+              if (!_isNameGame) ...<Widget>[
                 const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => _openGame(useNetwork: false),
-                  icon: const Icon(Icons.smart_toy_rounded),
-                  label: const Text('اللعب بدون شبكة'),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: <Color>[Color(0xFF0F766E), Color(0xFF6D28D9)],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(color: Color(0x260F172A), blurRadius: 14, offset: Offset(0, 6)),
+                    ],
+                  ),
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                    onPressed: () => _openGame(useNetwork: false),
+                    icon: const Icon(Icons.smart_toy_rounded),
+                    label: const Text(
+                      'اللعب مع الروبوت / محليًا',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
                 ),
               ],
             ],

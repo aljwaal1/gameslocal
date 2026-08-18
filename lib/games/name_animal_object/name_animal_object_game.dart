@@ -554,7 +554,7 @@ class _NameAnimalObjectGameScreenState
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _webUrl, size: 220, backgroundColor: Colors.white),
+            QrImageView(data: _webUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
             const SizedBox(height: 8),
             SelectableText(_webUrl, textAlign: TextAlign.center),
           ],

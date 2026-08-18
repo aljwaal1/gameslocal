@@ -491,18 +491,24 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: <Color>[
-                                Color(0x33000000),
-                                Colors.transparent,
-                                Color(0xB0000000),
+                                Color(0x44000000),
+                                Color(0x16000000),
+                                Color(0xCC0A3B2E),
+                                Color(0xFF075E42),
                               ],
-                              stops: <double>[0, .55, 1],
+                              stops: <double>[0, .43, .64, 1],
                             ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(painter: _PitchPerspectivePainter()),
                           ),
                         ),
                         if (_phase == _PenaltyPhase.aiming || _phase == _PenaltyPhase.saving)
                           Positioned(
-                            left: ballStart.dx - 31,
-                            top: ballStart.dy - 31,
+                            left: ballStart.dx - 23,
+                            top: ballStart.dy - 23,
                             child: const _PenaltySpotBall(),
                           ),
                         // Keep the goal frame/net visible as part of the stadium,
@@ -592,8 +598,8 @@ class _PenaltySpotBall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 62,
-      height: 62,
+      width: 46,
+      height: 46,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: <BoxShadow>[
@@ -612,8 +618,8 @@ class _PhotoBall extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 32,
-      height: 32,
+      width: 28,
+      height: 28,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         gradient: RadialGradient(
@@ -624,7 +630,7 @@ class _PhotoBall extends StatelessWidget {
           BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(3, 6)),
         ],
       ),
-      child: const Icon(Icons.sports_soccer, size: 24, color: Color(0xFF111827)),
+      child: const Icon(Icons.sports_soccer, size: 21, color: Color(0xFF111827)),
     );
   }
 }
@@ -648,6 +654,42 @@ class _AimMarker extends StatelessWidget {
       child: const Icon(Icons.add, color: Colors.white, size: 22),
     );
   }
+}
+
+class _PitchPerspectivePainter extends CustomPainter {
+  const _PitchPerspectivePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = Colors.white.withValues(alpha: .16)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    final glow = Paint()
+      ..color = const Color(0xFF2DD4BF).withValues(alpha: .08)
+      ..style = PaintingStyle.fill;
+
+    final horizon = size.height * .50;
+    final bottom = size.height * 1.02;
+    final center = size.width / 2;
+    for (var i = -4; i <= 4; i++) {
+      final xTop = center + i * size.width * .055;
+      final xBottom = center + i * size.width * .19;
+      canvas.drawLine(Offset(xTop, horizon), Offset(xBottom, bottom), line);
+    }
+    for (var i = 0; i < 5; i++) {
+      final t = i / 4;
+      final y = horizon + (bottom - horizon) * (t * t);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
+    }
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(center, size.height * .78), width: size.width * .42, height: size.height * .13),
+      glow,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _GoalGridPainter extends CustomPainter {

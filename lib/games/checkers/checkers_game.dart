@@ -727,7 +727,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _iphoneUrl, size: 220, backgroundColor: Colors.white),
+            QrImageView(data: _iphoneUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
             const SizedBox(height: 8),
             SelectableText(_iphoneUrl, textAlign: TextAlign.center),
             Text('المتصلون: $_iphonePlayers'),
