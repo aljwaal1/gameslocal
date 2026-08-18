@@ -144,6 +144,13 @@ class ChickenAchievements {
       throw ArgumentError.value(
           accuracy, 'accuracy', 'must be between 0 and 100');
     }
+    if (hits == 0 && accuracy != 0) {
+      throw ArgumentError.value(
+        accuracy,
+        'accuracy',
+        'must be zero when the round has no hits',
+      );
+    }
     if (bestCombo < 0) {
       throw ArgumentError.value(bestCombo, 'bestCombo', 'must not be negative');
     }
