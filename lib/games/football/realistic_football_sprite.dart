@@ -112,7 +112,6 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
     final sock = Color.lerp(primary, Colors.white, .20)!;
     final boot = const Color(0xFF111827);
 
-    // Legs: articulated shapes rather than stick lines.
     if (divingKeeper) {
       _limb(canvas, const Offset(-22, -112), const Offset(-69, -70), 24,
           shorts, shorts.withValues(alpha: .80));
@@ -151,7 +150,6 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
       _boot(canvas, rightFoot, kicking ? -.34 : .08, boot);
     }
 
-    // Torso with subtle jersey lighting.
     final torsoRect = Rect.fromCenter(
       center: Offset(divingKeeper ? 0 : 0, -203),
       width: _isKeeper ? 95 : 82,
@@ -182,7 +180,6 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
       ..color = Colors.white.withValues(alpha: .26);
     canvas.drawPath(torso, jerseyEdge);
 
-    // Arms and gloves/hands.
     if (readyKeeper) {
       _limb(canvas, const Offset(-37, -230), const Offset(-92, -189), 20,
           primary, primary.withValues(alpha: .72));
@@ -216,7 +213,6 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
       canvas.drawCircle(rightHand, 10, Paint()..color = skin);
     }
 
-    // Neck and head.
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         const Rect.fromLTWH(-12, -283, 24, 34),
@@ -228,14 +224,13 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
     canvas.drawOval(
       headRect,
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: <Color>[skin, skinShade],
         ).createShader(headRect),
     );
 
-    // Hair + face shadow for depth without cartoon facial details.
     final hair = Path()
       ..moveTo(-25, -302)
       ..quadraticBezierTo(-22, -335, 8, -334)
@@ -254,7 +249,6 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
         ..color = Colors.black.withValues(alpha: .24),
     );
 
-    // Jersey chest detail gives the figure a broadcast-game finish.
     final chest = Paint()
       ..color = Colors.white.withValues(alpha: .82)
       ..style = PaintingStyle.stroke
@@ -262,7 +256,6 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
     canvas.drawCircle(const Offset(0, -213), 13, chest);
     canvas.drawLine(const Offset(-6, -213), const Offset(6, -213), chest);
 
-    // Rim light separates the character from dark stadium backgrounds.
     final rim = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.2
