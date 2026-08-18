@@ -837,6 +837,29 @@ class _LineGameScreenState extends State<LineGameScreen> {
     super.dispose();
   }
 
+  Future<void> _showBrowserQr() async {
+    if (!_webUrl.startsWith('http')) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('اللعب عبر QR'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            QrImageView(data: _webUrl, size: 220, backgroundColor: Colors.white),
+            const SizedBox(height: 8),
+            SelectableText(_webUrl, textAlign: TextAlign.center),
+            const SizedBox(height: 4),
+            const Text('افتح الرابط من iPhone أو Android على نفس الشبكة.'),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final title =
@@ -844,34 +867,17 @@ class _LineGameScreenState extends State<LineGameScreen> {
     final players = _players;
 
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: <Widget>[
+          if (_isHost && _webUrl.startsWith('http'))
+            IconButton(tooltip: 'QR للمتصفح', onPressed: _showBrowserQr, icon: const Icon(Icons.qr_code_2_rounded)),
+        ],
+      ),
       body: Column(
         children: <Widget>[
-          if (_isHost && _webUrl.isNotEmpty)
-            Card(
-              margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  children: <Widget>[
-                    if (_webUrl.startsWith('http'))
-                      QrImageView(
-                        data: _webUrl,
-                        size: 90,
-                      ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SelectableText(
-                        '$_webUrl\nافتحه من Safari على نفس الشبكة',
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
           Padding(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 2),
             child: Wrap(
               spacing: 8,
               runSpacing: 6,
@@ -949,7 +955,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
                         text: turnPlayerName,
                         style: TextStyle(
                           color: turnColor,
-                          fontSize: 25,
+                          fontSize: 23,
                           fontWeight: FontWeight.w900,
                         ),
                       ),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/app_settings.dart';
+import '../../core/audio_feedback.dart';
 import '../../core/iphone_game_bridge.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
@@ -223,6 +224,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
     if (isHost && isNetworkGame && senderId != _turnId) return;
 
     setState(() => cells[index] = mark);
+    GameFeedback.move();
     if (notify && isNetworkGame) {
       widget.networkCore?.sendMove(
         <String, dynamic>{'action': 'place', 'index': index, 'mark': mark.name},
@@ -240,6 +242,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = winner == XoCell.x ? 'فاز X' : 'فاز O');
+      GameFeedback.win();
       _syncState();
       return;
     }
@@ -249,6 +252,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = 'تعادل');
+      GameFeedback.tap();
       _syncState();
       return;
     }
@@ -377,143 +381,176 @@ class _XoGameScreenState extends State<XoGameScreen> {
     return null;
   }
 
+  Future<void> _showBrowserQr() async {
+    if (!_iphoneUrl.startsWith('http')) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('اللعب عبر QR'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            QrImageView(data: _iphoneUrl, size: 220, backgroundColor: Colors.white),
+            const SizedBox(height: 10),
+            SelectableText(_iphoneUrl, textAlign: TextAlign.center),
+            const SizedBox(height: 6),
+            Text('المتصلون: ${_iphonePlayers.length}'),
+          ],
+        ),
+        actions: <Widget>[
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('إكس أو'),
         actions: <Widget>[
+          if (isHost && isNetworkGame && _iphoneUrl.startsWith('http'))
+            IconButton(
+              tooltip: 'QR للمتصفح',
+              onPressed: _showBrowserQr,
+              icon: const Icon(Icons.qr_code_2_rounded),
+            ),
           IconButton(onPressed: reset, icon: const Icon(Icons.refresh)),
-          IconButton(
-              onPressed: resetScore, icon: const Icon(Icons.restart_alt)),
+          IconButton(onPressed: resetScore, icon: const Icon(Icons.restart_alt)),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: <Widget>[
-          if (isHost && isNetworkGame)
-            Card(
-              color: const Color(0xFFEDE4FF),
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  children: <Widget>[
-                    const Text('دخول الآيفون',
-                        style: TextStyle(
-                            fontSize: 19, fontWeight: FontWeight.w900)),
-                    if (_iphoneUrl.startsWith('http')) ...<Widget>[
-                      const SizedBox(height: 8),
-                      QrImageView(
-                          data: _iphoneUrl,
-                          size: 165,
-                          backgroundColor: Colors.white),
-                    ],
-                    const SizedBox(height: 7),
-                    SelectableText(
-                      _iphoneUrl.isEmpty ? 'جاري تجهيز الرابط...' : _iphoneUrl,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text('لاعبو الآيفون: ${_iphonePlayers.length}'),
-                  ],
-                ),
-              ),
-            ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxHeight < 620 || constraints.maxWidth < 350;
+            final pad = compact ? 8.0 : 14.0;
+            return Padding(
+              padding: EdgeInsets.all(pad),
               child: Column(
                 children: <Widget>[
-                  Text(message,
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
-                  if (!isNetworkGame) ...<Widget>[
-                    const SizedBox(height: 12),
-                    SegmentedButton<bool>(
-                      segments: const <ButtonSegment<bool>>[
-                        ButtonSegment<bool>(
-                            value: false,
-                            label: Text('لاعبان'),
-                            icon: Icon(Icons.people)),
-                        ButtonSegment<bool>(
-                            value: true,
-                            label: Text('روبوت'),
-                            icon: Icon(Icons.smart_toy)),
-                      ],
-                      selected: <bool>{playVsBot},
-                      onSelectionChanged: (value) {
-                        playVsBot = value.first;
-                        reset();
-                      },
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: <Widget>[
-              Expanded(
-                  child: _ScoreTile(
-                      label: 'X', value: xWins, color: AppColors.danger)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: _ScoreTile(
-                      label: 'تعادل', value: draws, color: AppColors.muted)),
-              const SizedBox(width: 8),
-              Expanded(
-                  child: _ScoreTile(
-                      label: 'O', value: oWins, color: AppColors.primaryDark)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          AspectRatio(
-            aspectRatio: 1,
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-              ),
-              itemCount: 9,
-              itemBuilder: (context, index) {
-                final cell = cells[index];
-                final winning = winLine.contains(index);
-                return InkWell(
-                  borderRadius: BorderRadius.circular(24),
-                  onTap: () => tapCell(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: compact ? 8 : 11),
                     decoration: BoxDecoration(
-                      color: winning ? AppColors.accent : Colors.white,
-                      borderRadius: BorderRadius.circular(24),
+                      gradient: const LinearGradient(
+                        colors: <Color>[Color(0xFF0F766E), Color(0xFF6D28D9)],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: const <BoxShadow>[
-                        BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 10,
-                            offset: Offset(0, 4)),
+                        BoxShadow(color: Color(0x330F172A), blurRadius: 14, offset: Offset(0, 6)),
                       ],
                     ),
+                    child: Column(
+                      children: <Widget>[
+                        Text(
+                          message,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: compact ? 16 : 19,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        if (!isNetworkGame) ...<Widget>[
+                          const SizedBox(height: 7),
+                          SegmentedButton<bool>(
+                            segments: const <ButtonSegment<bool>>[
+                              ButtonSegment<bool>(value: false, label: Text('لاعبان'), icon: Icon(Icons.people)),
+                              ButtonSegment<bool>(value: true, label: Text('روبوت'), icon: Icon(Icons.smart_toy)),
+                            ],
+                            selected: <bool>{playVsBot},
+                            onSelectionChanged: (value) {
+                              playVsBot = value.first;
+                              reset();
+                            },
+                            style: ButtonStyle(
+                              visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: compact ? 6 : 10),
+                  Row(
+                    children: <Widget>[
+                      Expanded(child: _ScoreTile(label: 'X', value: xWins, color: const Color(0xFFE11D48))),
+                      const SizedBox(width: 7),
+                      Expanded(child: _ScoreTile(label: 'تعادل', value: draws, color: const Color(0xFF64748B))),
+                      const SizedBox(width: 7),
+                      Expanded(child: _ScoreTile(label: 'O', value: oWins, color: const Color(0xFF0EA5E9))),
+                    ],
+                  ),
+                  SizedBox(height: compact ? 7 : 12),
+                  Expanded(
                     child: Center(
-                      child: Text(
-                        cell == XoCell.empty ? '' : cell.name.toUpperCase(),
-                        style: TextStyle(
-                          fontSize: 58,
-                          fontWeight: FontWeight.w900,
-                          color: cell == XoCell.x
-                              ? AppColors.danger
-                              : AppColors.primaryDark,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: constraints.maxWidth,
+                          maxHeight: constraints.maxHeight,
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: GridView.builder(
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: compact ? 6 : 10,
+                              crossAxisSpacing: compact ? 6 : 10,
+                            ),
+                            itemCount: 9,
+                            itemBuilder: (context, index) {
+                              final cell = cells[index];
+                              final winning = winLine.contains(index);
+                              final value = cell == XoCell.empty ? '' : cell.name.toUpperCase();
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(compact ? 18 : 24),
+                                onTap: () => tapCell(index),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  decoration: BoxDecoration(
+                                    gradient: winning
+                                        ? const LinearGradient(colors: <Color>[Color(0xFFFFD166), Color(0xFFFFB703)])
+                                        : const LinearGradient(colors: <Color>[Colors.white, Color(0xFFF0F7FF)]),
+                                    borderRadius: BorderRadius.circular(compact ? 18 : 24),
+                                    border: Border.all(
+                                      color: value == 'X'
+                                          ? const Color(0x55E11D48)
+                                          : value == 'O'
+                                              ? const Color(0x550EA5E9)
+                                              : const Color(0x160F172A),
+                                      width: 2,
+                                    ),
+                                    boxShadow: const <BoxShadow>[
+                                      BoxShadow(color: Color(0x220F172A), blurRadius: 10, offset: Offset(0, 4)),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      value,
+                                      style: TextStyle(
+                                        fontSize: compact ? 48 : 64,
+                                        fontWeight: FontWeight.w900,
+                                        color: value == 'X' ? const Color(0xFFE11D48) : const Color(0xFF0284C7),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-        ],
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../core/audio_feedback.dart';
+
 import 'domino_blocked_result.dart';
 import 'domino_starting_player.dart';
 import 'domino_turn_order.dart';
@@ -84,6 +86,7 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
   void _play(_Tile tile) {
     if (gameFinished) return;
     if (!_legal(tile)) {
+      GameFeedback.error();
       setState(() => message = 'هذه القطعة لا تناسب طرفي السلسلة');
       return;
     }
@@ -110,16 +113,19 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       if (hands[turns.currentPlayer].isEmpty) {
         gameFinished = true;
         message = 'فاز اللاعب ${turns.currentPlayer + 1}!';
+        GameFeedback.win();
         return;
       }
       turns.next();
       message = 'دور اللاعب ${turns.currentPlayer + 1}';
+      GameFeedback.move();
     });
   }
 
   void _pass() {
     if (gameFinished) return;
     if (hands[turns.currentPlayer].any(_legal)) {
+      GameFeedback.error();
       setState(() => message = 'لديك قطعة صالحة، لا يمكنك التمرير');
       return;
     }
@@ -131,6 +137,7 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       }
       turns.next();
       message = 'تم التمرير — دور اللاعب ${turns.currentPlayer + 1}';
+      GameFeedback.tap();
     });
   }
 
@@ -175,28 +182,63 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: board.map((tile) => _tile(tile, false)).toList(),
+                flex: 5,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: <Color>[Color(0xFF083D39), Color(0xFF0F766E)],
+                      ),
+                      borderRadius: BorderRadius.circular(22),
+                      boxShadow: const <BoxShadow>[
+                        BoxShadow(color: Color(0x330F172A), blurRadius: 14, offset: Offset(0, 6)),
+                      ],
+                    ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: SizedBox(
+                            width: 390,
+                            child: Wrap(
+                              alignment: WrapAlignment.center,
+                              runAlignment: WrapAlignment.center,
+                              spacing: 2,
+                              runSpacing: 2,
+                              children: <Widget>[
+                                for (final tile in board) _tile(tile, false, compact: true),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const Divider(),
               Text(
-                gameFinished
-                    ? 'انتهت اللعبة'
-                    : 'قطع اللاعب ${turns.currentPlayer + 1}',
+                gameFinished ? 'انتهت اللعبة' : 'قطع اللاعب ${turns.currentPlayer + 1}',
+                style: const TextStyle(fontWeight: FontWeight.w900),
               ),
-              SizedBox(
-                height: 96,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.all(8),
-                  children: hands[turns.currentPlayer]
-                      .map((tile) => _tile(tile, !gameFinished))
-                      .toList(),
+              Expanded(
+                flex: 2,
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          for (final tile in hands[turns.currentPlayer])
+                            _tile(tile, !gameFinished, compact: constraints.maxWidth < 390),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
               Padding(
@@ -226,13 +268,13 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
         ),
       );
 
-  Widget _tile(_Tile tile, bool playable) => Padding(
-        padding: const EdgeInsets.all(4),
+  Widget _tile(_Tile tile, bool playable, {bool compact = false}) => Padding(
+        padding: EdgeInsets.all(compact ? 2 : 4),
         child: InkWell(
           onTap: playable ? () => _play(tile) : null,
           child: Container(
-            width: 54,
-            height: 76,
+            width: compact ? 40 : 54,
+            height: compact ? 58 : 76,
             decoration: BoxDecoration(
               color: playable && _legal(tile)
                   ? Colors.white
@@ -248,12 +290,12 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
               children: [
                 Text(
                   '${tile.a}',
-                  style: const TextStyle(fontSize: 22, color: Colors.black),
+                  style: TextStyle(fontSize: compact ? 16 : 22, color: const Color(0xFF0F172A), fontWeight: FontWeight.w900),
                 ),
                 const Divider(height: 2, color: Colors.black),
                 Text(
                   '${tile.b}',
-                  style: const TextStyle(fontSize: 22, color: Colors.black),
+                  style: TextStyle(fontSize: compact ? 16 : 22, color: const Color(0xFF0F172A), fontWeight: FontWeight.w900),
                 ),
               ],
             ),
