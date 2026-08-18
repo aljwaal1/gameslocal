@@ -27,3 +27,5 @@ jobs:
           git add lib/games lib/design/app_theme.dart
           git commit -m "Make game screens fixed, responsive and polished"
           git push origin HEAD:feature/fullscreen-polish
+
+# one-shot branch workflow; removed after verified patch
