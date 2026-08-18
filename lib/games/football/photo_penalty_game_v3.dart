@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import 'elite_penalty_game_v2.dart' as legacy;
 import 'penalty_shootout_game.dart' show FootballTeam, footballTeams;
@@ -178,7 +178,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.flying;
       _message = power > .93 ? 'قذيفة قوية...' : 'التسديدة انطلقت...';
     });
-    HapticFeedback.lightImpact();
+    GameFeedback.kick();
     await _animateShot();
 
     if (!mounted) return;
@@ -189,6 +189,20 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.result;
       _message = _resultText(result);
     });
+    switch (result) {
+      case _PenaltyOutcome.goal:
+        GameFeedback.goal();
+        break;
+      case _PenaltyOutcome.save:
+        GameFeedback.save();
+        break;
+      case _PenaltyOutcome.post:
+        GameFeedback.post();
+        break;
+      case _PenaltyOutcome.miss:
+        GameFeedback.error();
+        break;
+    }
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
     _advanceTurn();
@@ -223,7 +237,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.flying;
       _message = 'المنافس يسدد...';
     });
-    HapticFeedback.mediumImpact();
+    GameFeedback.kick();
     await _animateShot();
 
     if (!mounted) return;
@@ -234,6 +248,20 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.result;
       _message = result == _PenaltyOutcome.save ? 'تصـــدٍ رائع!' : _resultText(result);
     });
+    switch (result) {
+      case _PenaltyOutcome.goal:
+        GameFeedback.goal();
+        break;
+      case _PenaltyOutcome.save:
+        GameFeedback.save();
+        break;
+      case _PenaltyOutcome.post:
+        GameFeedback.post();
+        break;
+      case _PenaltyOutcome.miss:
+        GameFeedback.error();
+        break;
+    }
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
     _advanceTurn();
@@ -246,7 +274,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
 
   String _resultText(_PenaltyOutcome result) {
     return switch (result) {
-      _PenaltyOutcome.goal => widget.championsMode ? 'هــــدف عالمي!' : 'هــــدف!',
+      _PenaltyOutcome.goal => 'هــــدف!',
       _PenaltyOutcome.save => 'تصـــدٍ مذهل!',
       _PenaltyOutcome.post => 'في القائم!',
       _PenaltyOutcome.miss => 'خارج المرمى!',
@@ -285,15 +313,6 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
         _message = 'أنت الحارس — اختر جهة القفز';
       }
     });
-  }
-
-  FootballSpritePose _playerPose() {
-    final t = _shot.value;
-    if (_phase == _PenaltyPhase.aiming || _phase == _PenaltyPhase.saving) {
-      return FootballSpritePose.playerReady;
-    }
-    if (t < .42) return FootballSpritePose.playerRun;
-    return FootballSpritePose.playerKick;
   }
 
   FootballSpritePose _keeperPose() {
@@ -425,7 +444,6 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                   final keeperY = goal.top + goal.height * _keeper.dy;
                   final keeperT = Curves.easeOutCubic.transform(_shot.value);
                   final keeperPos = Offset.lerp(goal.center, Offset(keeperX, keeperY), keeperT)!;
-                  final shooter = _playerIsShooting ? _playerTeam : _robotTeam;
 
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -481,46 +499,36 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                             ),
                           ),
                         ),
-                        Positioned(
-                          left: -size.width * .08,
-                          bottom: size.height * .05,
-                          width: size.width * .64,
-                          height: size.height * .54,
-                          child: Opacity(
-                            opacity: _phase == _PenaltyPhase.saving ? .55 : .92,
-                            child: RealisticFootballSprite(
-                              pose: _playerPose(),
-                              primary: shooter.primary,
-                              secondary: shooter.secondary,
-                              alignment: const Alignment(.15, .20),
-                            ),
+                        if (_phase == _PenaltyPhase.aiming || _phase == _PenaltyPhase.saving)
+                          Positioned(
+                            left: ballStart.dx - 31,
+                            top: ballStart.dy - 31,
+                            child: const _PenaltySpotBall(),
+                          ),
+                        // Keep the goal frame/net visible as part of the stadium,
+                        // behind the keeper, through every phase of the shot.
+                        Positioned.fromRect(
+                          rect: goal,
+                          child: IgnorePointer(
+                            child: CustomPaint(painter: _GoalGridPainter()),
                           ),
                         ),
                         Positioned(
-                          left: keeperPos.dx - size.width * .26,
-                          top: keeperPos.dy - size.height * .19,
-                          width: size.width * .52,
-                          height: size.height * .38,
+                          left: keeperPos.dx - size.width * .19,
+                          top: keeperPos.dy - size.height * .145,
+                          width: size.width * .38,
+                          height: size.height * .29,
                           child: Transform.rotate(
-                            angle: (_keeper.dx - .5) * .50 * keeperT,
+                            angle: (_keeper.dx - .5) * .42 * keeperT,
                             child: RealisticFootballSprite(
                               pose: _keeperPose(),
-                              primary: widget.championsMode
-                                  ? const Color(0xFFFFB020)
-                                  : const Color(0xFF38BDF8),
+                              primary: const Color(0xFF38BDF8),
                               secondary: const Color(0xFF0F172A),
                               mirror: _keeper.dx < .5,
                               alignment: const Alignment(0, -.05),
                             ),
                           ),
                         ),
-                        if (_phase == _PenaltyPhase.aiming)
-                          Positioned.fromRect(
-                            rect: goal,
-                            child: IgnorePointer(
-                              child: CustomPaint(painter: _GoalGridPainter()),
-                            ),
-                          ),
                         if (_phase == _PenaltyPhase.aiming && _dragNow != null)
                           Positioned(
                             left: _dragNow!.dx - 22,
@@ -529,11 +537,14 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                           ),
                         if (_phase == _PenaltyPhase.flying || _phase == _PenaltyPhase.result)
                           Positioned(
-                            left: ball.dx - 16,
-                            top: ball.dy - 16,
-                            child: Transform.rotate(
-                              angle: _shot.value * math.pi * 8,
-                              child: const _PhotoBall(),
+                            left: ball.dx - (30 - flightT * 16),
+                            top: ball.dy - (30 - flightT * 16),
+                            child: Transform.scale(
+                              scale: 1.85 - flightT * .85,
+                              child: Transform.rotate(
+                                angle: _shot.value * math.pi * 9,
+                                child: const _PhotoBall(),
+                              ),
                             ),
                           ),
                         Positioned(
@@ -541,7 +552,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                           right: 14,
                           bottom: 14,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               color: const Color(0xDA050A10),
                               borderRadius: BorderRadius.circular(16),
@@ -557,7 +568,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                                 color: _phase == _PenaltyPhase.saving
                                     ? const Color(0xFFFDE68A)
                                     : Colors.white,
-                                fontSize: 15,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
@@ -572,6 +583,25 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PenaltySpotBall extends StatelessWidget {
+  const _PenaltySpotBall();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 62,
+      height: 62,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: <BoxShadow>[
+          BoxShadow(color: Color(0xAA000000), blurRadius: 18, offset: Offset(5, 12)),
+          BoxShadow(color: Color(0x5538BDF8), blurRadius: 24),
+        ],
+      ),
+      child: const _PhotoBall(),
     );
   }
 }
@@ -626,18 +656,17 @@ class _GoalGridPainter extends CustomPainter {
     final paint = Paint()
       ..color = Colors.white.withAlpha(78)
       ..strokeWidth = 1;
-    for (var i = 1; i < 3; i++) {
-      canvas.drawLine(
-        Offset(size.width * i / 3, 0),
-        Offset(size.width * i / 3, size.height),
-        paint,
-      );
-      canvas.drawLine(
-        Offset(0, size.height * i / 3),
-        Offset(size.width, size.height * i / 3),
-        paint,
-      );
+    for (var i = 1; i < 7; i++) {
+      canvas.drawLine(Offset(size.width * i / 7, 0), Offset(size.width * i / 7, size.height), paint);
     }
+    for (var i = 1; i < 5; i++) {
+      canvas.drawLine(Offset(0, size.height * i / 5), Offset(size.width, size.height * i / 5), paint);
+    }
+    final frame = Paint()
+      ..color = Colors.white.withAlpha(225)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5;
+    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(2)), frame);
   }
 
   @override

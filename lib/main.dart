@@ -9,9 +9,7 @@ import 'games/battle/battle_mode_screen.dart';
 import 'games/cards/cards_game.dart';
 import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_game.dart';
-import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
-import 'games/football/champions_penalty_game.dart';
 import 'games/football/professional_penalty_game.dart';
 import 'games/line_games/line_games.dart';
 import 'games/name_animal_object/name_animal_object_game.dart';
@@ -60,14 +58,6 @@ class HomeScreen extends StatelessWidget {
       builder: (_, networkCore) => BattleModeScreen(networkCore: networkCore),
     ),
     GameDefinition(
-      id: 'champions_penalties',
-      name: 'ركلات الأبطال',
-      playersText: 'لاعب ضد روبوت أو لاعبان LAN',
-      status: 'لعبة جديدة: تسديد بالسحب وتحكم كامل بالحارس',
-      builder: (_, networkCore) =>
-          ChampionsPenaltyGameScreen(networkCore: networkCore),
-    ),
-    GameDefinition(
       id: 'football_penalties',
       name: 'ركلات الترجيح',
       playersText: 'لاعب ضد روبوت أو لاعبان LAN',
@@ -95,13 +85,6 @@ class HomeScreen extends StatelessWidget {
       playersText: '2 عبر الشبكة / 4 محليًا',
       status: 'ضد الكمبيوتر أو لاعب عبر الشبكة أو 4 لاعبين محليًا',
       builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
-    ),
-    GameDefinition(
-      id: 'chicken',
-      name: 'لعبة الدجاجة',
-      playersText: 'لاعب واحد',
-      status: 'نسخة أركيد أولى',
-      builder: (_, __) => const ChickenGameScreen(),
     ),
     GameDefinition(
       id: 'chess',
@@ -395,7 +378,6 @@ class _GameCard extends StatelessWidget {
   bool get usesGameRoom => const <String>{
         'battle',
         'football_penalties',
-        'champions_penalties',
         'xo',
         'checkers',
         'domino',
@@ -410,7 +392,6 @@ class _GameCard extends StatelessWidget {
         'checkers',
         'domino',
         'football_penalties',
-        'champions_penalties',
         'name_animal_object',
         'sheikh_beard',
         'dots_boxes',
@@ -425,8 +406,6 @@ class _GameCard extends StatelessWidget {
         return Icons.sports_martial_arts;
       case 'football_penalties':
         return Icons.sports_soccer;
-      case 'champions_penalties':
-        return Icons.sports_score;
       case 'xo':
         return Icons.close;
       case 'checkers':
@@ -435,8 +414,6 @@ class _GameCard extends StatelessWidget {
         return Icons.account_tree;
       case 'domino':
         return Icons.dashboard_customize;
-      case 'chicken':
-        return Icons.egg_alt;
       case 'name_animal_object':
         return Icons.edit_note;
       case 'sheikh_beard':
@@ -454,8 +431,6 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFD62828);
       case 'football_penalties':
         return const Color(0xFF0B7A3B);
-      case 'champions_penalties':
-        return const Color(0xFF0B4F8A);
       case 'xo':
         return const Color(0xFFE63946);
       case 'checkers':
@@ -464,8 +439,6 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFF4A261);
       case 'chess':
         return const Color(0xFF264653);
-      case 'chicken':
-        return const Color(0xFFFF9F1C);
       case 'name_animal_object':
         return const Color(0xFF7B2CBF);
       case 'sheikh_beard':
