@@ -11,7 +11,6 @@ import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_game.dart';
 import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
-import 'games/football/champions_penalty_game.dart';
 import 'games/football/professional_penalty_game.dart';
 import 'games/line_games/line_games.dart';
 import 'games/name_animal_object/name_animal_object_game.dart';
@@ -58,14 +57,6 @@ class HomeScreen extends StatelessWidget {
       playersText: '1 ضد 1',
       status: 'ضد الكمبيوتر أو لاعب عبر الشبكة',
       builder: (_, networkCore) => BattleModeScreen(networkCore: networkCore),
-    ),
-    GameDefinition(
-      id: 'champions_penalties',
-      name: 'ركلات الأبطال',
-      playersText: 'لاعب ضد روبوت أو لاعبان LAN',
-      status: 'لعبة جديدة: تسديد بالسحب وتحكم كامل بالحارس',
-      builder: (_, networkCore) =>
-          ChampionsPenaltyGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'football_penalties',
@@ -395,7 +386,6 @@ class _GameCard extends StatelessWidget {
   bool get usesGameRoom => const <String>{
         'battle',
         'football_penalties',
-        'champions_penalties',
         'xo',
         'checkers',
         'domino',
@@ -410,7 +400,6 @@ class _GameCard extends StatelessWidget {
         'checkers',
         'domino',
         'football_penalties',
-        'champions_penalties',
         'name_animal_object',
         'sheikh_beard',
         'dots_boxes',
@@ -425,8 +414,6 @@ class _GameCard extends StatelessWidget {
         return Icons.sports_martial_arts;
       case 'football_penalties':
         return Icons.sports_soccer;
-      case 'champions_penalties':
-        return Icons.sports_score;
       case 'xo':
         return Icons.close;
       case 'checkers':
@@ -454,8 +441,6 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFD62828);
       case 'football_penalties':
         return const Color(0xFF0B7A3B);
-      case 'champions_penalties':
-        return const Color(0xFF0B4F8A);
       case 'xo':
         return const Color(0xFFE63946);
       case 'checkers':
