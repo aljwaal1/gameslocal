@@ -274,7 +274,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
 
   String _resultText(_PenaltyOutcome result) {
     return switch (result) {
-      _PenaltyOutcome.goal => widget.championsMode ? 'هــــدف عالمي!' : 'هــــدف!',
+      _PenaltyOutcome.goal => 'هــــدف!',
       _PenaltyOutcome.save => 'تصـــدٍ مذهل!',
       _PenaltyOutcome.post => 'في القائم!',
       _PenaltyOutcome.miss => 'خارج المرمى!',
@@ -505,31 +505,30 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                             top: ballStart.dy - 31,
                             child: const _PenaltySpotBall(),
                           ),
+                        // Keep the goal frame/net visible as part of the stadium,
+                        // behind the keeper, through every phase of the shot.
+                        Positioned.fromRect(
+                          rect: goal,
+                          child: IgnorePointer(
+                            child: CustomPaint(painter: _GoalGridPainter()),
+                          ),
+                        ),
                         Positioned(
-                          left: keeperPos.dx - size.width * .26,
-                          top: keeperPos.dy - size.height * .19,
-                          width: size.width * .52,
-                          height: size.height * .38,
+                          left: keeperPos.dx - size.width * .19,
+                          top: keeperPos.dy - size.height * .145,
+                          width: size.width * .38,
+                          height: size.height * .29,
                           child: Transform.rotate(
-                            angle: (_keeper.dx - .5) * .50 * keeperT,
+                            angle: (_keeper.dx - .5) * .42 * keeperT,
                             child: RealisticFootballSprite(
                               pose: _keeperPose(),
-                              primary: widget.championsMode
-                                  ? const Color(0xFFFFB020)
-                                  : const Color(0xFF38BDF8),
+                              primary: const Color(0xFF38BDF8),
                               secondary: const Color(0xFF0F172A),
                               mirror: _keeper.dx < .5,
                               alignment: const Alignment(0, -.05),
                             ),
                           ),
                         ),
-                        if (_phase == _PenaltyPhase.aiming)
-                          Positioned.fromRect(
-                            rect: goal,
-                            child: IgnorePointer(
-                              child: CustomPaint(painter: _GoalGridPainter()),
-                            ),
-                          ),
                         if (_phase == _PenaltyPhase.aiming && _dragNow != null)
                           Positioned(
                             left: _dragNow!.dx - 22,
@@ -553,7 +552,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                           right: 14,
                           bottom: 14,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               color: const Color(0xDA050A10),
                               borderRadius: BorderRadius.circular(16),
@@ -569,7 +568,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                                 color: _phase == _PenaltyPhase.saving
                                     ? const Color(0xFFFDE68A)
                                     : Colors.white,
-                                fontSize: 15,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
