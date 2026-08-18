@@ -1,0 +1,32 @@
+name: Remove Battle Mode
+
+on:
+  push:
+    branches: [remove-battle-mode]
+    paths:
+      - '.github/workflows/remove-battle-mode.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: remove-battle-mode
+          fetch-depth: 0
+      - name: Remove Battle mode completely
+        run: |
+          python tools/remove_battle_mode.py
+          git rm -r lib/games/battle
+          git rm -f test/battle_bot_strategy_test.dart test/battle_quick_match_test.dart
+      - name: Commit removal
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          git commit -m "Remove Battle Mode from app"
+          git push origin HEAD:remove-battle-mode
