@@ -9,7 +9,6 @@ import 'games/battle/battle_mode_screen.dart';
 import 'games/cards/cards_game.dart';
 import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_game.dart';
-import 'games/chicken/chicken_game.dart';
 import 'games/domino/domino_game.dart';
 import 'games/football/professional_penalty_game.dart';
 import 'games/line_games/line_games.dart';
@@ -86,13 +85,6 @@ class HomeScreen extends StatelessWidget {
       playersText: '2 عبر الشبكة / 4 محليًا',
       status: 'ضد الكمبيوتر أو لاعب عبر الشبكة أو 4 لاعبين محليًا',
       builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
-    ),
-    GameDefinition(
-      id: 'chicken',
-      name: 'لعبة الدجاجة',
-      playersText: 'لاعب واحد',
-      status: 'نسخة أركيد أولى',
-      builder: (_, __) => const ChickenGameScreen(),
     ),
     GameDefinition(
       id: 'chess',
@@ -422,8 +414,6 @@ class _GameCard extends StatelessWidget {
         return Icons.account_tree;
       case 'domino':
         return Icons.dashboard_customize;
-      case 'chicken':
-        return Icons.egg_alt;
       case 'name_animal_object':
         return Icons.edit_note;
       case 'sheikh_beard':
@@ -449,8 +439,6 @@ class _GameCard extends StatelessWidget {
         return const Color(0xFFF4A261);
       case 'chess':
         return const Color(0xFF264653);
-      case 'chicken':
-        return const Color(0xFFFF9F1C);
       case 'name_animal_object':
         return const Color(0xFF7B2CBF);
       case 'sheikh_beard':
