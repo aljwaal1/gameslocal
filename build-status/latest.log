@@ -1,5 +1,5 @@
-COMMIT=7994700939c04e90dff6b957972fcdf7e785f812
-RUN_ID=32175626107
+COMMIT=7fce5a9656b12ec0c22c04646199267be9bff303
+RUN_ID=32288731166
 === CREATE ANDROID ===
 Recreating project ....
   android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
@@ -182,15 +182,15 @@ warning • Unnecessary cast. Try removing the cast • lib/games/checkers/check
    info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:277:12 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:288:54 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:317:33 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:151:53 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:239:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:282:7 • curly_braces_in_flow_control_structures
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:507:60 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:666:35 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:765:38 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:804:33 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:832:24 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:843:42 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:158:53 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:246:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_game.dart:289:7 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:514:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:673:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:772:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:811:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:839:24 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_game.dart:850:42 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/elite_penalty_game.dart:421:57 • curly_braces_in_flow_control_structures
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:660:30 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:697:28 • deprecated_member_use
@@ -273,7 +273,7 @@ warning • Unused import: '../../design/app_theme.dart'. Try removing the impor
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:495:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
 
-136 issues found. (ran in 9.0s)
+136 issues found. (ran in 7.4s)
 === BUILD APK ===
 Running Gradle task 'assembleRelease'...                        
 Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 10468 bytes (99.4% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
@@ -285,7 +285,7 @@ Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
 Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          252.8s
+Running Gradle task 'assembleRelease'...                          201.0s
 ✓ Built build/app/outputs/flutter-apk/app-release.apk (54.6MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
