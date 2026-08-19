@@ -14,7 +14,7 @@ void main() {
 
   test('Domino starts the bot when the bot owns the opening turn', () {
     final source = File('lib/games/domino/domino_game.dart').readAsStringSync();
-    expect(source, contains("'الجولة $roundNumber: الكمبيوتر يبدأ...'"));
+    expect(source, contains(r"'الجولة $roundNumber: الكمبيوتر يبدأ...'"));
     expect(source, contains('if (!isNetworkGame && !playerTurn) {'));
     expect(
       source,
