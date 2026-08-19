@@ -113,8 +113,15 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
         ? (isLocalTurn
             ? 'الجولة $roundNumber: دورك'
             : 'الجولة $roundNumber: بانتظار اللاعب الآخر')
-        : 'الجولة $roundNumber: دورك، اختر قطعة مناسبة';
+        : (playerTurn
+            ? 'الجولة $roundNumber: دورك، اختر قطعة مناسبة'
+            : 'الجولة $roundNumber: الكمبيوتر يبدأ...');
     setState(() {});
+    if (!isNetworkGame && !playerTurn) {
+      Future<void>.delayed(const Duration(milliseconds: 500), () {
+        if (mounted && !roundFinished && !playerTurn) botMove();
+      });
+    }
   }
 
   void _requestRoundState() {

@@ -219,7 +219,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         winLine.isNotEmpty ||
         botThinking ||
         roundCounted) return;
-    if (playVsBot && !xTurn) return;
+    if (playVsBot && !xTurn && senderId != 'bot') return;
     if (mark != (xTurn ? XoCell.x : XoCell.o)) return;
     if (isHost && isNetworkGame && senderId != _turnId) return;
 
