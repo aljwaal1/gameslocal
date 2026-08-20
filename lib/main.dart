@@ -172,20 +172,29 @@ class _HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 128,
+      height: 142,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         gradient: const LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [Color(0xFF1F6F63), Color(0xFF7B2CBF)],
+          colors: AppColors.heroGradient,
+          stops: <double>[0, .52, 1],
         ),
-        boxShadow: const [
+        border: Border.all(color: const Color(0x33FFFFFF)),
+        boxShadow: const <BoxShadow>[
           BoxShadow(
-            color: Colors.black26,
-            blurRadius: 16,
-            offset: Offset(0, 6),
+            color: Color(0x4D075985),
+            blurRadius: 28,
+            spreadRadius: -5,
+            offset: Offset(0, 12),
+          ),
+          BoxShadow(
+            color: Color(0x336D28D9),
+            blurRadius: 34,
+            spreadRadius: -12,
+            offset: Offset(-8, 8),
           ),
         ],
       ),
@@ -339,9 +348,23 @@ class _ModeChip extends StatelessWidget {
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: <Color>[
+              color.withValues(alpha: .18),
+              Colors.white,
+            ],
+          ),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: color.withOpacity(0.25)),
+          border: Border.all(color: color.withValues(alpha: .30)),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: color.withValues(alpha: .10),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -458,13 +481,27 @@ class _GameCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: const [
+          gradient: LinearGradient(
+            begin: Alignment.topRight,
+            end: Alignment.bottomLeft,
+            colors: <Color>[
+              Color.lerp(color, Colors.white, .90)!,
+              Colors.white,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: color.withValues(alpha: .18)),
+          boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black12,
+              color: color.withValues(alpha: .13),
+              blurRadius: 20,
+              spreadRadius: -6,
+              offset: const Offset(0, 9),
+            ),
+            const BoxShadow(
+              color: Color(0x120F172A),
               blurRadius: 12,
-              offset: Offset(0, 5),
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -479,9 +516,21 @@ class _GameCard extends StatelessWidget {
                   height: 48,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.65)],
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                      colors: <Color>[
+                        color,
+                        Color.lerp(color, AppColors.secondary, .32)!,
+                      ],
                     ),
                     borderRadius: BorderRadius.circular(18),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: color.withValues(alpha: .28),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   child: Icon(icon, color: Colors.white, size: 28),
                 ),
