@@ -1,0 +1,29 @@
+name: Apply Pregame QR Lobby
+
+on:
+  push:
+    branches: [fix/xo-pregame-qr-lobby]
+    paths:
+      - '.github/workflows/apply-pregame-qr-all.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/xo-pregame-qr-lobby
+          fetch-depth: 0
+      - name: Apply shared pregame QR lobby
+        run: python tools/apply_xo_pregame_qr.py
+      - name: Commit QR lobby changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/core/pregame_qr_lobby.dart lib/core/game_room.dart lib/games/xo/xo_game.dart lib/games/checkers/checkers_game.dart lib/games/line_games/line_games.dart lib/games/name_animal_object/name_animal_object_game.dart test/pregame_qr_all_browser_games_test.dart
+          git commit -m "Show large pregame QR lobby across browser games"
+          git push origin HEAD:fix/xo-pregame-qr-lobby
