@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/audio_feedback.dart';
+import '../../core/pregame_qr_lobby.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 
@@ -340,6 +341,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
   _LineWebBridge? _bridge;
 
   String _webUrl = '';
+  bool _showNetworkQrLobby = true;
   int _turnIndex = 0;
 
   bool get _isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
@@ -397,36 +399,34 @@ class _LineGameScreenState extends State<LineGameScreen> {
       }
       _pointOwners.addAll(List<int>.filled(_points.length, -1));
 
-      // Every visible contiguous 3-point segment scores independently.
-      // This covers horizontal and both diagonal/cross axes.
-      void addTriples(List<int> axis) {
-        if (axis.length < 3) return;
-        for (var start = 0; start <= axis.length - 3; start++) {
-          _sheikhLines.add(axis.sublist(start, start + 3));
-        }
+      // Each complete straight line is a scoring line. Its value is the
+      // number of shaded points in that line. Keep all three board axes:
+      // horizontal and both diagonal/cross directions.
+      void addFullLine(List<int> line) {
+        if (line.length >= 3) _sheikhLines.add(line);
       }
 
       for (var row = 0; row < rows; row++) {
-        addTriples(List<int>.generate(
+        addFullLine(List<int>.generate(
           row + 1,
           (index) => rowStarts[row] + index,
         ));
       }
 
       for (var column = 0; column < rows; column++) {
-        final axis = <int>[];
+        final line = <int>[];
         for (var row = column; row < rows; row++) {
-          axis.add(rowStarts[row] + column);
+          line.add(rowStarts[row] + column);
         }
-        addTriples(axis);
+        addFullLine(line);
       }
 
       for (var diagonal = 0; diagonal < rows; diagonal++) {
-        final axis = <int>[];
+        final line = <int>[];
         for (var row = diagonal; row < rows; row++) {
-          axis.add(rowStarts[row] + (row - diagonal));
+          line.add(rowStarts[row] + (row - diagonal));
         }
-        addTriples(axis);
+        addFullLine(line);
       }
       return;
     }
@@ -576,12 +576,15 @@ class _LineGameScreenState extends State<LineGameScreen> {
         continue;
       }
 
-      // The player who places the final point captures the whole completed line.
+      // The player who places the final point captures the completed line.
+      // The score equals the number of shaded points in that line. A single
+      // move may complete several straight lines, so every completed line
+      // contributes its full length independently.
       for (final pointIndex in line) {
         _pointOwners[pointIndex] = ownerIndex;
       }
       _claimedSheikhLines[key] = playerId;
-      gained++;
+      gained += line.length;
     }
     return gained;
   }
@@ -865,6 +868,22 @@ class _LineGameScreenState extends State<LineGameScreen> {
     final title =
         widget.kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
     final players = _players;
+
+    if (_isHost && _showNetworkQrLobby) {
+      return PregameQrLobby(
+        title: '$title • دعوة لاعب',
+        url: _webUrl,
+        connectedPlayers: _webPlayers.length,
+        accent: widget.kind == LineGameKind.sheikhBeard
+            ? const Color(0xFF2563EB)
+            : const Color(0xFF14B8A6),
+        onStart: () {
+          GameFeedback.tap();
+          setState(() => _showNetworkQrLobby = false);
+          _broadcastState();
+        },
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
