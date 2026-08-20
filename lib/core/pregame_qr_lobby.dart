@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../design/app_theme.dart';
+
 class PregameQrLobby extends StatelessWidget {
   const PregameQrLobby({
     super.key,
@@ -33,87 +35,105 @@ class PregameQrLobby extends StatelessWidget {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final compact = constraints.maxHeight < 650;
             final qrSize = math.min(
               constraints.maxWidth * .78,
-              constraints.maxHeight * .46,
-            ).clamp(220.0, 380.0).toDouble();
-            final compact = constraints.maxHeight < 650;
+              constraints.maxHeight * (compact ? .40 : .46),
+            ).clamp(140.0, 380.0).toDouble();
 
             return Padding(
-              padding: EdgeInsets.fromLTRB(14, compact ? 8 : 14, 14, 12),
+              padding: EdgeInsets.fromLTRB(14, compact ? 7 : 14, 14, 12),
               child: Column(
                 children: <Widget>[
                   Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(
                       horizontal: 16,
-                      vertical: compact ? 12 : 16,
+                      vertical: compact ? 11 : 15,
                     ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topRight,
                         end: Alignment.bottomLeft,
                         colors: <Color>[
-                          const Color(0xFF0F766E),
+                          AppColors.primaryDark,
+                          AppColors.primary,
                           accent,
                         ],
+                        stops: const <double>[0, .52, 1],
                       ),
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(color: const Color(0x28FFFFFF)),
                       boxShadow: const <BoxShadow>[
                         BoxShadow(
-                          color: Color(0x2D0F172A),
-                          blurRadius: 18,
-                          offset: Offset(0, 7),
+                          color: Color(0x30073B3A),
+                          blurRadius: 22,
+                          offset: Offset(0, 9),
                         ),
                       ],
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                    child: Row(
                       children: <Widget>[
-                        const Icon(
-                          Icons.qr_code_2_rounded,
-                          color: Colors.white,
-                          size: 34,
-                        ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'امسح QR قبل بدء اللعبة',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
+                        Container(
+                          width: compact ? 48 : 54,
+                          height: compact ? 48 : 54,
+                          decoration: BoxDecoration(
+                            color: const Color(0x20FFFFFF),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0x38FFFFFF)),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_2_rounded,
                             color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 20,
+                            size: 32,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            height: 1.3,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              const Text(
+                                'امسح QR قبل بدء اللعبة',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 19,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFFE8F7F5),
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                  SizedBox(height: compact ? 8 : 12),
+                  SizedBox(height: compact ? 7 : 12),
                   Expanded(
                     child: Center(
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: const Color(0x160F172A)),
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(color: const Color(0x180F172A)),
                           boxShadow: const <BoxShadow>[
                             BoxShadow(
-                              color: Color(0x220F172A),
-                              blurRadius: 16,
-                              offset: Offset(0, 6),
+                              color: Color(0x240F172A),
+                              blurRadius: 20,
+                              offset: Offset(0, 8),
                             ),
                           ],
                         ),
@@ -133,7 +153,10 @@ class PregameQrLobby extends StatelessWidget {
                                     children: <Widget>[
                                       CircularProgressIndicator(),
                                       SizedBox(height: 10),
-                                      Text('جاري تجهيز رابط QR الحقيقي...'),
+                                      Text(
+                                        'جاري تجهيز رابط QR الحقيقي...',
+                                        textAlign: TextAlign.center,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -141,22 +164,23 @@ class PregameQrLobby extends StatelessWidget {
                       ),
                     ),
                   ),
-                  SizedBox(height: compact ? 8 : 12),
-                  Container(
+                  SizedBox(height: compact ? 7 : 11),
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
                     decoration: BoxDecoration(
-                      color: joined ? const Color(0xFFE6FFFA) : const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(17),
+                      color: joined ? const Color(0xFFE7F8F4) : AppColors.surfaceSoft,
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: joined ? const Color(0xFF5EEAD4) : const Color(0x180F172A),
+                        color: joined ? const Color(0x665EEAD4) : AppColors.hairline,
                       ),
                     ),
                     child: Row(
                       children: <Widget>[
                         Icon(
                           joined ? Icons.check_circle_rounded : Icons.hourglass_top_rounded,
-                          color: joined ? const Color(0xFF0F766E) : const Color(0xFF64748B),
+                          color: joined ? AppColors.primary : AppColors.muted,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -164,31 +188,51 @@ class PregameQrLobby extends StatelessWidget {
                             joined
                                 ? 'تم اتصال اللاعب • جاهز للبدء'
                                 : 'بانتظار دخول اللاعب عبر QR',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            style: const TextStyle(fontWeight: FontWeight.w900),
                           ),
                         ),
-                        Text(
-                          '$connectedPlayers',
-                          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+                        Container(
+                          constraints: const BoxConstraints(minWidth: 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: joined
+                                ? const Color(0x1F0F766E)
+                                : const Color(0x100F172A),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$connectedPlayers',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 16,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                  if (ready) ...<Widget>[
+                  if (ready && !compact) ...<Widget>[
                     const SizedBox(height: 5),
                     SelectableText(
                       url,
                       textAlign: TextAlign.center,
                       maxLines: 2,
-                      style: const TextStyle(fontSize: 9.5, color: Color(0xFF64748B)),
+                      style: const TextStyle(
+                        fontSize: 9.5,
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
-                  SizedBox(height: compact ? 7 : 10),
+                  SizedBox(height: compact ? 6 : 9),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: joined ? onStart : null,
-                      icon: const Icon(Icons.play_arrow_rounded),
+                      icon: Icon(
+                        joined ? Icons.play_arrow_rounded : Icons.people_alt_rounded,
+                      ),
                       label: Text(joined ? 'بدء اللعبة' : 'بانتظار لاعب'),
                     ),
                   ),
