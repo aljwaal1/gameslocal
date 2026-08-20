@@ -1,0 +1,60 @@
+name: Apply Premium Home UI
+
+on:
+  push:
+    branches: [feature/world-class-ui-system]
+    paths:
+      - '.github/workflows/apply-world-ui-home.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/world-class-ui-system
+          fetch-depth: 0
+      - name: Upgrade home presentation safely
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+            (
+              """      height: 128,\n      width: double.infinity,\n      decoration: BoxDecoration(\n        borderRadius: BorderRadius.circular(28),\n        gradient: const LinearGradient(\n          begin: Alignment.topRight,\n          end: Alignment.bottomLeft,\n          colors: [Color(0xFF1F6F63), Color(0xFF7B2CBF)],\n        ),\n        boxShadow: const [\n          BoxShadow(\n            color: Colors.black26,\n            blurRadius: 16,\n            offset: Offset(0, 6),\n          ),\n        ],\n      ),""",
+              """      height: 142,\n      width: double.infinity,\n      decoration: BoxDecoration(\n        borderRadius: BorderRadius.circular(30),\n        gradient: const LinearGradient(\n          begin: Alignment.topRight,\n          end: Alignment.bottomLeft,\n          colors: AppColors.heroGradient,\n          stops: <double>[0, .52, 1],\n        ),\n        border: Border.all(color: const Color(0x33FFFFFF)),\n        boxShadow: const <BoxShadow>[\n          BoxShadow(\n            color: Color(0x4D075985),\n            blurRadius: 28,\n            spreadRadius: -5,\n            offset: Offset(0, 12),\n          ),\n          BoxShadow(\n            color: Color(0x336D28D9),\n            blurRadius: 34,\n            spreadRadius: -12,\n            offset: Offset(-8, 8),\n          ),\n        ],\n      ),"""
+            ),
+            (
+              """        decoration: BoxDecoration(\n          color: color.withOpacity(0.12),\n          borderRadius: BorderRadius.circular(18),\n          border: Border.all(color: color.withOpacity(0.25)),\n        ),""",
+              """        decoration: BoxDecoration(\n          gradient: LinearGradient(\n            begin: Alignment.topRight,\n            end: Alignment.bottomLeft,\n            colors: <Color>[\n              color.withValues(alpha: .18),\n              Colors.white,\n            ],\n          ),\n          borderRadius: BorderRadius.circular(18),\n          border: Border.all(color: color.withValues(alpha: .30)),\n          boxShadow: <BoxShadow>[\n            BoxShadow(\n              color: color.withValues(alpha: .10),\n              blurRadius: 12,\n              offset: const Offset(0, 5),\n            ),\n          ],\n        ),"""
+            ),
+            (
+              """        decoration: BoxDecoration(\n          color: Colors.white,\n          borderRadius: BorderRadius.circular(24),\n          boxShadow: const [\n            BoxShadow(\n              color: Colors.black12,\n              blurRadius: 12,\n              offset: Offset(0, 5),\n            ),\n          ],\n        ),""",
+              """        decoration: BoxDecoration(\n          gradient: LinearGradient(\n            begin: Alignment.topRight,\n            end: Alignment.bottomLeft,\n            colors: <Color>[\n              Color.lerp(color, Colors.white, .90)!,\n              Colors.white,\n            ],\n          ),\n          borderRadius: BorderRadius.circular(26),\n          border: Border.all(color: color.withValues(alpha: .18)),\n          boxShadow: <BoxShadow>[\n            BoxShadow(\n              color: color.withValues(alpha: .13),\n              blurRadius: 20,\n              spreadRadius: -6,\n              offset: const Offset(0, 9),\n            ),\n            const BoxShadow(\n              color: Color(0x120F172A),\n              blurRadius: 12,\n              offset: Offset(0, 4),\n            ),\n          ],\n        ),"""
+            ),
+            (
+              """                    gradient: LinearGradient(\n                      colors: [color, color.withOpacity(0.65)],\n                    ),\n                    borderRadius: BorderRadius.circular(18),""",
+              """                    gradient: LinearGradient(\n                      begin: Alignment.topRight,\n                      end: Alignment.bottomLeft,\n                      colors: <Color>[\n                        color,\n                        Color.lerp(color, AppColors.secondary, .32)!,\n                      ],\n                    ),\n                    borderRadius: BorderRadius.circular(18),\n                    boxShadow: <BoxShadow>[\n                      BoxShadow(\n                        color: color.withValues(alpha: .28),\n                        blurRadius: 14,\n                        offset: const Offset(0, 6),\n                      ),\n                    ],"""
+            ),
+          ]
+
+          for old, new in replacements:
+            if old not in s:
+              raise SystemExit('Expected home UI block not found; refusing unsafe patch.')
+            s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit polished home and remove one-shot workflow
+        run: |
+          rm .github/workflows/apply-world-ui-home.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart .github/workflows/apply-world-ui-home.yml
+          git commit -m "Polish home with premium game palettes"
+          git push origin HEAD:feature/world-class-ui-system
