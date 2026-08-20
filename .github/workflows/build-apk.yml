@@ -84,8 +84,12 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log
           ANALYZE=${PIPESTATUS[0]}
 
+          echo "=== TEST ===" | tee -a build-status/latest.log
+          flutter test 2>&1 | tee -a build-status/latest.log
+          TEST=${PIPESTATUS[0]}
+
           BUILD=1
-          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
+          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ] && [ "$TEST" -eq 0 ]; then
             echo "=== BUILD APK ===" | tee -a build-status/latest.log
             flutter build apk --release 2>&1 | tee -a build-status/latest.log
             BUILD=${PIPESTATUS[0]}
@@ -97,6 +101,7 @@ jobs:
           echo "MANIFEST_CODE=$MANIFEST" | tee -a build-status/latest.log
           echo "PUB_CODE=$PUB" | tee -a build-status/latest.log
           echo "ANALYZE_CODE=$ANALYZE" | tee -a build-status/latest.log
+          echo "TEST_CODE=$TEST" | tee -a build-status/latest.log
           echo "BUILD_CODE=$BUILD" | tee -a build-status/latest.log
 
           if [ "$BUILD" -eq 0 ] && [ -s build/app/outputs/flutter-apk/app-release.apk ]; then
