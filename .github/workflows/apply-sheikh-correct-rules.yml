@@ -1,0 +1,29 @@
+name: Apply Verified Sheikh Rules
+
+on:
+  push:
+    branches: [fix/xo-pregame-qr-lobby]
+    paths:
+      - '.github/workflows/apply-sheikh-correct-rules.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/xo-pregame-qr-lobby
+          fetch-depth: 0
+      - name: Apply verified Sheikh Beard rules
+        run: python tools/fix_sheikh_correct_rules.py
+      - name: Commit verified scoring correction
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/games/line_games/line_games.dart test/sheikh_beard_scoring_contract_test.dart
+          git commit -m "Restore Sheikh Beard complete-line capture scoring"
+          git push origin HEAD:fix/xo-pregame-qr-lobby
