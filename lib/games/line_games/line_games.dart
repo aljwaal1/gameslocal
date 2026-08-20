@@ -574,14 +574,15 @@ class _LineGameScreenState extends State<LineGameScreen> {
     for (final line in _sheikhLines) {
       final key = line.join('-');
       if (_claimedSheikhLines.containsKey(key)) continue;
-      if (!line.every((pointIndex) => _pointOwners[pointIndex] >= 0)) {
+
+      // A Sheikh Beard line belongs to a player only when all three
+      // points in that straight segment were actually selected by that
+      // same player. Never recolor/steal points from another player:
+      // doing so creates false chain scores at crosses and overlaps.
+      if (!line.every((pointIndex) => _pointOwners[pointIndex] == ownerIndex)) {
         continue;
       }
 
-      // The player who places the final point captures the whole completed line.
-      for (final pointIndex in line) {
-        _pointOwners[pointIndex] = ownerIndex;
-      }
       _claimedSheikhLines[key] = playerId;
       gained++;
     }
