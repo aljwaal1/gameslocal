@@ -26,7 +26,7 @@ void main() {
 
   test('both line games use the shared pregame QR lobby', () {
     final source = File('lib/games/line_games/line_games.dart').readAsStringSync();
-    expect(source, contains("title: '$title • دعوة لاعب'"));
+    expect(source, contains("title: '\$title • دعوة لاعب'"));
     expect(source, contains('LineGameKind.sheikhBeard'));
     expect(source, contains('_showNetworkQrLobby'));
   });
