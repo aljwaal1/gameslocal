@@ -394,7 +394,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   const SizedBox(height: 4),
                   Text(
                     _supportsBrowserQr
-                        ? 'افتح اللعبة لإظهار QR للمتصفح بعد انضمام اللاعب'
+                        ? 'افتح QR الكبير وشاركه قبل ظهور لوحة اللعب'
                         : 'شارك الرمز مع اللاعب الموجود على نفس الشبكة',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
@@ -827,7 +827,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                             label: Text(
                               canStart
                                   ? (_supportsBrowserQr
-                                      ? 'بدء اللعبة وفتح QR'
+                                      ? 'فتح QR الكبير قبل اللعبة'
                                       : 'بدء اللعبة على الجميع')
                                   : 'بانتظار لاعب للبدء',
                             ),

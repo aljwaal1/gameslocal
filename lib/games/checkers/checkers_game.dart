@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/app_settings.dart';
 import '../../core/iphone_game_bridge.dart';
 import '../../core/audio_feedback.dart';
+import '../../core/pregame_qr_lobby.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import '../../design/app_theme.dart';
@@ -115,6 +116,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
   StreamSubscription<IphoneWebEvent>? _iphoneEventsSub;
   String _iphoneUrl = '';
   int _iphonePlayers = 0;
+  bool _showNetworkQrLobby = true;
   int? selectedRow;
   int? selectedCol;
   bool redTurn = true;
@@ -742,6 +744,22 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (networkMode &&
+        localPlayerIsRed &&
+        _showNetworkQrLobby &&
+        !hasAndroidGuest) {
+      return PregameQrLobby(
+        title: 'الضامة • دعوة لاعب',
+        url: _iphoneUrl,
+        connectedPlayers: _iphonePlayers,
+        accent: const Color(0xFFE11D48),
+        onStart: () {
+          GameFeedback.tap();
+          setState(() => _showNetworkQrLobby = false);
+          _broadcastIphoneState();
+        },
+      );
+    }
     return AnimatedBuilder(
       animation: settings,
       builder: (context, _) {

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/audio_feedback.dart';
+import '../../core/pregame_qr_lobby.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 
@@ -340,6 +341,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
   _LineWebBridge? _bridge;
 
   String _webUrl = '';
+  bool _showNetworkQrLobby = true;
   int _turnIndex = 0;
 
   bool get _isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
@@ -865,6 +867,22 @@ class _LineGameScreenState extends State<LineGameScreen> {
     final title =
         widget.kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
     final players = _players;
+
+    if (_isHost && _showNetworkQrLobby) {
+      return PregameQrLobby(
+        title: '$title • دعوة لاعب',
+        url: _webUrl,
+        connectedPlayers: _webPlayers.length,
+        accent: widget.kind == LineGameKind.sheikhBeard
+            ? const Color(0xFF2563EB)
+            : const Color(0xFF14B8A6),
+        onStart: () {
+          GameFeedback.tap();
+          setState(() => _showNetworkQrLobby = false);
+          _broadcastState();
+        },
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(

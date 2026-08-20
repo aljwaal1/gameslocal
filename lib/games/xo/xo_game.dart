@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
+import '../../core/pregame_qr_lobby.dart';
 import '../../core/iphone_game_bridge.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
@@ -45,6 +46,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
   StreamSubscription<IphoneWebEvent>? _iphoneEventsSub;
   List<IphoneWebPlayer> _iphonePlayers = <IphoneWebPlayer>[];
   String _iphoneUrl = '';
+  bool _showNetworkQrLobby = true;
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
@@ -406,6 +408,25 @@ class _XoGameScreenState extends State<XoGameScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasAndroidGuest = widget.networkCore?.state.players
+            .any((player) => !player.isHost) ??
+        false;
+    if (isNetworkGame &&
+        isHost &&
+        _showNetworkQrLobby &&
+        !hasAndroidGuest) {
+      return PregameQrLobby(
+        title: 'إكس أو • دعوة لاعب',
+        url: _iphoneUrl,
+        connectedPlayers: _iphonePlayers.length,
+        accent: const Color(0xFF7C3AED),
+        onStart: () {
+          GameFeedback.tap();
+          setState(() => _showNetworkQrLobby = false);
+          _broadcastWebState();
+        },
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: const Text('إكس أو'),

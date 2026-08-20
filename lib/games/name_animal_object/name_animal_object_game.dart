@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/audio_feedback.dart';
+import '../../core/pregame_qr_lobby.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import 'iphone_web_bridge.dart';
@@ -80,6 +81,7 @@ class _NameAnimalObjectGameScreenState
   int _secondsLeft = _roundSeconds;
   bool _submitted = false;
   bool _finishing = false;
+  bool _showNetworkQrLobby = true;
   final Map<String, IphoneWebPlayer> _webPlayers = <String, IphoneWebPlayer>{};
   final Map<String, String> _playerNames = <String, String>{};
   final Map<String, int> _scores = <String, int>{};
@@ -570,6 +572,20 @@ class _NameAnimalObjectGameScreenState
   Widget build(BuildContext context) {
     if (_network == null)
       return const Scaffold(body: Center(child: Text('أنشئ غرفة أولًا.')));
+    if (_isHost &&
+        _stage == _Stage.waiting &&
+        _showNetworkQrLobby) {
+      return PregameQrLobby(
+        title: 'اسم حيوان جماد • دعوة لاعبين',
+        url: _webUrl,
+        connectedPlayers: _webPlayers.length,
+        accent: const Color(0xFF8B5CF6),
+        onStart: () {
+          GameFeedback.tap();
+          setState(() => _showNetworkQrLobby = false);
+        },
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('اسم • حيوان • جماد')),
       body: SafeArea(
