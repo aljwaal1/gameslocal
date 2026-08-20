@@ -399,36 +399,34 @@ class _LineGameScreenState extends State<LineGameScreen> {
       }
       _pointOwners.addAll(List<int>.filled(_points.length, -1));
 
-      // Every visible contiguous 3-point segment scores independently.
-      // This covers horizontal and both diagonal/cross axes.
-      void addTriples(List<int> axis) {
-        if (axis.length < 3) return;
-        for (var start = 0; start <= axis.length - 3; start++) {
-          _sheikhLines.add(axis.sublist(start, start + 3));
-        }
+      // Each complete straight line is a scoring line. Its value is the
+      // number of shaded points in that line. Keep all three board axes:
+      // horizontal and both diagonal/cross directions.
+      void addFullLine(List<int> line) {
+        if (line.length >= 3) _sheikhLines.add(line);
       }
 
       for (var row = 0; row < rows; row++) {
-        addTriples(List<int>.generate(
+        addFullLine(List<int>.generate(
           row + 1,
           (index) => rowStarts[row] + index,
         ));
       }
 
       for (var column = 0; column < rows; column++) {
-        final axis = <int>[];
+        final line = <int>[];
         for (var row = column; row < rows; row++) {
-          axis.add(rowStarts[row] + column);
+          line.add(rowStarts[row] + column);
         }
-        addTriples(axis);
+        addFullLine(line);
       }
 
       for (var diagonal = 0; diagonal < rows; diagonal++) {
-        final axis = <int>[];
+        final line = <int>[];
         for (var row = diagonal; row < rows; row++) {
-          axis.add(rowStarts[row] + (row - diagonal));
+          line.add(rowStarts[row] + (row - diagonal));
         }
-        addTriples(axis);
+        addFullLine(line);
       }
       return;
     }
@@ -574,17 +572,19 @@ class _LineGameScreenState extends State<LineGameScreen> {
     for (final line in _sheikhLines) {
       final key = line.join('-');
       if (_claimedSheikhLines.containsKey(key)) continue;
-
-      // A Sheikh Beard line belongs to a player only when all three
-      // points in that straight segment were actually selected by that
-      // same player. Never recolor/steal points from another player:
-      // doing so creates false chain scores at crosses and overlaps.
-      if (!line.every((pointIndex) => _pointOwners[pointIndex] == ownerIndex)) {
+      if (!line.every((pointIndex) => _pointOwners[pointIndex] >= 0)) {
         continue;
       }
 
+      // The player who places the final point captures the completed line.
+      // The score equals the number of shaded points in that line. A single
+      // move may complete several straight lines, so every completed line
+      // contributes its full length independently.
+      for (final pointIndex in line) {
+        _pointOwners[pointIndex] = ownerIndex;
+      }
       _claimedSheikhLines[key] = playerId;
-      gained++;
+      gained += line.length;
     }
     return gained;
   }
