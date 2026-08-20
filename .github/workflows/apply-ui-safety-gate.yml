@@ -1,0 +1,56 @@
+name: Apply UI Safety Gate
+
+on:
+  push:
+    branches: [feature/world-class-ui-system]
+    paths:
+      - '.github/workflows/apply-ui-safety-gate.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/world-class-ui-system
+          fetch-depth: 0
+      - name: Patch verification and system chrome
+        shell: python
+        run: |
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/build-apk.yml')
+          w = workflow.read_text(encoding='utf-8')
+          old = '''          echo "=== ANALYZE ===" | tee -a build-status/latest.log\n          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log\n          ANALYZE=${PIPESTATUS[0]}\n\n          BUILD=1\n          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then\n'''
+          new = '''          echo "=== ANALYZE ===" | tee -a build-status/latest.log\n          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log\n          ANALYZE=${PIPESTATUS[0]}\n\n          echo "=== TEST ===" | tee -a build-status/latest.log\n          flutter test 2>&1 | tee -a build-status/latest.log\n          TEST=${PIPESTATUS[0]}\n\n          BUILD=1\n          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ] && [ "$TEST" -eq 0 ]; then\n'''
+          if old not in w:
+            raise SystemExit('CI analyze/build block changed; refusing unsafe patch')
+          w = w.replace(old, new, 1)
+          old_codes = '''          echo "ANALYZE_CODE=$ANALYZE" | tee -a build-status/latest.log\n          echo "BUILD_CODE=$BUILD" | tee -a build-status/latest.log\n'''
+          new_codes = '''          echo "ANALYZE_CODE=$ANALYZE" | tee -a build-status/latest.log\n          echo "TEST_CODE=$TEST" | tee -a build-status/latest.log\n          echo "BUILD_CODE=$BUILD" | tee -a build-status/latest.log\n'''
+          if old_codes not in w:
+            raise SystemExit('CI status block changed; refusing unsafe patch')
+          workflow.write_text(w.replace(old_codes, new_codes, 1), encoding='utf-8')
+
+          main = Path('lib/main.dart')
+          s = main.read_text(encoding='utf-8')
+          import_marker = "import 'package:flutter/material.dart';\n"
+          if "package:flutter/services.dart" not in s:
+            s = s.replace(import_marker, import_marker + "import 'package:flutter/services.dart';\n", 1)
+          old_builder = '''      builder: (context, child) => Listener(\n        behavior: HitTestBehavior.translucent,\n        onPointerDown: (_) => GameFeedback.uiTap(),\n        child: child ?? const SizedBox.shrink(),\n      ),\n'''
+          new_builder = '''      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(\n        value: const SystemUiOverlayStyle(\n          statusBarColor: Colors.transparent,\n          statusBarIconBrightness: Brightness.dark,\n          systemNavigationBarColor: AppColors.background,\n          systemNavigationBarIconBrightness: Brightness.dark,\n          systemNavigationBarDividerColor: Colors.transparent,\n        ),\n        child: Listener(\n          behavior: HitTestBehavior.translucent,\n          onPointerDown: (_) => GameFeedback.uiTap(),\n          child: child ?? const SizedBox.shrink(),\n        ),\n      ),\n'''
+          if old_builder not in s:
+            raise SystemExit('MaterialApp builder changed; refusing unsafe patch')
+          main.write_text(s.replace(old_builder, new_builder, 1), encoding='utf-8')
+
+      - name: Commit safety gate and remove one-shot workflow
+        run: |
+          rm .github/workflows/apply-ui-safety-gate.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/build-apk.yml lib/main.dart .github/workflows/apply-ui-safety-gate.yml
+          git commit -m "Require tests and polish Android system chrome"
+          git push origin HEAD:feature/world-class-ui-system
