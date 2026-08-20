@@ -1,0 +1,40 @@
+name: Apply Reviewed PR65 Corrections
+
+on:
+  push:
+    branches: [fix/xo-pregame-qr-lobby]
+    paths:
+      - '.github/workflows/apply-pr65-deep-review.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/xo-pregame-qr-lobby
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply only reviewed corrections
+        run: python tools/fix_pr65_after_deep_review.py
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Run Flutter tests
+        run: flutter test
+      - name: Analyze source
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Commit verified corrections
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/core/pregame_qr_lobby.dart lib/games/line_games/line_games.dart lib/games/name_animal_object/name_animal_object_game.dart test/pregame_qr_all_browser_games_test.dart test/sheikh_beard_scoring_contract_test.dart
+          git commit -m "Correct QR gating and restore Sheikh capture scoring"
+          git push origin HEAD:fix/xo-pregame-qr-lobby
