@@ -526,7 +526,7 @@ class _ModeStrip extends StatelessWidget {
           );
         }
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Expanded(child: actions[0]),
             const SizedBox(width: 10),
