@@ -4,6 +4,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import 'elite_penalty_game_v2.dart' as legacy;
 
@@ -465,6 +466,7 @@ class CinematicPenaltyGame extends FlameGame {
     shotDuration = (1.06 - power * .25).clamp(.76, .94).toDouble();
     flight = 0;
     phase = PenaltyPhase.flying;
+    GameFeedback.kick();
     HapticFeedback.lightImpact();
     _syncHud(message: power > .94 ? 'قذيفة قوية...' : 'تسديدة...');
   }
@@ -495,6 +497,7 @@ class CinematicPenaltyGame extends FlameGame {
     shotDuration = (1.04 - robotPower * .22).clamp(.78, .94).toDouble();
     flight = 0;
     phase = PenaltyPhase.flying;
+    GameFeedback.kick();
     HapticFeedback.mediumImpact();
     _syncHud(message: 'المنافس يسدد...');
   }
@@ -531,15 +534,19 @@ class CinematicPenaltyGame extends FlameGame {
     phase = PenaltyPhase.result;
     switch (outcome) {
       case PenaltyOutcome.goal:
+        GameFeedback.goal();
         HapticFeedback.heavyImpact();
         _syncHud(message: championsMode ? 'هــــدف عالمي!' : 'هــــدف!');
       case PenaltyOutcome.save:
+        GameFeedback.save();
         HapticFeedback.mediumImpact();
         _syncHud(message: 'تصـــدٍ مذهل!');
       case PenaltyOutcome.post:
+        GameFeedback.post();
         HapticFeedback.heavyImpact();
         _syncHud(message: 'في القائم!');
       case PenaltyOutcome.miss:
+        GameFeedback.error();
         HapticFeedback.mediumImpact();
         _syncHud(message: 'خارج المرمى!');
     }

@@ -12,7 +12,7 @@ void main() {
     'lib/games/domino/domino_four_player_game.dart',
     'lib/games/line_games/line_games.dart',
     'lib/games/name_animal_object/name_animal_object_game.dart',
-    'lib/games/football/photo_penalty_game_v3.dart',
+    'lib/games/football/world_class_penalty_game_v2.dart',
   ];
 
   test('all active game screens stay inside one non-scrolling viewport', () {

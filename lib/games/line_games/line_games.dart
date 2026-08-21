@@ -403,7 +403,9 @@ class _LineGameScreenState extends State<LineGameScreen> {
       // number of shaded points in that line. Keep all three board axes:
       // horizontal and both diagonal/cross directions.
       void addFullLine(List<int> line) {
-        if (line.length >= 3) _sheikhLines.add(line);
+        // Edge diagonals can be complete, valid straight lines with only two
+        // points. They still score their full shaded length.
+        if (line.length >= 2) _sheikhLines.add(line);
       }
 
       for (var row = 0; row < rows; row++) {

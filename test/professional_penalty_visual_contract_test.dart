@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('penalty mode keeps the production photo arena and LAN compatibility', () {
+  test('penalty mode uses the cinematic arena and keeps LAN compatibility', () {
     final compatibilityEntry = File(
       'lib/games/football/professional_penalty_game.dart',
     ).readAsStringSync();
     final gameSource = File(
-      'lib/games/football/photo_penalty_game_v3.dart',
+      'lib/games/football/world_class_penalty_game_v2.dart',
     ).readAsStringSync();
     final compatibilityScene = File(
       'lib/games/football/professional_penalty_scene.dart',
@@ -17,12 +17,13 @@ void main() {
       'lib/games/football/stable_penalty_scene.dart',
     ).readAsStringSync();
 
-    // The public entry point intentionally stays a compatibility export while
-    // the current production implementation lives in photo_penalty_game_v3.
+    // The public entry point stays stable while the production implementation
+    // uses the cinematic arena. Network sessions still delegate to the
+    // established compatible implementation.
     expect(
       compatibilityEntry,
       contains(
-        "export 'photo_penalty_game_v3.dart' show ProPenaltyShootoutGameScreen;",
+        "export 'world_class_penalty_game_v2.dart' show ProPenaltyShootoutGameScreen;",
       ),
     );
 
@@ -32,14 +33,16 @@ void main() {
       gameSource,
       contains('legacy.ProPenaltyShootoutGameScreen(networkCore: networkCore)'),
     );
-    expect(gameSource, contains('Duration(milliseconds: 1180)'));
-    expect(gameSource, contains('Future<void> _shootPlayer'));
-    expect(gameSource, contains('Future<void> _shootRobot'));
-    expect(gameSource, contains('Future<void> _animateShot()'));
+    expect(gameSource, contains('class CinematicPenaltyGame extends FlameGame'));
+    expect(gameSource, contains('GameWidget<CinematicPenaltyGame>'));
     expect(gameSource, contains('GameFeedback.kick()'));
-    expect(gameSource, contains("'assets/football/pro_penalty_arena.jpg'"));
-    expect(gameSource, contains('RealisticFootballSprite'));
-    expect(gameSource, contains('_GoalGridPainter'));
+    expect(gameSource, contains('GameFeedback.goal()'));
+    expect(gameSource, contains('_drawSkyAndStadium'));
+    expect(gameSource, contains('_drawPitch'));
+    expect(gameSource, contains('_drawGoal'));
+    expect(gameSource, contains('_drawKeeper'));
+    expect(gameSource, contains('_drawPlayer'));
+    expect(gameSource, contains('_drawBall'));
     expect(gameSource, contains('fit: StackFit.expand'));
 
     // Keep the compatibility scene contract protected as well because the LAN
