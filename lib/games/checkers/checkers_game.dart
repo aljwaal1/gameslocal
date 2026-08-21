@@ -770,25 +770,62 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
             actions: [
               if (networkMode && localPlayerIsRed && _iphoneUrl.startsWith('http') && !hasAndroidGuest)
                 IconButton(tooltip: 'QR للمتصفح', onPressed: _showBrowserQr, icon: const Icon(Icons.qr_code_2_rounded)),
-              IconButton(onPressed: requestBoardReset, icon: const Icon(Icons.refresh))
+              IconButton(
+                tooltip: 'إعادة المباراة',
+                onPressed: requestBoardReset,
+                icon: const Icon(Icons.refresh_rounded),
+              )
             ],
           ),
           body: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
-                child: Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                      colors: <Color>[
+                        Color(0xFFFFFFFF),
+                        Color(0xFFF5FAF9),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0x1A0F172A)),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x140F172A),
+                        blurRadius: 14,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(9),
+                    padding: const EdgeInsets.all(11),
                     child: Column(
                       children: [
                         Row(
                           children: [
-                            Icon(
-                                redTurn ? Icons.circle : Icons.circle_outlined),
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: redTurn
+                                    ? const Color(0x16E11D48)
+                                    : const Color(0x120F172A),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                redTurn
+                                    ? Icons.circle_rounded
+                                    : Icons.circle_outlined,
+                                color: redTurn
+                                    ? const Color(0xFFE11D48)
+                                    : const Color(0xFF0F172A),
+                                size: 20,
+                              ),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                                 child: Text(message,
@@ -848,11 +885,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                               ButtonSegment(
                                   value: false,
                                   label: Text('لاعب ضد لاعب'),
-                                  icon: Icon(Icons.people)),
+                                  icon: Icon(Icons.people_alt_rounded)),
                               ButtonSegment(
                                   value: true,
                                   label: Text('ضد الكمبيوتر'),
-                                  icon: Icon(Icons.smart_toy)),
+                                  icon: Icon(Icons.smart_toy_rounded)),
                             ],
                             selected: {playVsBot},
                             onSelectionChanged: (value) {
@@ -878,18 +915,26 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              tableColor.withOpacity(0.95),
-                              tableColor.withOpacity(0.65)
+                            colors: <Color>[
+                              tableColor.withValues(alpha: .98),
+                              tableColor.withValues(alpha: .72),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: AppColors.accent, width: 5),
-                          boxShadow: const [
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: const Color(0xFFF5B82E),
+                            width: 3,
+                          ),
+                          boxShadow: const <BoxShadow>[
                             BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 18,
-                                offset: Offset(0, 7))
+                              color: Color(0x42000000),
+                              blurRadius: 22,
+                              offset: Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: Color(0x33F5B82E),
+                              blurRadius: 12,
+                            ),
                           ],
                         ),
                         child: ClipRRect(
