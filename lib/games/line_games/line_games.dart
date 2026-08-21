@@ -845,11 +845,18 @@ class _LineGameScreenState extends State<LineGameScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('اللعب عبر QR'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _webUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
+            QrImageView(
+              data: _webUrl,
+              size: (MediaQuery.sizeOf(dialogContext).shortestSide * .58)
+                  .clamp(120.0, 320.0)
+                  .toDouble(),
+              backgroundColor: Colors.white,
+            ),
             const SizedBox(height: 8),
             SelectableText(_webUrl, textAlign: TextAlign.center),
             const SizedBox(height: 4),

@@ -39,7 +39,7 @@ class PregameQrLobby extends StatelessWidget {
             final qrSize = math.min(
               constraints.maxWidth * .78,
               constraints.maxHeight * (compact ? .40 : .46),
-            ).clamp(140.0, 380.0).toDouble();
+            ).clamp(88.0, 380.0).toDouble();
 
             return Padding(
               padding: EdgeInsets.fromLTRB(14, compact ? 7 : 14, 14, 12),
