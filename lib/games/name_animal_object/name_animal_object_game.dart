@@ -578,7 +578,11 @@ class _NameAnimalObjectGameScreenState
       return PregameQrLobby(
         title: 'اسم حيوان جماد • دعوة لاعبين',
         url: _webUrl,
-        connectedPlayers: _webPlayers.length,
+        connectedPlayers: (_network?.state.players
+                    .where((player) => !player.isHost)
+                    .length ??
+                0) +
+            _webPlayers.length,
         accent: const Color(0xFF8B5CF6),
         onStart: () {
           GameFeedback.tap();

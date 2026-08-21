@@ -873,7 +873,11 @@ class _LineGameScreenState extends State<LineGameScreen> {
       return PregameQrLobby(
         title: '$title • دعوة لاعب',
         url: _webUrl,
-        connectedPlayers: _webPlayers.length,
+        connectedPlayers: (widget.networkCore?.state.players
+                    .where((player) => !player.isHost)
+                    .length ??
+                0) +
+            _webPlayers.length,
         accent: widget.kind == LineGameKind.sheikhBeard
             ? const Color(0xFF2563EB)
             : const Color(0xFF14B8A6),
