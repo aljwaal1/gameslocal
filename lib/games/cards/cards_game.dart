@@ -243,7 +243,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void playPlayerCard(PlayingCardModel card) {
     if (!isLocalTurn || roundFinished) return;
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.cards);
     final ownPile = isNetworkGame && !isHost ? botPile : playerPile;
     final opponentPile = isNetworkGame && !isHost ? playerPile : botPile;
     playCard(card, localHand, ownPile, opponentPile,
@@ -340,7 +340,11 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
             ? 'الكمبيوتر عمل بسرا +10'
             : 'الكمبيوتر التقط أوراقًا متشابهة وربح $gained نقطة';
       }
-      GameFeedback.win();
+      if (madeBasra) {
+        GameFeedback.win(GameAudioTheme.cards);
+      } else {
+        GameFeedback.capture(GameAudioTheme.cards);
+      }
     } else {
       final stolen = opponentPile.where((p) => p.value == card.value).toList();
       if (stolen.isNotEmpty) {
@@ -359,7 +363,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
           botSteals++;
           message = 'الكمبيوتر سرق متشابهات منك وربح $gained نقطة';
         }
-        GameFeedback.win();
+        GameFeedback.capture(GameAudioTheme.cards);
       } else {
         table.add(card);
         message = isPlayer
@@ -389,13 +393,13 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       }
       if (playerScore > botScore) {
         message = 'انتهت الجولة: فزت $playerScore مقابل $botScore';
-        GameFeedback.win();
+        GameFeedback.win(GameAudioTheme.cards);
       } else if (botScore > playerScore) {
         message = 'انتهت الجولة: فاز الكمبيوتر $botScore مقابل $playerScore';
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.cards);
       } else {
         message = 'انتهت الجولة بتعادل $playerScore - $botScore';
-        GameFeedback.tap();
+        GameFeedback.tap(GameAudioTheme.cards);
       }
       setState(() {});
       return true;

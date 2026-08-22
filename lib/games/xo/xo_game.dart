@@ -226,7 +226,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
     if (isHost && isNetworkGame && senderId != _turnId) return;
 
     setState(() => cells[index] = mark);
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.xo);
     if (notify && isNetworkGame) {
       widget.networkCore?.sendMove(
         <String, dynamic>{'action': 'place', 'index': index, 'mark': mark.name},
@@ -244,7 +244,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = winner == XoCell.x ? 'فاز X' : 'فاز O');
-      GameFeedback.win();
+      GameFeedback.win(GameAudioTheme.xo);
       _syncState();
       return;
     }
@@ -254,7 +254,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = 'تعادل');
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.xo);
       _syncState();
       return;
     }
@@ -428,7 +428,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         connectedPlayers: _iphonePlayers.length,
         accent: const Color(0xFF7C3AED),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(GameAudioTheme.xo);
           setState(() => _showNetworkQrLobby = false);
           _broadcastWebState();
         },

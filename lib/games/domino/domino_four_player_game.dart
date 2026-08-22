@@ -86,7 +86,7 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
   void _play(_Tile tile) {
     if (gameFinished) return;
     if (!_legal(tile)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(() => message = 'هذه القطعة لا تناسب طرفي السلسلة');
       return;
     }
@@ -113,19 +113,19 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       if (hands[turns.currentPlayer].isEmpty) {
         gameFinished = true;
         message = 'فاز اللاعب ${turns.currentPlayer + 1}!';
-        GameFeedback.win();
+        GameFeedback.win(GameAudioTheme.domino);
         return;
       }
       turns.next();
       message = 'دور اللاعب ${turns.currentPlayer + 1}';
-      GameFeedback.move();
+      GameFeedback.move(GameAudioTheme.domino);
     });
   }
 
   void _pass() {
     if (gameFinished) return;
     if (hands[turns.currentPlayer].any(_legal)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(() => message = 'لديك قطعة صالحة، لا يمكنك التمرير');
       return;
     }
@@ -137,7 +137,7 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       }
       turns.next();
       message = 'تم التمرير — دور اللاعب ${turns.currentPlayer + 1}';
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.domino);
     });
   }
 

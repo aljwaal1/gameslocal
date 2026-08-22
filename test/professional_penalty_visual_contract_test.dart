@@ -35,8 +35,14 @@ void main() {
     );
     expect(gameSource, contains('class CinematicPenaltyGame extends FlameGame'));
     expect(gameSource, contains('GameWidget<CinematicPenaltyGame>'));
-    expect(gameSource, contains('GameFeedback.kick()'));
-    expect(gameSource, contains('GameFeedback.goal()'));
+    expect(
+      gameSource,
+      contains('GameFeedback.kick(GameAudioTheme.football)'),
+    );
+    expect(
+      gameSource,
+      contains('GameFeedback.goal(GameAudioTheme.football)'),
+    );
     expect(gameSource, contains('_drawSkyAndStadium'));
     expect(gameSource, contains('_drawPitch'));
     expect(gameSource, contains('_drawGoal'));

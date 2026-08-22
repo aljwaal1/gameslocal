@@ -164,7 +164,7 @@ class _LineWebBridge {
   }
 
   static String _html(LineGameKind kind) {
-    final title = kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
+    final title = kind == LineGameKind.sheikhBeard ? 'لعبة اللحية' : 'المربعات';
     final gameName = kind.name;
     return '''<!doctype html>
 <html lang="ar" dir="rtl">
@@ -345,6 +345,10 @@ class _LineGameScreenState extends State<LineGameScreen> {
   int _turnIndex = 0;
 
   bool get _isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+
+  GameAudioTheme get _audioTheme => widget.kind == LineGameKind.sheikhBeard
+      ? GameAudioTheme.beard
+      : GameAudioTheme.dots;
 
   String get _myId => widget.networkCore?.localPlayerId ?? 'local';
 
@@ -559,10 +563,10 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
     if (gained > 0) {
       _scores[playerId] = (_scores[playerId] ?? 0) + gained;
-      GameFeedback.win();
+      GameFeedback.win(_audioTheme);
     } else {
       _turnIndex = (_turnIndex + 1) % players.length;
-      GameFeedback.move();
+      GameFeedback.move(_audioTheme);
     }
 
     setState(() {});
@@ -875,7 +879,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
   @override
   Widget build(BuildContext context) {
     final title =
-        widget.kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
+        widget.kind == LineGameKind.sheikhBeard ? 'لعبة اللحية' : 'المربعات';
     final players = _players;
 
     if (_isHost && _showNetworkQrLobby) {
@@ -891,7 +895,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
             ? const Color(0xFF2563EB)
             : const Color(0xFF14B8A6),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(_audioTheme);
           setState(() => _showNetworkQrLobby = false);
           _broadcastState();
         },

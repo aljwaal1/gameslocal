@@ -223,12 +223,12 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   void playPlayerTile(DominoTile tile) {
     if (!isLocalTurn || roundFinished) return;
     if (!canPlay(tile)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(
           () => message = 'هذه القطعة لا تناسب الطرفين: $leftEnd أو $rightEnd');
       return;
     }
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.domino);
     placeTile(tile, localHand);
     _sendDominoAction('play', tile: tile);
     if (localHand.isEmpty) {
@@ -249,11 +249,11 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   void drawTile() {
     if (!isLocalTurn || roundFinished) return;
     if (stock.isEmpty) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(() => message = 'لا توجد قطع للسحب. مرر إذا لا تملك حركة');
       return;
     }
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.domino);
     localHand.add(stock.removeLast());
     _sendDominoAction('draw');
     message = localHand.any(canPlay)
@@ -265,16 +265,16 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   void passTurn() {
     if (!isLocalTurn || roundFinished) return;
     if (localHand.any(canPlay)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(() => message = 'لديك قطعة مناسبة بإطار ذهبي، لا يمكنك التمرير');
       return;
     }
     if (stock.isNotEmpty) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(() => message = 'يجب السحب أولًا ما دامت هناك قطع في السحب');
       return;
     }
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.domino);
     if (isBlocked) {
       finishBlockedRound();
       return;
@@ -309,7 +309,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
     final chosen = chooseBotTile(playable);
     placeTile(chosen, bot);
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.domino);
     if (bot.isEmpty) {
       finishRound(playerWon: false, reason: 'الكمبيوتر أنهى كل قطعه');
       return;
@@ -371,13 +371,13 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     if (playerWon) {
       playerScore += points;
       message = '$reason. فزت بالجولة وربحت $points نقطة';
-      GameFeedback.win();
+      GameFeedback.win(GameAudioTheme.domino);
     } else {
       botScore += points;
       message = isNetworkGame
           ? '$reason. اللاعب الآخر ربح $points نقطة'
           : '$reason. الكمبيوتر ربح $points نقطة';
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
     }
     roundFinished = true;
     setState(() {});
@@ -391,17 +391,17 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       final points = botPips - playerPips;
       playerScore += points;
       message = 'اللعبة مغلقة. قطعك أقل، فزت بـ $points نقطة';
-      GameFeedback.win();
+      GameFeedback.win(GameAudioTheme.domino);
     } else if (botPips < playerPips) {
       final points = playerPips - botPips;
       botScore += points;
       message = isNetworkGame
           ? 'اللعبة مغلقة. اللاعب الآخر قطعه أقل وربح $points نقطة'
           : 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
     } else {
       message = 'اللعبة مغلقة وتعادل بالنقاط';
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.domino);
     }
     setState(() {});
   }
@@ -411,7 +411,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       setState(() => message = 'انتظر المضيف لبدء الجولة الجديدة');
       return;
     }
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.domino);
     roundNumber++;
     startRound();
     if (isNetworkGame) _sendRoundStart();

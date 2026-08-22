@@ -466,7 +466,7 @@ class CinematicPenaltyGame extends FlameGame {
     shotDuration = (1.06 - power * .25).clamp(.76, .94).toDouble();
     flight = 0;
     phase = PenaltyPhase.flying;
-    GameFeedback.kick();
+    GameFeedback.kick(GameAudioTheme.football);
     HapticFeedback.lightImpact();
     _syncHud(message: power > .94 ? 'قذيفة قوية...' : 'تسديدة...');
   }
@@ -497,7 +497,7 @@ class CinematicPenaltyGame extends FlameGame {
     shotDuration = (1.04 - robotPower * .22).clamp(.78, .94).toDouble();
     flight = 0;
     phase = PenaltyPhase.flying;
-    GameFeedback.kick();
+    GameFeedback.kick(GameAudioTheme.football);
     HapticFeedback.mediumImpact();
     _syncHud(message: 'المنافس يسدد...');
   }
@@ -534,19 +534,19 @@ class CinematicPenaltyGame extends FlameGame {
     phase = PenaltyPhase.result;
     switch (outcome) {
       case PenaltyOutcome.goal:
-        GameFeedback.goal();
+        GameFeedback.goal(GameAudioTheme.football);
         HapticFeedback.heavyImpact();
         _syncHud(message: championsMode ? 'هــــدف عالمي!' : 'هــــدف!');
       case PenaltyOutcome.save:
-        GameFeedback.save();
+        GameFeedback.save(GameAudioTheme.football);
         HapticFeedback.mediumImpact();
         _syncHud(message: 'تصـــدٍ مذهل!');
       case PenaltyOutcome.post:
-        GameFeedback.post();
+        GameFeedback.post(GameAudioTheme.football);
         HapticFeedback.heavyImpact();
         _syncHud(message: 'في القائم!');
       case PenaltyOutcome.miss:
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.football);
         HapticFeedback.mediumImpact();
         _syncHud(message: 'خارج المرمى!');
     }

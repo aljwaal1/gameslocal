@@ -101,7 +101,7 @@ class HomeScreen extends StatelessWidget {
     ),
     GameDefinition(
       id: 'sheikh_beard',
-      name: 'لحية الشيخ',
+      name: 'لعبة اللحية',
       playersText: 'لاعبان أو أكثر عبر LAN والآيفون',
       status: 'اختيار نقاط وتكوين خطوط مع أدوار متزامنة',
       builder: (_, networkCore) => LineGameScreen(

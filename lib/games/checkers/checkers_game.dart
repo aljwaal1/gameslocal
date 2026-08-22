@@ -196,7 +196,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   void requestBoardReset() {
     if (networkMode) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.checkers);
       setState(() => message =
           'إعادة الضبط متوقفة أثناء اللعب عبر Wi‑Fi حتى لا تختلف اللوحة بين الجهازين');
       return;
@@ -243,7 +243,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (gameFinished || botThinking) return;
     if (playVsBot && !redTurn) return;
     if (networkMode && !(fromIphone ? !redTurn : isMyNetworkTurn)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.checkers);
       setState(() => message = 'انتظر حركة اللاعب الآخر');
       return;
     }
@@ -251,7 +251,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final piece = board[r][c];
     if (selectedRow == null) {
       if (isCurrentPlayerPiece(piece)) {
-        GameFeedback.tap();
+        GameFeedback.tap(GameAudioTheme.checkers);
         setState(() {
           selectedRow = r;
           selectedCol = c;
@@ -266,11 +266,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     if (sr == r && sc == c) {
       if (mustContinueCapture) {
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.checkers);
         setState(() => message = 'يجب إكمال الأكل بالحجر نفسه');
         return;
       }
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.checkers);
       setState(() {
         selectedRow = null;
         selectedCol = null;
@@ -282,11 +282,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (board[r][c] != Piece.empty) {
       if (isCurrentPlayerPiece(board[r][c])) {
         if (mustContinueCapture) {
-          GameFeedback.error();
+          GameFeedback.error(GameAudioTheme.checkers);
           setState(() => message = 'يجب إكمال الأكل بالحجر نفسه');
           return;
         }
-        GameFeedback.tap();
+        GameFeedback.tap(GameAudioTheme.checkers);
         setState(() {
           selectedRow = r;
           selectedCol = c;
@@ -297,12 +297,16 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     final move = legalMoveFor(sr, sc, r, c, redTurn);
     if (move == null) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.checkers);
       setState(() => message = 'حركة غير صحيحة');
       return;
     }
 
-    GameFeedback.move();
+    if (move.isCapture) {
+      GameFeedback.capture(GameAudioTheme.checkers);
+    } else {
+      GameFeedback.move(GameAudioTheme.checkers);
+    }
     applyMove(move);
     if (networkMode && !fromIphone) {
       widget.networkCore!.sendMove(move.toJson(), senderId: _localPlayerId());
@@ -405,7 +409,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     botThinking = false;
     mustContinueCapture = false;
     message = status.resultText;
-    GameFeedback.win();
+    GameFeedback.win(GameAudioTheme.checkers);
     _showMatchResultDialog(status);
     return true;
   }
@@ -488,7 +492,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     }
 
     while (move != null) {
-      GameFeedback.move();
+      GameFeedback.move(GameAudioTheme.checkers);
       applyMove(move);
       if (updateMatchStatus()) {
         setState(() {});
@@ -621,7 +625,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
           move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
       if (validMove == null) return;
 
-      GameFeedback.move();
+      GameFeedback.move(GameAudioTheme.checkers);
       applyMove(validMove);
       if (updateMatchStatus()) {
         setState(() {});
@@ -761,7 +765,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         connectedPlayers: _iphonePlayers,
         accent: const Color(0xFFE11D48),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(GameAudioTheme.checkers);
           setState(() => _showNetworkQrLobby = false);
           _broadcastIphoneState();
         },

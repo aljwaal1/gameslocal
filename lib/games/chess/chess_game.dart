@@ -100,15 +100,15 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         message = turn == ChessSide.white
             ? 'كش مات — فاز الأسود'
             : 'كش مات — فاز الأبيض';
-        GameFeedback.win();
+        GameFeedback.win(GameAudioTheme.chess);
       } else if (!checked && !hasMove) {
         message = 'تعادل — لا توجد نقلة قانونية';
-        GameFeedback.tap();
+        GameFeedback.tap(GameAudioTheme.chess);
       } else {
         message = checked
             ? (turn == ChessSide.white ? 'كش على الأبيض' : 'كش على الأسود')
             : (turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود');
-        GameFeedback.move();
+        GameFeedback.move(GameAudioTheme.chess);
       }
       setState(() {});
       return;
@@ -146,7 +146,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       targets = <int>[];
       message = turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود';
     });
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.chess);
   }
 
   List<int> _legalMoves(int index, ChessPiece piece) {

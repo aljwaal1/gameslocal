@@ -169,7 +169,7 @@ class _NameAnimalObjectGameScreenState
     _playerNames[_myId] = name;
     _scores.putIfAbsent(_myId, () => 0);
     _network?.updateLocalPlayerName(name);
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.word);
     setState(() => _stage = _Stage.waiting);
   }
 
@@ -200,7 +200,7 @@ class _NameAnimalObjectGameScreenState
       'letter': payload['letter'],
       'seconds': _roundSeconds,
     });
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.word);
   }
 
   void _handleNetworkMessage(NetworkMessage message) {
@@ -272,7 +272,7 @@ class _NameAnimalObjectGameScreenState
       _finishing = false;
       _stage = _Stage.playing;
     });
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.word);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_secondsLeft <= 1) {
@@ -288,7 +288,7 @@ class _NameAnimalObjectGameScreenState
     if (_submitted || _stage != _Stage.playing) return;
     final values = {for (final c in _categories) c: _answers[c]!.text.trim()};
     setState(() => _submitted = true);
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.word);
     _network?.sendMove({
       'action': 'categories_submit',
       'round': _round,
@@ -424,7 +424,7 @@ class _NameAnimalObjectGameScreenState
       _finishing = false;
       _stage = _Stage.results;
     });
-    GameFeedback.win();
+    GameFeedback.win(GameAudioTheme.word);
   }
 
   Future<void> _proposeScoreEdit(String playerId) async {
@@ -585,7 +585,7 @@ class _NameAnimalObjectGameScreenState
             _webPlayers.length,
         accent: const Color(0xFF8B5CF6),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(GameAudioTheme.word);
           setState(() => _showNetworkQrLobby = false);
         },
       );
@@ -732,7 +732,7 @@ class _NameAnimalObjectGameScreenState
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _submitted ? null : () {
-                      GameFeedback.win();
+                      GameFeedback.win(GameAudioTheme.word);
                       _submitAnswers(endAll: true);
                     },
                     icon: const Icon(Icons.flag),
