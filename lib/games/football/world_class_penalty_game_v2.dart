@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -393,6 +394,8 @@ class CinematicPenaltyGame extends FlameGame {
   final bool championsMode;
   final ValueNotifier<PenaltyHud> hud;
   final math.Random _random = math.Random();
+  ui.Image? _keeperReadyImage;
+  ui.Image? _keeperDiveImage;
 
   PenaltyPhase phase = PenaltyPhase.aiming;
   PenaltyOutcome outcome = PenaltyOutcome.goal;
@@ -416,6 +419,25 @@ class CinematicPenaltyGame extends FlameGame {
   bool get canShoot => phase == PenaltyPhase.aiming;
   bool get canDive => phase == PenaltyPhase.saving;
   bool get suddenDeath => playerShots >= 5 && robotShots >= 5;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    _keeperReadyImage =
+        await _loadAssetImage('assets/football/keeper_pro_v2.png');
+    _keeperDiveImage =
+        await _loadAssetImage('assets/football/keeper_dive_pro_v2.png');
+  }
+
+  Future<ui.Image> _loadAssetImage(String path) async {
+    final data = await rootBundle.load(path);
+    final codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+    );
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    return frame.image;
+  }
 
   void preview(Offset target, double newPower, double newCurve) {
     if (!canShoot) return;
@@ -767,6 +789,10 @@ class CinematicPenaltyGame extends FlameGame {
   }
 
   void _drawKeeper(Canvas canvas, double w, double h) {
+    final readyImage = _keeperReadyImage;
+    final diveImage = _keeperDiveImage;
+    if (readyImage == null || diveImage == null) return;
+
     final goal = _goalRect(w, h);
     final t = phase == PenaltyPhase.flying
         ? Curves.easeOutCubic.transform(flight.clamp(0.0, 1.0))
@@ -779,71 +805,73 @@ class CinematicPenaltyGame extends FlameGame {
     final pos = Offset.lerp(start, target, t)!;
     final dir = keeperTarget.dx - .5;
     final reach = dir.abs();
-    final s = w * .047;
+    final lateralDive = (reach / .12).clamp(0.0, 1.0).toDouble();
+    final diveBlend =
+        ((t - .10) / .30).clamp(0.0, 1.0).toDouble() * lateralDive;
+    final readyHeight = goal.height * .72;
+    final readyWidth = readyHeight * .67;
+    final diveWidth = goal.height * (1.30 + reach * .20);
+    final diveHeight = diveWidth / 1.50;
 
     canvas.save();
     canvas.translate(pos.dx, pos.dy);
-    canvas.rotate(dir * 1.12 * t);
+    canvas.rotate(dir * .18 * t);
 
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(0, s * 1.8), width: s * 4.3, height: s * .52),
-      Paint()..color = Colors.black.withAlpha(95),
-    );
-
-    final jersey = championsMode
-        ? const Color(0xFFFFA928)
-        : const Color(0xFF22B7E8);
-    final darkJersey = championsMode
-        ? const Color(0xFFC56B00)
-        : const Color(0xFF0874B8);
-
-    final torso = Path()
-      ..moveTo(-s * .62, -s * .82)
-      ..quadraticBezierTo(0, -s * 1.05, s * .62, -s * .82)
-      ..lineTo(s * .50, s * .72)
-      ..quadraticBezierTo(0, s * .93, -s * .50, s * .72)
-      ..close();
-    canvas.drawPath(
-      torso,
+      Rect.fromCenter(
+        center: Offset(0, goal.height * .29),
+        width: readyWidth * (1.18 + reach * t * 1.7),
+        height: readyHeight * .10,
+      ),
       Paint()
-        ..shader = LinearGradient(colors: <Color>[jersey, darkJersey]).createShader(Rect.fromLTWH(-s, -s, s * 2, s * 2.2)),
+        ..color = Colors.black.withAlpha(100)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
 
-    final armPaint = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .34
-      ..color = jersey;
-    final extension = 1.45 + reach * 1.8;
-    final lift = t * .55;
-    canvas.drawLine(Offset(-s * .48, -s * .55), Offset(-s * extension, -s * (.05 + lift)), armPaint);
-    canvas.drawLine(Offset(s * .48, -s * .55), Offset(s * extension, -s * (.05 + lift)), armPaint);
-
-    final shorts = Paint()..color = const Color(0xFF111820);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(0, s * .87), width: s * 1.15, height: s * .58), Radius.circular(s * .12)),
-      shorts,
+    final readySource = Rect.fromLTWH(
+      0,
+      0,
+      readyImage.width.toDouble(),
+      readyImage.height.toDouble(),
+    );
+    final readyDestination = Rect.fromCenter(
+      center: Offset(0, -readyHeight * .10),
+      width: readyWidth,
+      height: readyHeight,
+    );
+    canvas.drawImageRect(
+      readyImage,
+      readySource,
+      readyDestination,
+      Paint()
+        ..isAntiAlias = true
+        ..filterQuality = FilterQuality.high
+        ..color = Colors.white.withAlpha(((1 - diveBlend) * 255).round()),
     );
 
-    final legPaint = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .30
-      ..color = const Color(0xFF18232C);
-    canvas.drawLine(Offset(-s * .28, s * 1.02), Offset(-s * (.55 + reach * .35), s * 1.92), legPaint);
-    canvas.drawLine(Offset(s * .28, s * 1.02), Offset(s * (.55 + reach * .35), s * 1.92), legPaint);
-
-    final skin = Paint()..color = const Color(0xFFC9895D);
-    canvas.drawCircle(Offset(0, -s * 1.22), s * .42, skin);
-    canvas.drawArc(
-      Rect.fromCenter(center: Offset(0, -s * 1.34), width: s * .88, height: s * .48),
-      math.pi,
-      math.pi,
-      true,
-      Paint()..color = const Color(0xFF3A2418),
+    canvas.save();
+    if (dir < 0) canvas.scale(-1, 1);
+    final diveSource = Rect.fromLTWH(
+      0,
+      0,
+      diveImage.width.toDouble(),
+      diveImage.height.toDouble(),
     );
-
-    final gloves = Paint()..color = const Color(0xFFF5FAFF);
-    canvas.drawCircle(Offset(-s * extension, -s * (.05 + lift)), s * .27, gloves);
-    canvas.drawCircle(Offset(s * extension, -s * (.05 + lift)), s * .27, gloves);
+    final diveDestination = Rect.fromCenter(
+      center: Offset(0, -diveHeight * .05),
+      width: diveWidth,
+      height: diveHeight,
+    );
+    canvas.drawImageRect(
+      diveImage,
+      diveSource,
+      diveDestination,
+      Paint()
+        ..isAntiAlias = true
+        ..filterQuality = FilterQuality.high
+        ..color = Colors.white.withAlpha((diveBlend * 255).round()),
+    );
+    canvas.restore();
     canvas.restore();
   }
 
