@@ -48,9 +48,7 @@ class InternetRelayTransport implements NetworkTransport {
     }
     await close();
     _emitStatus('جاري الاتصال بخادم الإنترنت...');
-    final WebSocket socket = await WebSocket.connect(relayUrl).timeout(
-      const Duration(seconds: 12),
-    );
+    final WebSocket socket = await _openSocketWithRetry();
     socket.pingInterval = const Duration(seconds: 20);
     _socket = socket;
     _handshake = Completer<String>();
@@ -72,6 +70,23 @@ class InternetRelayTransport implements NetworkTransport {
       'protocol': 1,
     }));
     return _handshake!.future.timeout(const Duration(seconds: 12));
+  }
+
+  Future<WebSocket> _openSocketWithRetry() async {
+    final Stopwatch elapsed = Stopwatch()..start();
+    Object? lastError;
+    while (elapsed.elapsed < const Duration(seconds: 75)) {
+      try {
+        return await WebSocket.connect(relayUrl).timeout(
+          const Duration(seconds: 12),
+        );
+      } catch (error) {
+        lastError = error;
+        _emitStatus('الخادم يستيقظ الآن، سنعيد المحاولة تلقائيًا...');
+        await Future<void>.delayed(const Duration(seconds: 3));
+      }
+    }
+    throw lastError ?? StateError('Internet relay unavailable');
   }
 
   void _handleFrame(dynamic frame) {

@@ -16,6 +16,7 @@ void main() {
     expect(transport, contains("'INTERNET_RELAY_URL'"));
     expect(transport, contains("'kind': 'game'"));
     expect(transport, contains('NetworkMessage.fromJson'));
+    expect(transport, contains('Duration(seconds: 75)'));
   });
 
   test('relay validates rooms and has abuse and lifetime limits', () {
@@ -37,5 +38,14 @@ void main() {
     expect(room, contains('_findRooms'));
     expect(room, contains('_internetJoinPanel'));
     expect(room, contains('LocalRoomDiscovery'));
+  });
+
+  test('Render blueprint deploys the relay separately from the app', () {
+    final blueprint = File('render.yaml').readAsStringSync();
+
+    expect(blueprint, contains('runtime: docker'));
+    expect(blueprint, contains('rootDir: server/internet_relay'));
+    expect(blueprint, contains('healthCheckPath: /health'));
+    expect(blueprint, contains('region: frankfurt'));
   });
 }
