@@ -11,7 +11,9 @@ import '../../core/network/network_message.dart';
 import 'iphone_web_bridge.dart';
 
 class NameAnimalObjectGameScreen extends StatefulWidget {
-  const NameAnimalObjectGameScreen({super.key});
+  const NameAnimalObjectGameScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
   @override
   State<NameAnimalObjectGameScreen> createState() =>
       _NameAnimalObjectGameScreenState();
@@ -105,7 +107,7 @@ class _NameAnimalObjectGameScreenState
     for (final c in _categories) {
       _answers[c] = TextEditingController();
     }
-    _network = LocalNetworkCore.activeFor(_gameId);
+    _network = widget.networkCore ?? LocalNetworkCore.activeFor(_gameId);
     final network = _network;
     if (network != null) {
       for (final p in network.state.players) {

@@ -82,8 +82,8 @@ class HomeScreen extends StatelessWidget {
       id: 'chess',
       name: 'الشطرنج',
       playersText: 'لاعبان',
-      status: 'لعبة محلية كاملة للاعبين',
-      builder: (_, __) => const ChessGameScreen(),
+      status: 'ضد الروبوت بثلاثة مستويات أو لاعب عبر LAN',
+      builder: (_, networkCore) => ChessGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'cards',
@@ -97,7 +97,8 @@ class HomeScreen extends StatelessWidget {
       name: 'اسم حيوان جماد',
       playersText: 'عدة لاعبين عبر LAN',
       status: 'كل لاعب على هاتفه ضمن نفس Wi-Fi أو Hotspot',
-      builder: (_, __) => const NameAnimalObjectGameScreen(),
+      builder: (_, networkCore) =>
+          NameAnimalObjectGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'sheikh_beard',
@@ -645,6 +646,7 @@ class _GameCard extends StatelessWidget {
         'xo',
         'checkers',
         'domino',
+        'chess',
         'cards',
         'name_animal_object',
         'sheikh_beard',

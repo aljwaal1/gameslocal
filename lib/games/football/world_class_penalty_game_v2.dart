@@ -5,6 +5,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import 'elite_penalty_game_v2.dart' as legacy;
@@ -392,6 +393,7 @@ class CinematicPenaltyGame extends FlameGame {
         );
 
   final bool championsMode;
+  final AppSettingsController settings = AppSettingsController.instance;
   final ValueNotifier<PenaltyHud> hud;
   final math.Random _random = math.Random();
   ui.Image? _keeperReadyImage;
@@ -473,7 +475,13 @@ class CinematicPenaltyGame extends FlameGame {
           .toDouble(),
     );
 
-    final reads = _random.nextDouble() < ((championsMode ? .24 : .31) + (1 - power) * .16);
+    final readBase = switch (settings.botDifficulty) {
+      BotDifficulty.easy => .12,
+      BotDifficulty.normal => .23,
+      BotDifficulty.hard => .32,
+    };
+    final reads =
+        _random.nextDouble() < (readBase + (1 - power) * .13);
     keeperTarget = reads
         ? Offset(
             (actualAim.dx + (_random.nextDouble() - .5) * .10).clamp(.04, .96).toDouble(),
@@ -507,7 +515,12 @@ class CinematicPenaltyGame extends FlameGame {
     chosenDive = dive;
     keeperTarget = dive;
 
-    final robotPower = .69 + _random.nextDouble() * .28;
+    final (minimumPower, powerRange) = switch (settings.botDifficulty) {
+      BotDifficulty.easy => (.58, .30),
+      BotDifficulty.normal => (.66, .28),
+      BotDifficulty.hard => (.72, .25),
+    };
+    final robotPower = minimumPower + _random.nextDouble() * powerRange;
     actualAim = Offset(.07 + _random.nextDouble() * .86, .07 + _random.nextDouble() * .82);
     aim = actualAim;
     power = robotPower;
@@ -515,7 +528,12 @@ class CinematicPenaltyGame extends FlameGame {
     final distance = (actualAim - chosenDive).distance;
     final risk = _random.nextDouble();
 
-    if (risk < .03) {
+    final missChance = switch (settings.botDifficulty) {
+      BotDifficulty.easy => .13,
+      BotDifficulty.normal => .07,
+      BotDifficulty.hard => .035,
+    };
+    if (risk < missChance) {
       outcome = PenaltyOutcome.miss;
     } else if ((actualAim.dx < .06 || actualAim.dx > .94) && risk < .13) {
       outcome = PenaltyOutcome.post;

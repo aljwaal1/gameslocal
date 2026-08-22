@@ -323,19 +323,30 @@ class _XoGameScreenState extends State<XoGameScreen> {
   }
 
   int chooseBotMove() {
-    final win = findBestMoveFor(XoCell.o);
-    if (win >= 0) return win;
-    final block = findBestMoveFor(XoCell.x);
-    if (block >= 0) return block;
-    if (settings.botDifficulty == BotDifficulty.hard &&
-        cells[4] == XoCell.empty) {
-      return 4;
-    }
     final empty = <int>[
       for (var i = 0; i < cells.length; i++)
         if (cells[i] == XoCell.empty) i,
     ];
-    return empty.isEmpty ? -1 : empty[random.nextInt(empty.length)];
+    if (empty.isEmpty) return -1;
+
+    if (settings.botDifficulty == BotDifficulty.easy) {
+      return empty[random.nextInt(empty.length)];
+    }
+
+    final win = findBestMoveFor(XoCell.o);
+    if (win >= 0) return win;
+    final block = findBestMoveFor(XoCell.x);
+    if (block >= 0) return block;
+
+    if (settings.botDifficulty == BotDifficulty.hard) {
+      if (cells[4] == XoCell.empty) return 4;
+      final corners = <int>[0, 2, 6, 8]
+          .where((index) => cells[index] == XoCell.empty)
+          .toList();
+      if (corners.isNotEmpty) return corners[random.nextInt(corners.length)];
+    }
+
+    return empty[random.nextInt(empty.length)];
   }
 
   int findBestMoveFor(XoCell player) {

@@ -1,6 +1,12 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
+import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
+import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
 
 enum ChessSide { white, black }
 
@@ -11,13 +17,18 @@ class ChessPiece {
 }
 
 class ChessGameScreen extends StatefulWidget {
-  const ChessGameScreen({super.key});
+  const ChessGameScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
 
   @override
   State<ChessGameScreen> createState() => _ChessGameScreenState();
 }
 
 class _ChessGameScreenState extends State<ChessGameScreen> {
+  final AppSettingsController settings = AppSettingsController.instance;
+  final Random random = Random();
+  StreamSubscription<NetworkMessage>? _networkSubscription;
   late List<ChessPiece?> board;
   ChessSide turn = ChessSide.white;
   int? selected;
@@ -33,11 +44,28 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   bool blackLeftRookMoved = false;
   bool blackRightRookMoved = false;
   int moveCount = 0;
+  bool playVsBot = true;
+  bool botThinking = false;
+
+  bool get isNetworkGame => widget.networkCore != null;
+  bool get isHost =>
+      widget.networkCore?.state.mode != LocalNetworkMode.client;
+  ChessSide get localSide => isHost ? ChessSide.white : ChessSide.black;
+  String get localPlayerId => widget.networkCore?.localPlayerId ?? 'local';
 
   @override
   void initState() {
     super.initState();
+    playVsBot = !isNetworkGame;
+    _networkSubscription =
+        widget.networkCore?.messages.listen(_handleNetworkMessage);
     _newGame();
+  }
+
+  @override
+  void dispose() {
+    _networkSubscription?.cancel();
+    super.dispose();
   }
 
   void _newGame() {
@@ -61,56 +89,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     blackLeftRookMoved = false;
     blackRightRookMoved = false;
     moveCount = 0;
+    botThinking = false;
     selected = null;
     targets = <int>[];
-    message = 'دور الأبيض';
+    message = isNetworkGame && !isHost ? 'بانتظار نقلة الأبيض' : 'دور الأبيض';
     if (mounted) setState(() {});
   }
 
   void _tap(int index) {
+    if (botThinking || (isNetworkGame && turn != localSide)) return;
     final piece = board[index];
     if (selected != null && targets.contains(index)) {
-      history.add(List<ChessPiece?>.from(board));
-      turnHistory.add(turn);
-      castlingHistory.add(_CastlingRights(
-        whiteKingMoved,
-        blackKingMoved,
-        whiteLeftRookMoved,
-        whiteRightRookMoved,
-        blackLeftRookMoved,
-        blackRightRookMoved,
-      ));
-      moveCount++;
-      final moving = board[selected!];
-      board[index] = moving;
-      board[selected!] = null;
-      _applyCastlingRookMove(moving, selected!, index);
-      _markCastlingPieceMoved(moving, selected!);
-      if ((moving?.symbol == '♙' && index ~/ 8 == 0) ||
-          (moving?.symbol == '♟' && index ~/ 8 == 7)) {
-        board[index] = ChessPiece(
-            moving!.side == ChessSide.white ? '♕' : '♛', moving.side);
-      }
-      selected = null;
-      targets = <int>[];
-      turn = turn == ChessSide.white ? ChessSide.black : ChessSide.white;
-      final checked = _isKingInCheck(turn);
-      final hasMove = _hasAnyLegalMove(turn);
-      if (checked && !hasMove) {
-        message = turn == ChessSide.white
-            ? 'كش مات — فاز الأسود'
-            : 'كش مات — فاز الأبيض';
-        GameFeedback.win(GameAudioTheme.chess);
-      } else if (!checked && !hasMove) {
-        message = 'تعادل — لا توجد نقلة قانونية';
-        GameFeedback.tap(GameAudioTheme.chess);
-      } else {
-        message = checked
-            ? (turn == ChessSide.white ? 'كش على الأبيض' : 'كش على الأسود')
-            : (turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود');
-        GameFeedback.move(GameAudioTheme.chess);
-      }
-      setState(() {});
+      final from = selected!;
+      _makeMove(from, index, notifyPeer: isNetworkGame);
       return;
     }
     if (piece == null ||
@@ -127,6 +118,88 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       selected = index;
       targets = _legalMoves(index, piece);
     });
+  }
+
+  void _makeMove(int from, int to, {required bool notifyPeer}) {
+    final moving = board[from];
+    if (moving == null || moving.side != turn || !_legalMoves(from, moving).contains(to)) {
+      return;
+    }
+    history.add(List<ChessPiece?>.from(board));
+    turnHistory.add(turn);
+    castlingHistory.add(_CastlingRights(
+      whiteKingMoved,
+      blackKingMoved,
+      whiteLeftRookMoved,
+      whiteRightRookMoved,
+      blackLeftRookMoved,
+      blackRightRookMoved,
+    ));
+    moveCount++;
+    board[to] = moving;
+    board[from] = null;
+    _applyCastlingRookMove(moving, from, to);
+    _markCastlingPieceMoved(moving, from);
+    if ((moving.symbol == '♙' && to ~/ 8 == 0) ||
+        (moving.symbol == '♟' && to ~/ 8 == 7)) {
+      board[to] = ChessPiece(
+        moving.side == ChessSide.white ? '♕' : '♛',
+        moving.side,
+      );
+    }
+    selected = null;
+    targets = <int>[];
+    turn = turn == ChessSide.white ? ChessSide.black : ChessSide.white;
+    _updateStatus();
+    if (notifyPeer) {
+      widget.networkCore?.sendMove(
+        <String, dynamic>{'action': 'chess_move', 'from': from, 'to': to},
+        senderId: localPlayerId,
+      );
+    }
+    setState(() {});
+    if (playVsBot && turn == ChessSide.black && !_gameFinished) {
+      unawaited(_runBotMove());
+    }
+  }
+
+  bool get _gameFinished =>
+      message.startsWith('كش مات') || message.startsWith('تعادل');
+
+  void _updateStatus() {
+    final checked = _isKingInCheck(turn);
+    final hasMove = _hasAnyLegalMove(turn);
+    if (checked && !hasMove) {
+      message = turn == ChessSide.white
+          ? 'كش مات — فاز الأسود'
+          : 'كش مات — فاز الأبيض';
+      GameFeedback.win(GameAudioTheme.chess);
+    } else if (!checked && !hasMove) {
+      message = 'تعادل — لا توجد نقلة قانونية';
+      GameFeedback.tap(GameAudioTheme.chess);
+    } else {
+      message = checked
+          ? (turn == ChessSide.white ? 'كش على الأبيض' : 'كش على الأسود')
+          : (turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود');
+      GameFeedback.move(GameAudioTheme.chess);
+    }
+  }
+
+  void _handleNetworkMessage(NetworkMessage networkMessage) {
+    if (!mounted || networkMessage.senderId == localPlayerId) return;
+    if (networkMessage.type == NetworkMessageType.disconnect) {
+      setState(() => message = 'انقطع اتصال اللاعب الآخر');
+      return;
+    }
+    if (networkMessage.type != NetworkMessageType.move) return;
+    final payload = networkMessage.payload;
+    if (payload['action'] == 'chess_move') {
+      final from = (payload['from'] as num?)?.toInt() ?? -1;
+      final to = (payload['to'] as num?)?.toInt() ?? -1;
+      if (from >= 0 && to >= 0) _makeMove(from, to, notifyPeer: false);
+    } else if (payload['action'] == 'chess_reset') {
+      _newGame();
+    }
   }
 
   void _undo() {
@@ -147,6 +220,91 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       message = turn == ChessSide.white ? 'دور الأبيض' : 'دور الأسود';
     });
     GameFeedback.tap(GameAudioTheme.chess);
+  }
+
+  Future<void> _runBotMove() async {
+    setState(() {
+      botThinking = true;
+      message = 'الروبوت (${settings.botDifficultyText}) يفكر...';
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 520));
+    if (!mounted || turn != ChessSide.black || _gameFinished) return;
+    final moves = _allMoves(ChessSide.black);
+    if (moves.isEmpty) {
+      botThinking = false;
+      _updateStatus();
+      setState(() {});
+      return;
+    }
+    final chosen = _chooseBotMove(moves);
+    botThinking = false;
+    _makeMove(chosen.$1, chosen.$2, notifyPeer: false);
+  }
+
+  List<(int, int)> _allMoves(ChessSide side) {
+    final result = <(int, int)>[];
+    for (var from = 0; from < board.length; from++) {
+      final piece = board[from];
+      if (piece == null || piece.side != side) continue;
+      for (final to in _legalMoves(from, piece)) {
+        result.add((from, to));
+      }
+    }
+    return result;
+  }
+
+  (int, int) _chooseBotMove(List<(int, int)> moves) {
+    if (settings.botDifficulty == BotDifficulty.easy) {
+      return moves[random.nextInt(moves.length)];
+    }
+    final scored = <((int, int), int)>[
+      for (final move in moves) (move, _scoreBotMove(move.$1, move.$2)),
+    ]..sort((a, b) => b.$2.compareTo(a.$2));
+    if (settings.botDifficulty == BotDifficulty.normal) {
+      final useful = scored.where((entry) => entry.$2 >= 100).toList();
+      return useful.isEmpty
+          ? moves[random.nextInt(moves.length)]
+          : useful[random.nextInt(useful.length.clamp(1, 3).toInt())].$1;
+    }
+    return scored.first.$1;
+  }
+
+  int _scoreBotMove(int from, int to) {
+    final moving = board[from]!;
+    final captured = board[to];
+    var score = _pieceValue(captured?.symbol) * 100;
+    final original = board[to];
+    board[to] = moving;
+    board[from] = null;
+    if (_isKingInCheck(ChessSide.white)) score += 35;
+    if (_isSquareAttacked(to, ChessSide.white)) {
+      score -= _pieceValue(moving.symbol) * 35;
+    }
+    final row = to ~/ 8;
+    final column = to % 8;
+    score += 8 - ((row - 3).abs() + (column - 3).abs());
+    board[from] = moving;
+    board[to] = original;
+    return score;
+  }
+
+  int _pieceValue(String? symbol) {
+    if (symbol == null) return 0;
+    if ('♙♟'.contains(symbol)) return 1;
+    if ('♘♞♗♝'.contains(symbol)) return 3;
+    if ('♖♜'.contains(symbol)) return 5;
+    if ('♕♛'.contains(symbol)) return 9;
+    return 0;
+  }
+
+  void _resetGame({bool notifyPeer = true}) {
+    _newGame();
+    if (isNetworkGame && notifyPeer) {
+      widget.networkCore?.sendMove(
+        <String, dynamic>{'action': 'chess_reset'},
+        senderId: localPlayerId,
+      );
+    }
   }
 
   List<int> _legalMoves(int index, ChessPiece piece) {
@@ -339,12 +497,21 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('الشطرنج'), actions: [
+        if (!isNetworkGame)
+          IconButton(
+            onPressed: () {
+              setState(() => playVsBot = !playVsBot);
+              _resetGame(notifyPeer: false);
+            },
+            tooltip: playVsBot ? 'التحويل إلى لاعبين محليًا' : 'اللعب ضد الروبوت',
+            icon: Icon(playVsBot ? Icons.smart_toy_rounded : Icons.people_rounded),
+          ),
         IconButton(
-            onPressed: history.isEmpty ? null : _undo,
+            onPressed: history.isEmpty || isNetworkGame || playVsBot ? null : _undo,
             tooltip: 'تراجع',
             icon: const Icon(Icons.undo)),
         IconButton(
-            onPressed: _newGame,
+            onPressed: _resetGame,
             tooltip: 'لعبة جديدة',
             icon: const Icon(Icons.refresh))
       ]),
@@ -360,6 +527,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                           fontSize: 18, fontWeight: FontWeight.bold)),
                   Chip(label: Text('نقلة $moveCount'))
                 ])),
+        if (playVsBot && !isNetworkGame)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              'ضد الروبوت • المستوى ${settings.botDifficultyText}',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
         Expanded(
             child: Center(
                 child: AspectRatio(

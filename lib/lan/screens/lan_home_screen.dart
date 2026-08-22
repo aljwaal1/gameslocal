@@ -6,6 +6,7 @@ import '../../core/game_room.dart';
 import '../../design/app_theme.dart';
 import '../../games/cards/cards_game.dart';
 import '../../games/checkers/checkers_game.dart';
+import '../../games/chess/chess_game.dart';
 import '../../games/domino/domino_game.dart';
 import '../../games/football/professional_penalty_game.dart';
 import '../../games/line_games/line_games.dart';
@@ -46,6 +47,13 @@ class LanHomeScreen extends StatelessWidget {
       builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
+      id: 'chess',
+      name: 'الشطرنج',
+      playersText: 'لاعبان عبر الشبكة',
+      status: 'مباراة شطرنج مباشرة بين جهازين',
+      builder: (_, networkCore) => ChessGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
       id: 'cards',
       name: 'الشدة / السراقة',
       playersText: 'لاعبان عبر الشبكة',
@@ -57,7 +65,8 @@ class LanHomeScreen extends StatelessWidget {
       name: 'اسم حيوان جماد',
       playersText: 'عدة لاعبين',
       status: 'كل لاعب على هاتفه أو عبر المتصفح',
-      builder: (_, __) => const NameAnimalObjectGameScreen(),
+      builder: (_, networkCore) =>
+          NameAnimalObjectGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'sheikh_beard',

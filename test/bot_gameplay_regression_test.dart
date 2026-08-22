@@ -10,6 +10,19 @@ void main() {
       contains("if (playVsBot && !xTurn && senderId != 'bot') return;"),
     );
     expect(source, isNot(contains('if (playVsBot && !xTurn) return;')));
+    expect(
+      source,
+      contains('settings.botDifficulty == BotDifficulty.easy'),
+    );
+  });
+
+  test('line games provide an offline robot without changing line scoring', () {
+    final source =
+        File('lib/games/line_games/line_games.dart').readAsStringSync();
+    expect(source, contains("{'id': 'bot', 'name': 'الروبوت'}"));
+    expect(source, contains("_processMove('bot', index)"));
+    expect(source, contains('score += line.length * 10'));
+    expect(source, contains('gained += line.length'));
   });
 
   test('Domino starts the bot when the bot owns the opening turn', () {
