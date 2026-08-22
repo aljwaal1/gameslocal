@@ -55,12 +55,27 @@ void main() {
       gameSource,
       contains("_loadAssetImage('assets/football/keeper_dive_pro_v2.png')"),
     );
+    expect(
+      gameSource,
+      contains("_loadAssetImage('assets/football/player_ready_pro_v2.png')"),
+    );
+    expect(
+      gameSource,
+      contains("_loadAssetImage('assets/football/player_run_pro_v2.png')"),
+    );
+    expect(
+      gameSource,
+      contains("_loadAssetImage('assets/football/player_kick_pro_v2.png')"),
+    );
     expect(gameSource, contains('canvas.drawImageRect'));
     expect(File('assets/football/keeper_pro_v2.png').existsSync(), isTrue);
     expect(
       File('assets/football/keeper_dive_pro_v2.png').existsSync(),
       isTrue,
     );
+    expect(File('assets/football/player_ready_pro_v2.png').existsSync(), isTrue);
+    expect(File('assets/football/player_run_pro_v2.png').existsSync(), isTrue);
+    expect(File('assets/football/player_kick_pro_v2.png').existsSync(), isTrue);
     expect(gameSource, contains('_drawPlayer'));
     expect(gameSource, contains('_drawBall'));
     expect(gameSource, contains('fit: StackFit.expand'));

@@ -396,6 +396,9 @@ class CinematicPenaltyGame extends FlameGame {
   final math.Random _random = math.Random();
   ui.Image? _keeperReadyImage;
   ui.Image? _keeperDiveImage;
+  ui.Image? _playerReadyImage;
+  ui.Image? _playerRunImage;
+  ui.Image? _playerKickImage;
 
   PenaltyPhase phase = PenaltyPhase.aiming;
   PenaltyOutcome outcome = PenaltyOutcome.goal;
@@ -427,6 +430,12 @@ class CinematicPenaltyGame extends FlameGame {
         await _loadAssetImage('assets/football/keeper_pro_v2.png');
     _keeperDiveImage =
         await _loadAssetImage('assets/football/keeper_dive_pro_v2.png');
+    _playerReadyImage =
+        await _loadAssetImage('assets/football/player_ready_pro_v2.png');
+    _playerRunImage =
+        await _loadAssetImage('assets/football/player_run_pro_v2.png');
+    _playerKickImage =
+        await _loadAssetImage('assets/football/player_kick_pro_v2.png');
   }
 
   Future<ui.Image> _loadAssetImage(String path) async {
@@ -794,28 +803,32 @@ class CinematicPenaltyGame extends FlameGame {
     if (readyImage == null || diveImage == null) return;
 
     final goal = _goalRect(w, h);
-    final t = phase == PenaltyPhase.flying
-        ? Curves.easeOutCubic.transform(flight.clamp(0.0, 1.0))
+    final reaction = phase == PenaltyPhase.flying
+        ? ((flight - .16) / .58).clamp(0.0, 1.0).toDouble()
         : (phase == PenaltyPhase.result ? 1.0 : 0.0);
+    final t = Curves.easeOutCubic.transform(reaction);
     final start = Offset(goal.center.dx, goal.top + goal.height * .67);
     final target = Offset(
       goal.left + keeperTarget.dx * goal.width,
       goal.top + keeperTarget.dy * goal.height,
     );
-    final pos = Offset.lerp(start, target, t)!;
+    final jump = math.sin(t * math.pi) * goal.height * .065;
+    final pos = Offset.lerp(start, target, t)! - Offset(0, jump);
     final dir = keeperTarget.dx - .5;
     final reach = dir.abs();
     final lateralDive = (reach / .12).clamp(0.0, 1.0).toDouble();
-    final diveBlend =
-        ((t - .10) / .30).clamp(0.0, 1.0).toDouble() * lateralDive;
-    final readyHeight = goal.height * .72;
+    final diveBlend = Curves.easeInOut.transform(
+          ((reaction - .12) / .42).clamp(0.0, 1.0).toDouble(),
+        ) *
+        lateralDive;
+    final readyHeight = goal.height * .54;
     final readyWidth = readyHeight * .67;
-    final diveWidth = goal.height * (1.30 + reach * .20);
+    final diveWidth = goal.height * (1.02 + reach * .16);
     final diveHeight = diveWidth / 1.50;
 
     canvas.save();
     canvas.translate(pos.dx, pos.dy);
-    canvas.rotate(dir * .18 * t);
+    canvas.rotate(dir * .07 * t);
 
     canvas.drawOval(
       Rect.fromCenter(
@@ -876,73 +889,67 @@ class CinematicPenaltyGame extends FlameGame {
   }
 
   void _drawPlayer(Canvas canvas, double w, double h) {
+    final readyImage = _playerReadyImage;
+    final runImage = _playerRunImage;
+    final kickImage = _playerKickImage;
+    if (readyImage == null || runImage == null || kickImage == null) return;
+
     final active = phase == PenaltyPhase.flying || phase == PenaltyPhase.result;
-    final run = active ? Curves.easeInOut.transform(math.min(1.0, flight * 1.65)) : 0.0;
-    final kick = active ? math.sin(math.min(1.0, flight * 2.45) * math.pi) : 0.0;
-    final x = w * (.36 + run * .105);
-    final y = h * (.84 - run * .025);
-    final s = w * .047;
+    final approach = active
+        ? Curves.easeOutCubic.transform((flight / .43).clamp(0.0, 1.0))
+        : 0.0;
+    final runBlend = active
+        ? math.sin((flight / .48).clamp(0.0, 1.0) * math.pi)
+        : 0.0;
+    final kickBlend = active
+        ? Curves.easeOutCubic.transform(
+            ((flight - .27) / .28).clamp(0.0, 1.0).toDouble(),
+          )
+        : 0.0;
+    final x = w * (.355 + approach * .105);
+    final feetY = h * (.86 - approach * .043);
+    final playerHeight = h * (.205 - approach * .018);
+    final playerWidth = playerHeight * (2 / 3);
 
     canvas.save();
-    canvas.translate(x, y);
-    canvas.rotate(-.10 + run * .20);
-
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(s * .25, s * 2.25), width: s * 3.8, height: s * .48),
-      Paint()..color = Colors.black.withAlpha(100),
-    );
-
-    final primary = championsMode ? const Color(0xFF6D3FD8) : const Color(0xFFD32935);
-    final secondary = championsMode ? const Color(0xFF2347B6) : const Color(0xFF7C1119);
-    final torso = Path()
-      ..moveTo(-s * .55, -s * .80)
-      ..quadraticBezierTo(0, -s * 1.0, s * .55, -s * .80)
-      ..lineTo(s * .45, s * .70)
-      ..quadraticBezierTo(0, s * .88, -s * .45, s * .70)
-      ..close();
-    canvas.drawPath(
-      torso,
+      Rect.fromCenter(
+        center: Offset(x + playerWidth * .03, feetY + playerHeight * .018),
+        width: playerWidth * .82,
+        height: playerHeight * .075,
+      ),
       Paint()
-        ..shader = LinearGradient(colors: <Color>[primary, secondary]).createShader(Rect.fromLTWH(-s, -s, s * 2, s * 2.1)),
+        ..color = Colors.black.withAlpha(105)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
 
-    final arm = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .30
-      ..color = primary;
-    canvas.drawLine(Offset(-s * .45, -s * .45), Offset(-s * (1.1 + run * .25), s * (.25 + run * .2)), arm);
-    canvas.drawLine(Offset(s * .45, -s * .45), Offset(s * (1.0 + run * .25), s * (.15 - run * .15)), arm);
+    void drawPose(ui.Image image, double opacity) {
+      if (opacity <= 0) return;
+      final destination = Rect.fromCenter(
+        center: Offset(x, feetY - playerHeight * .5),
+        width: playerWidth,
+        height: playerHeight,
+      );
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        destination,
+        Paint()
+          ..isAntiAlias = true
+          ..filterQuality = FilterQuality.high
+          ..color = Colors.white.withAlpha((opacity * 255).round()),
+      );
+    }
 
-    final shorts = Paint()..color = const Color(0xFF10161D);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(0, s * .83), width: s * 1.08, height: s * .56), Radius.circular(s * .12)),
-      shorts,
+    drawPose(
+      readyImage,
+      (1 - math.max(runBlend, kickBlend)).clamp(0.0, 1.0).toDouble(),
     );
-
-    final leg = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .32
-      ..color = const Color(0xFF151C24);
-    canvas.drawLine(Offset(-s * .25, s * 1.0), Offset(-s * .48, s * 1.95), leg);
-    canvas.drawLine(
-      Offset(s * .25, s * 1.0),
-      Offset(s * (.42 + kick * 1.55), s * (1.92 - kick * 1.05)),
-      leg,
+    drawPose(
+      runImage,
+      (runBlend * (1 - kickBlend)).clamp(0.0, 1.0).toDouble(),
     );
-
-    final boot = Paint()..color = const Color(0xFF05090D);
-    canvas.drawOval(Rect.fromCenter(center: Offset(-s * .58, s * 2.02), width: s * .72, height: s * .28), boot);
-    canvas.drawOval(Rect.fromCenter(center: Offset(s * (.55 + kick * 1.55), s * (1.98 - kick * 1.05)), width: s * .76, height: s * .28), boot);
-
-    final skin = Paint()..color = const Color(0xFFBC7E58);
-    canvas.drawCircle(Offset(0, -s * 1.18), s * .40, skin);
-    canvas.drawArc(
-      Rect.fromCenter(center: Offset(0, -s * 1.31), width: s * .82, height: s * .43),
-      math.pi,
-      math.pi,
-      true,
-      Paint()..color = const Color(0xFF281913),
-    );
+    drawPose(kickImage, kickBlend);
     canvas.restore();
   }
 
@@ -957,21 +964,29 @@ class CinematicPenaltyGame extends FlameGame {
       t = 1.0;
     }
 
-    final curveOffset = math.sin(t * math.pi) * curve * w * .11;
-    final lift = math.sin(t * math.pi) * h * (.055 + power * .018);
-    final base = Offset.lerp(start, target, t)!;
-    final pos = Offset(base.dx + curveOffset, base.dy - lift);
-    final radius = w * (.041 - t * .018);
+    Offset ballPosition(double travel) {
+      final bend = math.sin(travel * math.pi);
+      final base = Offset.lerp(start, target, travel)!;
+      return Offset(
+        base.dx + bend * curve * w * .14,
+        base.dy - bend * h * (.072 + power * .027),
+      );
+    }
+
+    final pos = ballPosition(t);
+    final radius = w * (.041 - t * .025);
 
     if (t > .03) {
       for (var i = 1; i <= 5; i++) {
         final tt = (t - i * .035).clamp(0.0, 1.0);
-        final trailBase = Offset.lerp(start, target, tt)!;
-        final trailPos = Offset(
-          trailBase.dx + math.sin(tt * math.pi) * curve * w * .11,
-          trailBase.dy - math.sin(tt * math.pi) * h * (.055 + power * .018),
+        final trailPos = ballPosition(tt);
+        canvas.drawCircle(
+          trailPos,
+          radius * (.76 - i * .08),
+          Paint()
+            ..color = Colors.white.withAlpha(42 - i * 6)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
         );
-        canvas.drawCircle(trailPos, radius * (.75 - i * .08), Paint()..color = Colors.white.withAlpha(38 - i * 5));
       }
     }
 
