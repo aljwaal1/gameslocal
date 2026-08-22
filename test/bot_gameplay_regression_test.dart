@@ -12,7 +12,7 @@ void main() {
     expect(source, isNot(contains('if (playVsBot && !xTurn) return;')));
     expect(
       source,
-      contains('settings.botDifficulty == BotDifficulty.easy'),
+      contains('difficulty == BotDifficulty.easy'),
     );
   });
 
