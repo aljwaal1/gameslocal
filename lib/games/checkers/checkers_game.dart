@@ -409,7 +409,17 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     botThinking = false;
     mustContinueCapture = false;
     message = status.resultText;
-    GameFeedback.win(GameAudioTheme.checkers);
+    if (status.winner == CheckersWinner.draw) {
+      GameFeedback.tap(GameAudioTheme.checkers);
+    } else {
+      final bool localWon = status.winner ==
+          (localPlayerIsRed ? CheckersWinner.red : CheckersWinner.black);
+      if (!playVsBot && !networkMode || localWon) {
+        GameFeedback.win(GameAudioTheme.checkers);
+      } else {
+        GameFeedback.lose(GameAudioTheme.checkers);
+      }
+    }
     _showMatchResultDialog(status);
     return true;
   }

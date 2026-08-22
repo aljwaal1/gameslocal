@@ -189,7 +189,7 @@ canvas{width:100%;aspect-ratio:1;background:#fff;border-radius:18px;touch-action
 </section>
 <section id="game" class="hidden">
 <div class="card">
-<div id="status">بانتظار المضيف...</div>
+<div id="status">بانتظار بدء اللعبة...</div>
 <div id="scores" class="scores"></div>
 </div>
 <canvas id="board" width="700" height="700"></canvas>
@@ -342,6 +342,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
   String _webUrl = '';
   bool _showNetworkQrLobby = true;
+  bool _resultSoundPlayed = false;
   int _turnIndex = 0;
 
   bool get _isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
@@ -563,9 +564,15 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
     if (gained > 0) {
       _scores[playerId] = (_scores[playerId] ?? 0) + gained;
-      GameFeedback.win(_audioTheme);
     } else {
       _turnIndex = (_turnIndex + 1) % players.length;
+    }
+
+    if (_isBoardFull) {
+      _playResultSound();
+    } else if (gained > 0) {
+      GameFeedback.capture(_audioTheme);
+    } else {
       GameFeedback.move(_audioTheme);
     }
 
@@ -614,6 +621,33 @@ class _LineGameScreenState extends State<LineGameScreen> {
       }
     }
     return gained;
+  }
+
+  bool get _isBoardFull => widget.kind == LineGameKind.sheikhBeard
+      ? _pointOwners.every((owner) => owner >= 0)
+      : _edgeOwners.every((owner) => owner != null);
+
+  Set<String> get _winnerIds {
+    if (_scores.isEmpty) return const <String>{};
+    final int best =
+        _scores.values.reduce((int a, int b) => a > b ? a : b);
+    return _scores.entries
+        .where((entry) => entry.value == best)
+        .map((entry) => entry.key)
+        .toSet();
+  }
+
+  void _playResultSound() {
+    if (_resultSoundPlayed) return;
+    _resultSoundPlayed = true;
+    final winners = _winnerIds;
+    if (winners.length > 1) {
+      GameFeedback.tap(_audioTheme);
+    } else if (winners.contains(_myId)) {
+      GameFeedback.win(_audioTheme);
+    } else {
+      GameFeedback.lose(_audioTheme);
+    }
   }
 
   int _edgeIndex(int first, int second) {
@@ -679,6 +713,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
       'kind': widget.kind.name,
       'turnId': _turnId,
       'turnIndex': _turnIndex,
+      'finished': _isBoardFull,
       'message': players.length < 2 ? 'بانتظار لاعب آخر' : 'الدور: $turnName',
       'players': serializedPlayers,
       'scores': _scores,
@@ -725,6 +760,8 @@ class _LineGameScreenState extends State<LineGameScreen> {
   }
 
   void _applyState(Map<String, dynamic> state) {
+    final int previousTotal =
+        _scores.values.fold(0, (int sum, int score) => sum + score);
     final rawPlayers = state['players'] as List<dynamic>? ?? const [];
     final playerIds = <String>[];
     final parsedScores = <String, int>{};
@@ -789,6 +826,17 @@ class _LineGameScreenState extends State<LineGameScreen> {
         ..clear()
         ..addAll(parsedScores);
     });
+    if (state['finished'] == true) {
+      _playResultSound();
+    } else {
+      final int nextTotal =
+          parsedScores.values.fold(0, (int sum, int score) => sum + score);
+      if (nextTotal > previousTotal) {
+        GameFeedback.capture(_audioTheme);
+      } else {
+        GameFeedback.move(_audioTheme);
+      }
+    }
   }
 
   void _handleTap(TapDownDetails details, BoxConstraints constraints) {

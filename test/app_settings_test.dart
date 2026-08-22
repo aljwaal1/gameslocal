@@ -11,6 +11,7 @@ void main() {
       'sound_enabled': false,
       'vibration_enabled': false,
       'table_color': 2,
+      'player_name': 'أحمد',
     });
 
     final settings = AppSettingsController.instance;
@@ -20,6 +21,7 @@ void main() {
     expect(settings.soundEnabled, isFalse);
     expect(settings.vibrationEnabled, isFalse);
     expect(settings.tableColorIndex, 2);
+    expect(settings.playerName, 'أحمد');
   });
 
   test('clamps invalid saved indexes safely', () async {

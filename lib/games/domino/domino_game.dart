@@ -377,7 +377,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       message = isNetworkGame
           ? '$reason. اللاعب الآخر ربح $points نقطة'
           : '$reason. الكمبيوتر ربح $points نقطة';
-      GameFeedback.error(GameAudioTheme.domino);
+      GameFeedback.lose(GameAudioTheme.domino);
     }
     roundFinished = true;
     setState(() {});
@@ -398,7 +398,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       message = isNetworkGame
           ? 'اللعبة مغلقة. اللاعب الآخر قطعه أقل وربح $points نقطة'
           : 'اللعبة مغلقة. الكمبيوتر قطعُه أقل وربح $points نقطة';
-      GameFeedback.error(GameAudioTheme.domino);
+      GameFeedback.lose(GameAudioTheme.domino);
     } else {
       message = 'اللعبة مغلقة وتعادل بالنقاط';
       GameFeedback.tap(GameAudioTheme.domino);
@@ -408,7 +408,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
   void nextRound() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'انتظر المضيف لبدء الجولة الجديدة');
+      setState(() => message =
+          'انتظر ${widget.networkCore?.hostPlayerName ?? 'الداعي'} لبدء الجولة الجديدة');
       return;
     }
     GameFeedback.tap(GameAudioTheme.domino);

@@ -70,6 +70,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  String get inviterName => widget.networkCore?.hostPlayerName ?? 'الداعي';
   bool get isLocalTurn =>
       isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
   List<PlayingCardModel> get localHand =>
@@ -213,7 +214,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void _startNextRound() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'انتظر المضيف لبدء الجولة الجديدة');
+      setState(() => message = 'انتظر $inviterName لبدء الجولة الجديدة');
       return;
     }
     newRound();
@@ -222,7 +223,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void _resetMatch() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'المضيف وحده يستطيع تصفير المباراة');
+      setState(() => message = '$inviterName وحده يستطيع تصفير المباراة');
       return;
     }
     newRound(resetScore: true);
@@ -391,14 +392,19 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         }
         table.clear();
       }
-      if (playerScore > botScore) {
-        message = 'انتهت الجولة: فزت $playerScore مقابل $botScore';
+      final int localScore = isNetworkGame && !isHost ? botScore : playerScore;
+      final int opponentScore =
+          isNetworkGame && !isHost ? playerScore : botScore;
+      if (localScore > opponentScore) {
+        message = 'انتهت الجولة: فزت $localScore مقابل $opponentScore';
         GameFeedback.win(GameAudioTheme.cards);
-      } else if (botScore > playerScore) {
-        message = 'انتهت الجولة: فاز الكمبيوتر $botScore مقابل $playerScore';
-        GameFeedback.error(GameAudioTheme.cards);
+      } else if (opponentScore > localScore) {
+        message = isNetworkGame
+            ? 'انتهت الجولة: فاز اللاعب الآخر $opponentScore مقابل $localScore'
+            : 'انتهت الجولة: فاز الكمبيوتر $opponentScore مقابل $localScore';
+        GameFeedback.lose(GameAudioTheme.cards);
       } else {
-        message = 'انتهت الجولة بتعادل $playerScore - $botScore';
+        message = 'انتهت الجولة بتعادل $localScore - $opponentScore';
         GameFeedback.tap(GameAudioTheme.cards);
       }
       setState(() {});

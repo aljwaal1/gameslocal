@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../design/app_theme.dart';
+import 'app_settings.dart';
 import 'game_definition.dart';
 import 'network/local_network_core.dart';
 import 'network/local_room_discovery.dart';
@@ -23,6 +24,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   StreamSubscription<NetworkMessage>? _subscription;
   StreamSubscription<LocalNetworkState>? _stateSubscription;
   final TextEditingController _hostController = TextEditingController();
+  final TextEditingController _playerNameController = TextEditingController();
   bool _isHost = true;
   bool _opened = false;
   bool _searching = false;
@@ -66,6 +68,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   @override
   void initState() {
     super.initState();
+    _playerNameController.text = AppSettingsController.instance.playerName;
     networkCore = LocalNetworkCore(gameId: widget.game.id);
     _subscription = networkCore.messages.listen((NetworkMessage message) {
       if (message.type == NetworkMessageType.startGame && !_opened) {
@@ -86,13 +89,19 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   }
 
   Future<void> _startAdvertisingSafely(LocalNetworkState state) async {
+    final List<String> inviterNames = state.players
+        .where((LocalPlayer player) => player.isHost)
+        .map((LocalPlayer player) => player.name)
+        .toList(growable: false);
+    final String inviterName =
+        inviterNames.isEmpty ? 'لاعب' : inviterNames.first;
     try {
       await _discovery.startAdvertising(
         gameId: widget.game.id,
         host: state.hostAddress,
         port: state.port,
         roomCode: state.roomCode,
-        name: '${widget.game.name} • ${state.roomCode}',
+        name: '${widget.game.name} • $inviterName • ${state.roomCode}',
       );
     } catch (_) {}
   }
@@ -102,6 +111,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     _subscription?.cancel();
     _stateSubscription?.cancel();
     _hostController.dispose();
+    _playerNameController.dispose();
     unawaited(_discovery.dispose());
     networkCore.dispose();
     super.dispose();
@@ -185,6 +195,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
 
   Future<void> _joinDiscoveredRoom(DiscoveredRoom room) async {
     if (_joining) return;
+    if (!_savePlayerName()) return;
     setState(() => _joining = true);
     try {
       if (networkCore.state.mode == LocalNetworkMode.host) {
@@ -194,12 +205,30 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       }
       await networkCore.joinRoom(
         hostAddress: room.host,
+        playerName: _playerNameController.text,
         port: room.port,
         roomCode: room.roomCode,
       );
     } finally {
       if (mounted) setState(() => _joining = false);
     }
+  }
+
+  bool _savePlayerName() {
+    final String name = _playerNameController.text.trim();
+    if (name.isNotEmpty) {
+      AppSettingsController.instance.setPlayerName(name);
+      return true;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('اكتب اسمك أولًا ليظهر للاعبين.')),
+    );
+    return false;
+  }
+
+  Future<void> _createRoom() async {
+    if (!_savePlayerName()) return;
+    await networkCore.createRoom(playerName: _playerNameController.text);
   }
 
   Widget _modeButton({
@@ -620,7 +649,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                 controller: _hostController,
                 keyboardType: TextInputType.url,
                 decoration: const InputDecoration(
-                  labelText: 'IP جهاز المضيف',
+                  labelText: 'IP جهاز الداعي',
                   hintText: '192.168.1.8',
                 ),
               ),
@@ -631,10 +660,12 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   onPressed: _joining
                       ? null
                       : () async {
+                          if (!_savePlayerName()) return;
                           setState(() => _joining = true);
                           try {
                             await networkCore.joinRoom(
                               hostAddress: _hostController.text,
+                              playerName: _playerNameController.text,
                               port: LocalWifiTransport.defaultPort,
                             );
                           } finally {
@@ -748,13 +779,26 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+              TextField(
+                controller: _playerNameController,
+                enabled: state.mode == LocalNetworkMode.idle,
+                textInputAction: TextInputAction.done,
+                maxLength: 24,
+                decoration: const InputDecoration(
+                  labelText: 'اسمك داخل الغرفة',
+                  hintText: 'مثال: أحمد',
+                  prefixIcon: Icon(Icons.badge_outlined),
+                  counterText: '',
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: <Widget>[
                   _modeButton(
                     selected: _isHost,
                     icon: Icons.add_circle_outline_rounded,
                     title: 'إنشاء غرفة',
-                    subtitle: 'أنا المضيف',
+                    subtitle: 'اسمي يظهر للاعبين',
                     onTap: operationPending
                         ? null
                         : () => unawaited(_changeMode(true)),
@@ -764,7 +808,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     selected: !_isHost,
                     icon: Icons.travel_explore_rounded,
                     title: 'انضمام',
-                    subtitle: 'ابحث عن المضيف',
+                    subtitle: 'ابحث عن الداعي',
                     onTap: operationPending
                         ? null
                         : () => unawaited(_changeMode(false)),
@@ -778,7 +822,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     backgroundColor: _accent,
                   ),
-                  onPressed: operationPending ? null : networkCore.createRoom,
+                  onPressed: operationPending ? null : _createRoom,
                   icon: operationPending
                       ? const SizedBox(
                           width: 20,

@@ -39,7 +39,7 @@ class LocalWifiTransport {
       shared: true,
     );
     final String address = await _localAddress();
-    _emitStatus('تم تشغيل Host على $address:$port');
+    _emitStatus('تم تشغيل الغرفة على $address:$port');
 
     _serverSubscription = _server!.listen(
       (Socket client) {
@@ -49,7 +49,7 @@ class LocalWifiTransport {
         );
       },
       onError: (Object error) {
-        _emitStatus('خطأ في Host: $error');
+        _emitStatus('خطأ في تشغيل الغرفة: $error');
       },
       cancelOnError: false,
     );
@@ -166,7 +166,7 @@ class LocalWifiTransport {
         unawaited(subscription.cancel());
       }
       socket.destroy();
-      _emitStatus('تم قطع الاتصال بالمضيف.');
+      _emitStatus('تم قطع الاتصال بصاحب الغرفة.');
       _emitMessage(NetworkMessage(
         type: NetworkMessageType.disconnect,
         gameId: gameId,

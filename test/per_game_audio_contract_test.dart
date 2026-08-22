@@ -20,6 +20,45 @@ void main() {
     }
     expect(source, contains("final cacheKey = '\${theme.name}:\${sound.name}';"));
     expect(source, contains('signatureFrequency'));
+    expect(source, contains('GameSound.lose'));
+    expect(source, contains('static Future<void> lose'));
+  });
+
+  test('competitive games use distinct win and loss cues', () {
+    for (final path in <String>[
+      'lib/games/football/world_class_penalty_game_v2.dart',
+      'lib/games/xo/xo_game.dart',
+      'lib/games/checkers/checkers_game.dart',
+      'lib/games/domino/domino_game.dart',
+      'lib/games/cards/cards_game.dart',
+      'lib/games/name_animal_object/name_animal_object_game.dart',
+      'lib/games/line_games/line_games.dart',
+    ]) {
+      final source = File(path).readAsStringSync();
+      expect(source, contains('GameFeedback.win'), reason: path);
+      expect(source, contains('GameFeedback.lose'), reason: path);
+    }
+  });
+
+  test('LAN rooms use real player names instead of a host placeholder', () {
+    final network =
+        File('lib/core/network/local_network_core.dart').readAsStringSync();
+    final room = File('lib/core/game_room.dart').readAsStringSync();
+    expect(network, contains('required String playerName'));
+    expect(network, contains('name: cleanedPlayerName'));
+    expect(room, contains("labelText: 'اسمك داخل الغرفة'"));
+    expect(room, contains('playerName: _playerNameController.text'));
+
+    for (final path in <String>[
+      'lib/core/network/local_network_core.dart',
+      'lib/core/game_room.dart',
+      'lib/games/cards/cards_game.dart',
+      'lib/games/domino/domino_game.dart',
+      'lib/games/name_animal_object/name_animal_object_game.dart',
+    ]) {
+      expect(File(path).readAsStringSync(), isNot(contains('المضيف')),
+          reason: path);
+    }
   });
 
   test('every production game selects its own audio identity', () {

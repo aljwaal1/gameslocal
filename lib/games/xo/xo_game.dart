@@ -244,7 +244,14 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = winner == XoCell.x ? 'فاز X' : 'فاز O');
-      GameFeedback.win(GameAudioTheme.xo);
+      final bool localWon = isNetworkGame
+          ? winner == localMark
+          : (!playVsBot || winner == XoCell.x);
+      if (localWon) {
+        GameFeedback.win(GameAudioTheme.xo);
+      } else {
+        GameFeedback.lose(GameAudioTheme.xo);
+      }
       _syncState();
       return;
     }

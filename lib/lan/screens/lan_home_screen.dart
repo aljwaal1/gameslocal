@@ -49,7 +49,7 @@ class LanHomeScreen extends StatelessWidget {
       id: 'cards',
       name: 'الشدة / السراقة',
       playersText: 'لاعبان عبر الشبكة',
-      status: 'جولة متزامنة بين المضيف والضيف',
+      status: 'جولة متزامنة بين الداعي والمدعو',
       builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -118,7 +118,7 @@ class LanHomeScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 3),
                     Text(
-                      'بعد اختيار اللعبة تستطيع إنشاء غرفة أو البحث عن المضيف على نفس Wi-Fi أو Hotspot.',
+                      'بعد اختيار اللعبة تستطيع إنشاء غرفة أو البحث عن الداعي على نفس Wi-Fi أو Hotspot.',
                       style: TextStyle(
                         color: AppColors.muted,
                         fontSize: 12.5,
@@ -240,7 +240,7 @@ class _LanHero extends StatelessWidget {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'اجعل الأجهزة على Wi-Fi نفسه أو فعّل Hotspot، ثم اختر اللعبة وأنشئ غرفة من الجهاز المضيف.',
+                    'اجعل الأجهزة على Wi-Fi نفسه أو فعّل Hotspot، ثم اختر اللعبة وأنشئ غرفة من جهاز الداعي.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11.5,

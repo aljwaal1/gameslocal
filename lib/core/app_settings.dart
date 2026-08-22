@@ -13,6 +13,7 @@ class AppSettingsController extends ChangeNotifier {
   bool soundEnabled = true;
   bool vibrationEnabled = true;
   int tableColorIndex = 0;
+  String playerName = '';
 
   Future<void> load() async {
     _prefs = await SharedPreferences.getInstance();
@@ -23,6 +24,7 @@ class AppSettingsController extends ChangeNotifier {
     soundEnabled = _prefs!.getBool('sound_enabled') ?? true;
     vibrationEnabled = _prefs!.getBool('vibration_enabled') ?? true;
     tableColorIndex = (_prefs!.getInt('table_color') ?? 0).clamp(0, 3).toInt();
+    playerName = (_prefs!.getString('player_name') ?? '').trim();
     notifyListeners();
   }
 
@@ -63,6 +65,14 @@ class AppSettingsController extends ChangeNotifier {
     if (tableColorIndex == safeValue) return;
     tableColorIndex = safeValue;
     _prefs?.setInt('table_color', safeValue);
+    notifyListeners();
+  }
+
+  void setPlayerName(String value) {
+    final cleaned = value.trim();
+    if (playerName == cleaned) return;
+    playerName = cleaned;
+    _prefs?.setString('player_name', cleaned);
     notifyListeners();
   }
 }

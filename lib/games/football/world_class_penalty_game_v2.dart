@@ -555,7 +555,13 @@ class CinematicPenaltyGame extends FlameGame {
   void _advanceTurn() {
     if (_isFinished()) {
       phase = PenaltyPhase.finished;
-      _syncHud(message: playerGoals > robotGoals ? '🏆 أنت البطل' : 'انتهت المباراة — الروبوت يفوز');
+      if (playerGoals > robotGoals) {
+        GameFeedback.win(GameAudioTheme.football);
+        _syncHud(message: '🏆 أنت البطل');
+      } else {
+        GameFeedback.lose(GameAudioTheme.football);
+        _syncHud(message: 'انتهت المباراة — الروبوت يفوز');
+      }
       return;
     }
     if (playerShots == robotShots) {

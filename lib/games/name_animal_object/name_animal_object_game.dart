@@ -424,7 +424,18 @@ class _NameAnimalObjectGameScreenState
       _finishing = false;
       _stage = _Stage.results;
     });
-    GameFeedback.win(GameAudioTheme.word);
+    final List<int> totals = scores.values.toList(growable: false);
+    final int myTotal = scores[_myId] ?? 0;
+    final int bestTotal =
+        totals.isEmpty ? 0 : totals.reduce((int a, int b) => a > b ? a : b);
+    final bool allTied = totals.isEmpty || totals.every((score) => score == bestTotal);
+    if (allTied) {
+      GameFeedback.tap(GameAudioTheme.word);
+    } else if (myTotal == bestTotal) {
+      GameFeedback.win(GameAudioTheme.word);
+    } else {
+      GameFeedback.lose(GameAudioTheme.word);
+    }
   }
 
   Future<void> _proposeScoreEdit(String playerId) async {
@@ -687,7 +698,10 @@ class _NameAnimalObjectGameScreenState
                     ),
                   )
                 else
-                  const Text('بانتظار المضيف...', textAlign: TextAlign.center),
+                  Text(
+                    'بانتظار ${_network?.hostPlayerName ?? 'الداعي'}...',
+                    textAlign: TextAlign.center,
+                  ),
               ],
             ),
           );
@@ -732,7 +746,7 @@ class _NameAnimalObjectGameScreenState
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _submitted ? null : () {
-                      GameFeedback.win(GameAudioTheme.word);
+                      GameFeedback.tap(GameAudioTheme.word);
                       _submitAnswers(endAll: true);
                     },
                     icon: const Icon(Icons.flag),
@@ -909,8 +923,8 @@ class _NameAnimalObjectGameScreenState
             label: const Text('حرف جديد'),
           )
         else
-          const Text(
-            'بانتظار المضيف للحرف التالي',
+          Text(
+            'بانتظار ${_network?.hostPlayerName ?? 'الداعي'} للحرف التالي',
             textAlign: TextAlign.center,
           ),
       ],

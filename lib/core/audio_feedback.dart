@@ -12,6 +12,7 @@ enum GameSound {
   move,
   capture,
   win,
+  lose,
   error,
   kick,
   goal,
@@ -78,6 +79,13 @@ class GameFeedback {
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
         volume: .52,
+      );
+
+  static Future<void> lose([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
+        GameSound.lose,
+        theme: theme,
+        haptic: HapticFeedback.heavyImpact,
+        volume: .48,
       );
 
   static Future<void> error([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
@@ -157,6 +165,7 @@ class GameFeedback {
       GameSound.move => .09,
       GameSound.capture => .16,
       GameSound.win => .42,
+      GameSound.lose => .38,
       GameSound.error => .20,
       GameSound.kick => .14,
       GameSound.goal => .50,
@@ -223,6 +232,12 @@ class GameFeedback {
           final frequencies = <double>[523.25, 659.25, 783.99];
           final index = math.min(2, (t / segment).floor());
           value = note(t - index * segment, frequencies[index], segment) * .86;
+          break;
+        case GameSound.lose:
+          final segment = duration / 3;
+          final frequencies = <double>[392.00, 311.13, 220.00];
+          final index = math.min(2, (t / segment).floor());
+          value = note(t - index * segment, frequencies[index], segment) * .82;
           break;
         case GameSound.error:
           value = (note(t, 185, duration) + note(t, 128, duration) * .52) * .72;
