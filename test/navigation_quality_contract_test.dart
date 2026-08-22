@@ -30,6 +30,15 @@ void main() {
     expect(source, isNot(contains('ربط اللعب الفعلي سيكون في المرحلة التالية')));
   });
 
+  test('game room exposes clear offline, difficulty, LAN and retry choices', () {
+    final source = File('lib/core/game_room.dart').readAsStringSync();
+    expect(source, contains('ضد الروبوت / على الجهاز'));
+    expect(source, contains('مستوى الروبوت لهذه اللعبة'));
+    expect(source, contains('setBotDifficultyFor(widget.game.id'));
+    expect(source, contains('أو العب عبر LAN / Hotspot'));
+    expect(source, contains('إعادة الاتصال'));
+  });
+
   test('settings no longer exposes unfinished-product messaging', () {
     final source = File(
       'lib/settings/settings_screen.dart',

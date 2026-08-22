@@ -324,7 +324,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   DominoTile chooseBotTile(List<DominoTile> playable) {
-    switch (settings.botDifficulty) {
+    switch (settings.botDifficultyFor('domino')) {
       case BotDifficulty.easy:
         return playable[random.nextInt(playable.length)];
       case BotDifficulty.normal:
@@ -496,7 +496,7 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                     botCount: (isNetworkGame && !isHost ? player : bot).length,
                     stockCount: stock.length,
                     playableCount: playableCount,
-                    botDifficultyText: settings.botDifficultyText,
+                    botDifficultyText: settings.botDifficultyTextFor('domino'),
                   ),
                   const SizedBox(height: 8),
                   _EndsBar(leftEnd: leftEnd, rightEnd: rightEnd),

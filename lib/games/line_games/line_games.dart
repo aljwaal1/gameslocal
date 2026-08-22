@@ -359,6 +359,10 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
   String get _myId => widget.networkCore?.localPlayerId ?? 'local';
 
+  String get _gameId => widget.kind == LineGameKind.sheikhBeard
+      ? 'sheikh_beard'
+      : 'dots_boxes';
+
   List<Map<String, String>> get _players {
     if (_isOffline) {
       return const <Map<String, String>>[
@@ -625,14 +629,15 @@ class _LineGameScreenState extends State<LineGameScreen> {
               if (_edgeOwners[i] == null) i,
           ];
     if (available.isEmpty) return -1;
-    if (settings.botDifficulty == BotDifficulty.easy) {
+    final difficulty = settings.botDifficultyFor(_gameId);
+    if (difficulty == BotDifficulty.easy) {
       return available[_random.nextInt(available.length)];
     }
 
     final scored = <(int, int)>[
       for (final index in available) (index, _scoreCandidate(index)),
     ]..sort((a, b) => b.$2.compareTo(a.$2));
-    if (settings.botDifficulty == BotDifficulty.normal) {
+    if (difficulty == BotDifficulty.normal) {
       final scoring = scored.where((entry) => entry.$2 > 0).toList();
       return scoring.isEmpty
           ? available[_random.nextInt(available.length)]
@@ -1069,7 +1074,9 @@ class _LineGameScreenState extends State<LineGameScreen> {
                 if (_isOffline)
                   Chip(
                     avatar: const Icon(Icons.smart_toy_rounded, size: 18),
-                    label: Text('المستوى: ${settings.botDifficultyText}'),
+                    label: Text(
+                      'المستوى: ${settings.botDifficultyTextFor(_gameId)}',
+                    ),
                   ),
                 for (var index = 0; index < players.length; index++)
                   Chip(

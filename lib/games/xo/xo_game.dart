@@ -329,7 +329,8 @@ class _XoGameScreenState extends State<XoGameScreen> {
     ];
     if (empty.isEmpty) return -1;
 
-    if (settings.botDifficulty == BotDifficulty.easy) {
+    final difficulty = settings.botDifficultyFor('xo');
+    if (difficulty == BotDifficulty.easy) {
       return empty[random.nextInt(empty.length)];
     }
 
@@ -338,7 +339,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
     final block = findBestMoveFor(XoCell.x);
     if (block >= 0) return block;
 
-    if (settings.botDifficulty == BotDifficulty.hard) {
+    if (difficulty == BotDifficulty.hard) {
       if (cells[4] == XoCell.empty) return 4;
       final corners = <int>[0, 2, 6, 8]
           .where((index) => cells[index] == XoCell.empty)
@@ -523,16 +524,18 @@ class _XoGameScreenState extends State<XoGameScreen> {
                         if (!isNetworkGame) ...<Widget>[
                           const SizedBox(height: 7),
                           SegmentedButton<bool>(
-                            segments: const <ButtonSegment<bool>>[
-                              ButtonSegment<bool>(
+                            segments: <ButtonSegment<bool>>[
+                              const ButtonSegment<bool>(
                                 value: false,
                                 label: Text('لاعبان'),
                                 icon: Icon(Icons.people_alt_rounded),
                               ),
                               ButtonSegment<bool>(
                                 value: true,
-                                label: Text('روبوت'),
-                                icon: Icon(Icons.smart_toy_rounded),
+                                label: Text(
+                                  'روبوت • ${settings.botDifficultyTextFor('xo')}',
+                                ),
+                                icon: const Icon(Icons.smart_toy_rounded),
                               ),
                             ],
                             selected: <bool>{playVsBot},

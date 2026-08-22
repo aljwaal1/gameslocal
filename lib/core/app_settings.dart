@@ -8,6 +8,18 @@ class AppSettingsController extends ChangeNotifier {
 
   static final AppSettingsController instance = AppSettingsController._();
   SharedPreferences? _prefs;
+  static const List<String> robotGameIds = <String>[
+    'football_penalties',
+    'xo',
+    'checkers',
+    'domino',
+    'chess',
+    'cards',
+    'sheikh_beard',
+    'dots_boxes',
+  ];
+  final Map<String, BotDifficulty> _gameBotDifficulties =
+      <String, BotDifficulty>{};
 
   BotDifficulty botDifficulty = BotDifficulty.easy;
   bool soundEnabled = true;
@@ -21,6 +33,15 @@ class AppSettingsController extends ChangeNotifier {
         _prefs!.getInt('bot_difficulty') ?? BotDifficulty.easy.index;
     botDifficulty = BotDifficulty.values[
         difficultyIndex.clamp(0, BotDifficulty.values.length - 1).toInt()];
+    _gameBotDifficulties.clear();
+    for (final gameId in robotGameIds) {
+      final saved = _prefs!.getInt('bot_difficulty_$gameId');
+      if (saved != null) {
+        _gameBotDifficulties[gameId] = BotDifficulty.values[
+          saved.clamp(0, BotDifficulty.values.length - 1).toInt()
+        ];
+      }
+    }
     soundEnabled = _prefs!.getBool('sound_enabled') ?? true;
     vibrationEnabled = _prefs!.getBool('vibration_enabled') ?? true;
     tableColorIndex = (_prefs!.getInt('table_color') ?? 0).clamp(0, 3).toInt();
@@ -29,7 +50,11 @@ class AppSettingsController extends ChangeNotifier {
   }
 
   String get botDifficultyText {
-    switch (botDifficulty) {
+    return difficultyText(botDifficulty);
+  }
+
+  String difficultyText(BotDifficulty difficulty) {
+    switch (difficulty) {
       case BotDifficulty.easy:
         return 'سهل';
       case BotDifficulty.normal:
@@ -39,10 +64,33 @@ class AppSettingsController extends ChangeNotifier {
     }
   }
 
+  BotDifficulty botDifficultyFor(String gameId) =>
+      _gameBotDifficulties[gameId] ?? botDifficulty;
+
+  String botDifficultyTextFor(String gameId) =>
+      difficultyText(botDifficultyFor(gameId));
+
+  void setBotDifficultyFor(String gameId, BotDifficulty value) {
+    if (_gameBotDifficulties[gameId] == value) return;
+    _gameBotDifficulties[gameId] = value;
+    _prefs?.setInt('bot_difficulty_$gameId', value.index);
+    notifyListeners();
+  }
+
   void setBotDifficulty(BotDifficulty value) {
     if (botDifficulty == value) return;
     botDifficulty = value;
     _prefs?.setInt('bot_difficulty', value.index);
+    notifyListeners();
+  }
+
+  void setBotDifficultyForAll(BotDifficulty value) {
+    botDifficulty = value;
+    _prefs?.setInt('bot_difficulty', value.index);
+    for (final gameId in robotGameIds) {
+      _gameBotDifficulties[gameId] = value;
+      _prefs?.setInt('bot_difficulty_$gameId', value.index);
+    }
     notifyListeners();
   }
 

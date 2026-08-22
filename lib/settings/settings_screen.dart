@@ -27,7 +27,7 @@ class SettingsScreen extends StatelessWidget {
               _SettingsPanel(
                 icon: Icons.smart_toy_rounded,
                 title: 'مستوى الروبوت',
-                subtitle: 'يمكن تغييره في أي وقت قبل بدء الجولة.',
+                subtitle: 'يطبّق هنا على الجميع، ويمكن تخصيصه قبل كل لعبة.',
                 child: Padding(
                   padding: const EdgeInsets.only(top: 13),
                   child: SegmentedButton<BotDifficulty>(
@@ -51,7 +51,7 @@ class SettingsScreen extends StatelessWidget {
                     ],
                     selected: <BotDifficulty>{settings.botDifficulty},
                     onSelectionChanged: (value) =>
-                        settings.setBotDifficulty(value.first),
+                        settings.setBotDifficultyForAll(value.first),
                   ),
                 ),
               ),

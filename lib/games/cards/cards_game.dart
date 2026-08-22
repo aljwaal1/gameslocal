@@ -280,7 +280,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         .where((card) => playerPile.any((p) => p.value == card.value))
         .toList();
 
-    switch (settings.botDifficulty) {
+    switch (settings.botDifficultyFor('cards')) {
       case BotDifficulty.easy:
         if (tablePlayable.isNotEmpty && random.nextBool())
           return tablePlayable.first;
@@ -462,7 +462,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                     botBasra: botBasra,
                     playerSteals: playerSteals,
                     botSteals: botSteals,
-                    botLevel: settings.botDifficultyText,
+                    botLevel: settings.botDifficultyTextFor('cards'),
                   ),
                   const SizedBox(height: 8),
                   _OpponentPanel(count: botHand.length, pile: botPile.length),

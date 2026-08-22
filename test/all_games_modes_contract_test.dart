@@ -42,10 +42,18 @@ void main() {
       final source = File(path).readAsStringSync();
       expect(
         source,
-        contains('settings.botDifficulty'),
+        contains('settings.botDifficultyFor'),
         reason: '$path ignores the selected robot level',
       );
     }
+  });
+
+  test('LAN core ignores duplicate transported messages', () {
+    final source =
+        File('lib/core/network/local_network_core.dart').readAsStringSync();
+    expect(source, contains('_seenMessageKeys'));
+    expect(source, contains('if (!_seenMessageKeys.add(messageKey)) return;'));
+    expect(source, contains('_seenMessageOrder.length > 256'));
   });
 
   test('name game receives its room directly instead of relying on globals', () {

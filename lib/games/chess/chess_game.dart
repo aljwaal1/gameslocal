@@ -225,7 +225,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   Future<void> _runBotMove() async {
     setState(() {
       botThinking = true;
-      message = 'الروبوت (${settings.botDifficultyText}) يفكر...';
+      message = "الروبوت (${settings.botDifficultyTextFor('chess')}) يفكر...";
     });
     await Future<void>.delayed(const Duration(milliseconds: 520));
     if (!mounted || turn != ChessSide.black || _gameFinished) return;
@@ -254,13 +254,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   }
 
   (int, int) _chooseBotMove(List<(int, int)> moves) {
-    if (settings.botDifficulty == BotDifficulty.easy) {
+    final difficulty = settings.botDifficultyFor('chess');
+    if (difficulty == BotDifficulty.easy) {
       return moves[random.nextInt(moves.length)];
     }
     final scored = <((int, int), int)>[
       for (final move in moves) (move, _scoreBotMove(move.$1, move.$2)),
     ]..sort((a, b) => b.$2.compareTo(a.$2));
-    if (settings.botDifficulty == BotDifficulty.normal) {
+    if (difficulty == BotDifficulty.normal) {
       final useful = scored.where((entry) => entry.$2 >= 100).toList();
       return useful.isEmpty
           ? moves[random.nextInt(moves.length)]
@@ -531,7 +532,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(
-              'ضد الروبوت • المستوى ${settings.botDifficultyText}',
+              "ضد الروبوت • المستوى ${settings.botDifficultyTextFor('chess')}",
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),

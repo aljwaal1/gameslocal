@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'local_wifi_transport.dart';
 import 'network_message.dart';
@@ -126,6 +127,8 @@ class LocalNetworkCore {
   late final LocalWifiTransport _transport = LocalWifiTransport(gameId: gameId);
   StreamSubscription<String>? _transportStatusSubscription;
   StreamSubscription<NetworkMessage>? _transportMessageSubscription;
+  final Set<String> _seenMessageKeys = <String>{};
+  final Queue<String> _seenMessageOrder = Queue<String>();
 
   LocalNetworkState _state = LocalNetworkState.idle();
   String _localPlayerId = 'system';
@@ -368,6 +371,13 @@ class LocalNetworkCore {
 
   void _handleIncomingMessage(NetworkMessage message) {
     if (message.gameId != gameId) return;
+    final String messageKey = '${message.senderId}|${message.type.name}|'
+        '${message.createdAt.microsecondsSinceEpoch}|${message.payload['action'] ?? ''}';
+    if (!_seenMessageKeys.add(messageKey)) return;
+    _seenMessageOrder.addLast(messageKey);
+    while (_seenMessageOrder.length > 256) {
+      _seenMessageKeys.remove(_seenMessageOrder.removeFirst());
+    }
     _publish(message);
 
     if (message.type == NetworkMessageType.hello &&

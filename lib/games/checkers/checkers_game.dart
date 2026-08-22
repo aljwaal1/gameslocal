@@ -530,7 +530,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final moves = allLegalMoves(forRed: false);
     if (moves.isEmpty) return null;
 
-    switch (settings.botDifficulty) {
+    switch (settings.botDifficultyFor('checkers')) {
       case BotDifficulty.easy:
         return moves[random.nextInt(moves.length)];
       case BotDifficulty.normal:
@@ -863,7 +863,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                                     label: 'المستوى',
                                     value: networkMode
                                         ? 'Wi‑Fi'
-                                        : settings.botDifficultyText)),
+                                        : settings.botDifficultyTextFor('checkers'))),
                             const SizedBox(width: 8),
                             Expanded(
                                 child: _InfoChip(

@@ -132,7 +132,11 @@ class _PenaltyShellState extends State<_PenaltyShell> {
           children: <Widget>[
             ValueListenableBuilder<PenaltyHud>(
               valueListenable: _game.hud,
-              builder: (context, hud, _) => _ScoreBar(hud: hud),
+              builder: (context, hud, _) => _ScoreBar(
+                hud: hud,
+                botLevel: AppSettingsController.instance
+                    .botDifficultyTextFor('football_penalties'),
+              ),
             ),
             Expanded(
               child: LayoutBuilder(
@@ -210,8 +214,9 @@ class _PenaltyShellState extends State<_PenaltyShell> {
 }
 
 class _ScoreBar extends StatelessWidget {
-  const _ScoreBar({required this.hud});
+  const _ScoreBar({required this.hud, required this.botLevel});
   final PenaltyHud hud;
+  final String botLevel;
 
   @override
   Widget build(BuildContext context) {
@@ -271,7 +276,7 @@ class _ScoreBar extends StatelessWidget {
               color: const Color(0xFF0B1723),
             ),
             child: Text(
-              hud.suddenDeath ? 'SUDDEN DEATH' : 'PENALTIES',
+              hud.suddenDeath ? 'SUDDEN DEATH' : 'روبوت • $botLevel',
               style: const TextStyle(
                 color: Color(0xFF77D7FF),
                 fontWeight: FontWeight.w900,
@@ -475,7 +480,8 @@ class CinematicPenaltyGame extends FlameGame {
           .toDouble(),
     );
 
-    final readBase = switch (settings.botDifficulty) {
+    final difficulty = settings.botDifficultyFor('football_penalties');
+    final readBase = switch (difficulty) {
       BotDifficulty.easy => .12,
       BotDifficulty.normal => .23,
       BotDifficulty.hard => .32,
@@ -515,7 +521,8 @@ class CinematicPenaltyGame extends FlameGame {
     chosenDive = dive;
     keeperTarget = dive;
 
-    final (minimumPower, powerRange) = switch (settings.botDifficulty) {
+    final difficulty = settings.botDifficultyFor('football_penalties');
+    final (minimumPower, powerRange) = switch (difficulty) {
       BotDifficulty.easy => (.58, .30),
       BotDifficulty.normal => (.66, .28),
       BotDifficulty.hard => (.72, .25),
@@ -528,7 +535,7 @@ class CinematicPenaltyGame extends FlameGame {
     final distance = (actualAim - chosenDive).distance;
     final risk = _random.nextDouble();
 
-    final missChance = switch (settings.botDifficulty) {
+    final missChance = switch (difficulty) {
       BotDifficulty.easy => .13,
       BotDifficulty.normal => .07,
       BotDifficulty.hard => .035,
