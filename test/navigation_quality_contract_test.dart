@@ -8,7 +8,7 @@ void main() {
 
     expect(source, contains('CustomScrollView'));
     expect(source, contains('SliverGridDelegateWithMaxCrossAxisExtent'));
-    expect(source, contains('LAN / Hotspot'));
+    expect(source, contains('LAN / Internet'));
     expect(source, contains('LanHomeScreen()'));
     expect(source, contains("label: 'فتح لعبة \${game.name}'"));
   });
@@ -30,12 +30,14 @@ void main() {
     expect(source, isNot(contains('ربط اللعب الفعلي سيكون في المرحلة التالية')));
   });
 
-  test('game room exposes clear offline, difficulty, LAN and retry choices', () {
+  test('game room exposes offline, difficulty, LAN, Internet and retry choices', () {
     final source = File('lib/core/game_room.dart').readAsStringSync();
     expect(source, contains('ضد الروبوت / على الجهاز'));
     expect(source, contains('مستوى الروبوت لهذه اللعبة'));
     expect(source, contains('setBotDifficultyFor(widget.game.id'));
-    expect(source, contains('أو العب عبر LAN / Hotspot'));
+    expect(source, contains('أو العب مع أجهزة أخرى'));
+    expect(source, contains('NetworkConnectionKind.internet'));
+    expect(source, contains('رمز غرفة الإنترنت'));
     expect(source, contains('إعادة الاتصال'));
   });
 

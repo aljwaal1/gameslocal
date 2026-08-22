@@ -91,7 +91,9 @@ jobs:
           BUILD=1
           if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$TEST" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
             echo "=== BUILD APK ===" | tee -a build-status/latest.log
-            flutter build apk --release 2>&1 | tee -a build-status/latest.log
+            flutter build apk --release \
+              --dart-define=INTERNET_RELAY_URL=${{ vars.INTERNET_RELAY_URL }} \
+              2>&1 | tee -a build-status/latest.log
             BUILD=${PIPESTATUS[0]}
           else
             echo "APK build skipped because a required check failed." | tee -a build-status/latest.log

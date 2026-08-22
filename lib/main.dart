@@ -52,7 +52,7 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'football_penalties',
       name: 'ركلات الترجيح',
-      playersText: 'لاعب ضد روبوت أو لاعبان LAN',
+      playersText: 'روبوت أو لاعبان محليًا/عبر الإنترنت',
       status: 'Penalty Arena Pro بمنظور وحركة دقيقة',
       builder: (_, networkCore) =>
           ProPenaltyShootoutGameScreen(networkCore: networkCore),
@@ -82,7 +82,7 @@ class HomeScreen extends StatelessWidget {
       id: 'chess',
       name: 'الشطرنج',
       playersText: 'لاعبان',
-      status: 'ضد الروبوت بثلاثة مستويات أو لاعب عبر LAN',
+      status: 'ضد الروبوت بثلاثة مستويات أو لاعب عبر الشبكة',
       builder: (_, networkCore) => ChessGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -95,15 +95,15 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'name_animal_object',
       name: 'اسم حيوان جماد',
-      playersText: 'عدة لاعبين عبر LAN',
-      status: 'كل لاعب على هاتفه ضمن نفس Wi-Fi أو Hotspot',
+      playersText: 'عدة لاعبين محليًا أو عبر الإنترنت',
+      status: 'كل لاعب على هاتفه؛ نفس الشبكة أو شبكات مختلفة',
       builder: (_, networkCore) =>
           NameAnimalObjectGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'sheikh_beard',
       name: 'لعبة اللحية',
-      playersText: 'لاعبان أو أكثر عبر LAN والآيفون',
+      playersText: 'لاعبان أو أكثر محليًا أو عبر الإنترنت',
       status: 'اختيار نقاط وتكوين خطوط مع أدوار متزامنة',
       builder: (_, networkCore) => LineGameScreen(
         kind: LineGameKind.sheikhBeard,
@@ -113,7 +113,7 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'dots_boxes',
       name: 'المربعات',
-      playersText: 'لاعبان أو أكثر عبر LAN والآيفون',
+      playersText: 'لاعبان أو أكثر محليًا أو عبر الإنترنت',
       status: 'أكمل المربع لتحصل على نقطة ودور إضافي',
       builder: (_, networkCore) => LineGameScreen(
         kind: LineGameKind.dotsBoxes,
@@ -307,8 +307,8 @@ class _HeroCard extends StatelessWidget {
                       label: 'روبوت',
                     ),
                     const _FeaturePill(
-                      icon: Icons.wifi_tethering_rounded,
-                      label: 'LAN / Hotspot',
+                      icon: Icons.public_rounded,
+                      label: 'LAN / Internet',
                     ),
                   ],
                 ),
@@ -475,9 +475,9 @@ class _ModeStrip extends StatelessWidget {
         },
       ),
       _ModeActionCard(
-        icon: Icons.wifi_tethering_rounded,
-        title: 'شبكة LAN',
-        subtitle: 'هواتف متعددة على نفس الشبكة',
+        icon: Icons.public_rounded,
+        title: 'اللعب الجماعي',
+        subtitle: 'نفس الشبكة أو عبر الإنترنت',
         accent: AppColors.primary,
         onTap: () {
           GameFeedback.tap();
