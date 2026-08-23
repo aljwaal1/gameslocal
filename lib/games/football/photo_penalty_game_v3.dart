@@ -178,7 +178,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.flying;
       _message = power > .93 ? 'قذيفة قوية...' : 'التسديدة انطلقت...';
     });
-    GameFeedback.kick();
+    GameFeedback.kick(GameAudioTheme.football);
     await _animateShot();
 
     if (!mounted) return;
@@ -191,16 +191,16 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
     });
     switch (result) {
       case _PenaltyOutcome.goal:
-        GameFeedback.goal();
+        GameFeedback.goal(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.save:
-        GameFeedback.save();
+        GameFeedback.save(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.post:
-        GameFeedback.post();
+        GameFeedback.post(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.miss:
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.football);
         break;
     }
     await Future<void>.delayed(const Duration(milliseconds: 900));
@@ -237,7 +237,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.flying;
       _message = 'المنافس يسدد...';
     });
-    GameFeedback.kick();
+    GameFeedback.kick(GameAudioTheme.football);
     await _animateShot();
 
     if (!mounted) return;
@@ -250,16 +250,16 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
     });
     switch (result) {
       case _PenaltyOutcome.goal:
-        GameFeedback.goal();
+        GameFeedback.goal(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.save:
-        GameFeedback.save();
+        GameFeedback.save(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.post:
-        GameFeedback.post();
+        GameFeedback.post(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.miss:
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.football);
         break;
     }
     await Future<void>.delayed(const Duration(milliseconds: 900));

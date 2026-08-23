@@ -52,7 +52,7 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'football_penalties',
       name: 'ركلات الترجيح',
-      playersText: 'لاعب ضد روبوت أو لاعبان LAN',
+      playersText: 'روبوت أو لاعبان محليًا/عبر الإنترنت',
       status: 'Penalty Arena Pro بمنظور وحركة دقيقة',
       builder: (_, networkCore) =>
           ProPenaltyShootoutGameScreen(networkCore: networkCore),
@@ -82,8 +82,8 @@ class HomeScreen extends StatelessWidget {
       id: 'chess',
       name: 'الشطرنج',
       playersText: 'لاعبان',
-      status: 'لعبة محلية كاملة للاعبين',
-      builder: (_, __) => const ChessGameScreen(),
+      status: 'ضد الروبوت بثلاثة مستويات أو لاعب عبر الشبكة',
+      builder: (_, networkCore) => ChessGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'cards',
@@ -95,14 +95,15 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'name_animal_object',
       name: 'اسم حيوان جماد',
-      playersText: 'عدة لاعبين عبر LAN',
-      status: 'كل لاعب على هاتفه ضمن نفس Wi-Fi أو Hotspot',
-      builder: (_, __) => const NameAnimalObjectGameScreen(),
+      playersText: 'عدة لاعبين محليًا أو عبر الإنترنت',
+      status: 'كل لاعب على هاتفه؛ نفس الشبكة أو شبكات مختلفة',
+      builder: (_, networkCore) =>
+          NameAnimalObjectGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'sheikh_beard',
-      name: 'لحية الشيخ',
-      playersText: 'لاعبان أو أكثر عبر LAN والآيفون',
+      name: 'لعبة اللحية',
+      playersText: 'لاعبان أو أكثر محليًا أو عبر الإنترنت',
       status: 'اختيار نقاط وتكوين خطوط مع أدوار متزامنة',
       builder: (_, networkCore) => LineGameScreen(
         kind: LineGameKind.sheikhBeard,
@@ -112,7 +113,7 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'dots_boxes',
       name: 'المربعات',
-      playersText: 'لاعبان أو أكثر عبر LAN والآيفون',
+      playersText: 'لاعبان أو أكثر محليًا أو عبر الإنترنت',
       status: 'أكمل المربع لتحصل على نقطة ودور إضافي',
       builder: (_, networkCore) => LineGameScreen(
         kind: LineGameKind.dotsBoxes,
@@ -125,41 +126,54 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            children: [
-              const _HeroCard(),
-              const SizedBox(height: 10),
-              const _ModeStrip(),
-              const SizedBox(height: 10),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-                    final columns = width < 390
-                        ? 1
-                        : width < 850
-                            ? 2
-                            : width < 1250
-                                ? 3
-                                : 4;
-                    return GridView.builder(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: columns,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio: columns == 1 ? 2.05 : 1.20,
-                      ),
-                      itemCount: games.length,
-                      itemBuilder: (context, index) =>
-                          _GameCard(game: games[index]),
-                    );
-                  },
+        child: CustomScrollView(
+          slivers: <Widget>[
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+              sliver: SliverToBoxAdapter(
+                child: _HeroCard(gameCount: games.length),
+              ),
+            ),
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(14, 16, 14, 0),
+              sliver: SliverToBoxAdapter(
+                child: _SectionHeader(
+                  eyebrow: 'طرق اللعب',
+                  title: 'ابدأ بالطريقة التي تناسبكم',
+                  subtitle: 'على نفس الجهاز، ضد الروبوت، أو عبر الشبكة المحلية.',
                 ),
               ),
-            ],
-          ),
+            ),
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(14, 10, 14, 0),
+              sliver: SliverToBoxAdapter(child: _ModeStrip()),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(14, 20, 14, 10),
+              sliver: SliverToBoxAdapter(
+                child: _SectionHeader(
+                  eyebrow: 'مكتبة الألعاب',
+                  title: '${games.length} ألعاب جاهزة للّعب',
+                  subtitle: 'اختر اللعبة ثم حدّد نمط اللعب من غرفتها.',
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 340,
+                  mainAxisExtent: 202,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _GameCard(game: games[index]),
+                  childCount: games.length,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -167,82 +181,273 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _HeroCard extends StatelessWidget {
-  const _HeroCard();
+  const _HeroCard({required this.gameCount});
+
+  final int gameCount;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 128,
       width: double.infinity,
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(30),
         gradient: const LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: [Color(0xFF1F6F63), Color(0xFF7B2CBF)],
+          colors: AppColors.heroGradient,
+          stops: <double>[0, .56, 1],
         ),
-        boxShadow: const [
+        border: Border.all(color: const Color(0x2FFFFFFF)),
+        boxShadow: const <BoxShadow>[
           BoxShadow(
-            color: Colors.black26,
-            blurRadius: 16,
-            offset: Offset(0, 6),
+            color: Color(0x33073B3A),
+            blurRadius: 26,
+            offset: Offset(0, 12),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            const CircleAvatar(
-              radius: 32,
-              backgroundColor: AppColors.accent,
-              child: Icon(
-                Icons.sports_esports,
-                color: AppColors.primaryDark,
-                size: 36,
-              ),
-            ),
-            const SizedBox(width: 14),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'GamesLocal',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+      child: Stack(
+        children: <Widget>[
+          const PositionedDirectional(
+            start: -34,
+            top: -42,
+            child: _GlowOrb(size: 126, color: Color(0x24FFFFFF)),
+          ),
+          const PositionedDirectional(
+            end: -28,
+            bottom: -52,
+            child: _GlowOrb(size: 150, color: Color(0x1FF5B82E)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const <BoxShadow>[
+                          BoxShadow(
+                            color: Color(0x44000000),
+                            blurRadius: 14,
+                            offset: Offset(0, 7),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.sports_esports_rounded,
+                        color: AppColors.primaryDark,
+                        size: 34,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    'ألعاب محلية • روبوت • شبكة محلية',
-                    style: TextStyle(fontSize: 14, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              tooltip: 'الإعدادات',
-              onPressed: () {
-                GameFeedback.tap();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const Directionality(
-                      textDirection: TextDirection.rtl,
-                      child: SettingsScreen(),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text(
+                            'GamesLocal',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -.5,
+                            ),
+                          ),
+                          SizedBox(height: 3),
+                          Text(
+                            'جلسة لعب واحدة تجمعكم بدون إنترنت',
+                            style: TextStyle(
+                              color: Color(0xFFEAF7F5),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.settings, color: Colors.white),
+                    const SizedBox(width: 8),
+                    _HeroActionButton(
+                      tooltip: 'الإعدادات',
+                      icon: Icons.tune_rounded,
+                      onTap: () {
+                        GameFeedback.tap();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const Directionality(
+                              textDirection: TextDirection.rtl,
+                              child: SettingsScreen(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    _FeaturePill(
+                      icon: Icons.extension_rounded,
+                      label: '$gameCount ألعاب',
+                    ),
+                    const _FeaturePill(
+                      icon: Icons.smart_toy_rounded,
+                      label: 'روبوت',
+                    ),
+                    const _FeaturePill(
+                      icon: Icons.public_rounded,
+                      label: 'LAN / Internet',
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlowOrb extends StatelessWidget {
+  const _GlowOrb({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+    );
+  }
+}
+
+class _HeroActionButton extends StatelessWidget {
+  const _HeroActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(17),
+          child: Ink(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0x18FFFFFF),
+              borderRadius: BorderRadius.circular(17),
+              border: Border.all(color: const Color(0x36FFFFFF)),
+            ),
+            child: Icon(icon, color: Colors.white, size: 25),
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _FeaturePill extends StatelessWidget {
+  const _FeaturePill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0x16FFFFFF),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x30FFFFFF)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.eyebrow,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          eyebrow,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontSize: 11,
+            fontWeight: FontWeight.w900,
+            letterSpacing: .3,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 3),
+        Text(
+          subtitle,
+          style: const TextStyle(
+            color: AppColors.muted,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -252,110 +457,179 @@ class _ModeStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ModeChip(
-            icon: Icons.smart_toy,
-            text: 'روبوت',
-            color: const Color(0xFF7B2CBF),
-            onTap: () {
-              GameFeedback.tap();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  behavior: SnackBarBehavior.floating,
-                  content: Text(
-                    'اختر كرة القدم أو إكس أو أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.',
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ModeChip(
-            icon: Icons.wifi_tethering,
-            text: 'LAN',
-            color: const Color(0xFF00A896),
-            onTap: () {
-              GameFeedback.tap();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const Directionality(
-                    textDirection: TextDirection.rtl,
-                    child: LanHomeScreen(),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _ModeChip(
-            icon: Icons.wifi,
-            text: 'Wi‑Fi قديم',
-            color: const Color(0xFFFF9F1C),
-            onTap: () {
-              GameFeedback.tap();
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const Directionality(
-                    textDirection: TextDirection.rtl,
-                    child: WifiLobbyScreen(),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+    final actions = <Widget>[
+      _ModeActionCard(
+        icon: Icons.smart_toy_rounded,
+        title: 'ضد الروبوت',
+        subtitle: 'ابدأ فورًا بدون لاعب ثانٍ',
+        accent: AppColors.secondary,
+        onTap: () {
+          GameFeedback.tap();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'اختر كرة القدم أو إكس أو أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.',
+              ),
+            ),
+          );
+        },
+      ),
+      _ModeActionCard(
+        icon: Icons.public_rounded,
+        title: 'اللعب الجماعي',
+        subtitle: 'نفس الشبكة أو عبر الإنترنت',
+        accent: AppColors.primary,
+        onTap: () {
+          GameFeedback.tap();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const Directionality(
+                textDirection: TextDirection.rtl,
+                child: LanHomeScreen(),
+              ),
+            ),
+          );
+        },
+      ),
+      _ModeActionCard(
+        icon: Icons.router_rounded,
+        title: 'Wi‑Fi كلاسيكي',
+        subtitle: 'مدخل التوافق للشبكة القديمة',
+        accent: AppColors.cyan,
+        onTap: () {
+          GameFeedback.tap();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const Directionality(
+                textDirection: TextDirection.rtl,
+                child: WifiLobbyScreen(),
+              ),
+            ),
+          );
+        },
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 680;
+        if (stacked) {
+          return Column(
+            children: <Widget>[
+              actions[0],
+              const SizedBox(height: 9),
+              actions[1],
+              const SizedBox(height: 9),
+              actions[2],
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Expanded(child: actions[0]),
+            const SizedBox(width: 10),
+            Expanded(child: actions[1]),
+            const SizedBox(width: 10),
+            Expanded(child: actions[2]),
+          ],
+        );
+      },
     );
   }
 }
 
-class _ModeChip extends StatelessWidget {
-  const _ModeChip({
+class _ModeActionCard extends StatelessWidget {
+  const _ModeActionCard({
     required this.icon,
-    required this.text,
-    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
     required this.onTap,
   });
 
   final IconData icon;
-  final String text;
-  final Color color;
+  final String title;
+  final String subtitle;
+  final Color accent;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Container(
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: color.withOpacity(0.25)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 19, color: color),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                text,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.w800, color: color),
-              ),
+    return Semantics(
+      button: true,
+      label: title,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 92),
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: AppColors.hairline),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x120F172A),
+                  blurRadius: 14,
+                  offset: Offset(0, 7),
+                ),
+              ],
             ),
-          ],
+            child: Row(
+              children: <Widget>[
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(.11),
+                    borderRadius: BorderRadius.circular(17),
+                    border: Border.all(color: accent.withOpacity(.18)),
+                  ),
+                  child: Icon(icon, color: accent, size: 26),
+                ),
+                const SizedBox(width: 11),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: AppColors.ink,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: accent.withOpacity(.72),
+                  size: 17,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -372,6 +646,7 @@ class _GameCard extends StatelessWidget {
         'xo',
         'checkers',
         'domino',
+        'chess',
         'cards',
         'name_animal_object',
         'sheikh_beard',
@@ -387,143 +662,234 @@ class _GameCard extends StatelessWidget {
         'sheikh_beard',
         'dots_boxes',
       }.contains(game.id);
+
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
+
   Color get releaseColor =>
-      experimental ? const Color(0xFFFF9F1C) : const Color(0xFF2A9D8F);
+      experimental ? const Color(0xFFD97706) : AppColors.success;
 
   IconData get icon {
     switch (game.id) {
       case 'football_penalties':
-        return Icons.sports_soccer;
+        return Icons.sports_soccer_rounded;
       case 'xo':
-        return Icons.close;
+        return Icons.close_rounded;
       case 'checkers':
-        return Icons.grid_4x4;
+        return Icons.grid_4x4_rounded;
       case 'chess':
-        return Icons.account_tree;
+        return Icons.account_tree_rounded;
       case 'domino':
-        return Icons.dashboard_customize;
+        return Icons.dashboard_customize_rounded;
+      case 'cards':
+        return Icons.style_rounded;
       case 'name_animal_object':
-        return Icons.edit_note;
+        return Icons.edit_note_rounded;
       case 'sheikh_beard':
-        return Icons.linear_scale;
+        return Icons.linear_scale_rounded;
       case 'dots_boxes':
-        return Icons.grid_on;
+        return Icons.grid_on_rounded;
       default:
-        return Icons.style;
+        return Icons.extension_rounded;
     }
   }
 
   Color get color {
     switch (game.id) {
       case 'football_penalties':
-        return const Color(0xFF0B7A3B);
+        return const Color(0xFF087A46);
       case 'xo':
-        return const Color(0xFFE63946);
+        return const Color(0xFFD9485F);
       case 'checkers':
-        return const Color(0xFF2A9D8F);
+        return AppColors.primary;
       case 'domino':
-        return const Color(0xFFF4A261);
+        return const Color(0xFFD97706);
       case 'chess':
-        return const Color(0xFF264653);
+        return const Color(0xFF334155);
+      case 'cards':
+        return const Color(0xFFB42358);
       case 'name_animal_object':
-        return const Color(0xFF7B2CBF);
+        return AppColors.secondary;
       case 'sheikh_beard':
-        return const Color(0xFF8E44AD);
+        return const Color(0xFF7C3AED);
       case 'dots_boxes':
-        return const Color(0xFF247BA0);
+        return AppColors.cyan;
       default:
-        return const Color(0xFF7B2CBF);
+        return AppColors.secondary;
     }
+  }
+
+  String get connectionLabel {
+    if (game.id == 'chess') return 'محلي';
+    if (usesGameRoom) return 'محلي / شبكة';
+    return 'محلي';
+  }
+
+  void _open(BuildContext context) {
+    GameFeedback.tap();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (routeContext) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: usesGameRoom
+              ? GameRoomScreen(game: game)
+              : game.builder(routeContext, null),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: () {
-        GameFeedback.tap();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (routeContext) => Directionality(
-              textDirection: TextDirection.rtl,
-              child: usesGameRoom
-                  ? GameRoomScreen(game: game)
-                  : game.builder(routeContext, null),
-            ),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
+    return Semantics(
+      button: true,
+      label: 'فتح لعبة ${game.name}',
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        child: InkWell(
           borderRadius: BorderRadius.circular(24),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 12,
-              offset: Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [color, color.withOpacity(0.65)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 28),
-                ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: releaseColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: releaseColor.withOpacity(0.35)),
-                  ),
-                  child: Text(
-                    releaseLabel,
-                    style: TextStyle(
-                      color: releaseColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+          onTap: () => _open(context),
+          child: Ink(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.hairline),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x160F172A),
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
                 ),
               ],
             ),
-            const Spacer(),
-            Text(
-              game.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-                color: AppColors.ink,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: <Color>[color, color.withOpacity(.68)],
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: <BoxShadow>[
+                          BoxShadow(
+                            color: color.withOpacity(.20),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 28),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: releaseColor.withOpacity(.10),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: releaseColor.withOpacity(.22)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: releaseColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            releaseLabel,
+                            style: TextStyle(
+                              color: releaseColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  game.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  game.status,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
+                ),
+                const Spacer(),
+                Row(
+                  children: <Widget>[
+                    Icon(Icons.people_alt_rounded, color: color, size: 16),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        game.playersText,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.inkSoft,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(.08),
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Text(
+                        connectionLabel,
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 3),
-            Text(
-              game.playersText,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.muted, fontSize: 12),
-            ),
-          ],
+          ),
         ),
       ),
     );

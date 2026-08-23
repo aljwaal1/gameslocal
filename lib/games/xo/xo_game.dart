@@ -226,7 +226,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
     if (isHost && isNetworkGame && senderId != _turnId) return;
 
     setState(() => cells[index] = mark);
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.xo);
     if (notify && isNetworkGame) {
       widget.networkCore?.sendMove(
         <String, dynamic>{'action': 'place', 'index': index, 'mark': mark.name},
@@ -244,7 +244,14 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = winner == XoCell.x ? 'فاز X' : 'فاز O');
-      GameFeedback.win();
+      final bool localWon = isNetworkGame
+          ? winner == localMark
+          : (!playVsBot || winner == XoCell.x);
+      if (localWon) {
+        GameFeedback.win(GameAudioTheme.xo);
+      } else {
+        GameFeedback.lose(GameAudioTheme.xo);
+      }
       _syncState();
       return;
     }
@@ -254,7 +261,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = 'تعادل');
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.xo);
       _syncState();
       return;
     }
@@ -316,19 +323,31 @@ class _XoGameScreenState extends State<XoGameScreen> {
   }
 
   int chooseBotMove() {
-    final win = findBestMoveFor(XoCell.o);
-    if (win >= 0) return win;
-    final block = findBestMoveFor(XoCell.x);
-    if (block >= 0) return block;
-    if (settings.botDifficulty == BotDifficulty.hard &&
-        cells[4] == XoCell.empty) {
-      return 4;
-    }
     final empty = <int>[
       for (var i = 0; i < cells.length; i++)
         if (cells[i] == XoCell.empty) i,
     ];
-    return empty.isEmpty ? -1 : empty[random.nextInt(empty.length)];
+    if (empty.isEmpty) return -1;
+
+    final difficulty = settings.botDifficultyFor('xo');
+    if (difficulty == BotDifficulty.easy) {
+      return empty[random.nextInt(empty.length)];
+    }
+
+    final win = findBestMoveFor(XoCell.o);
+    if (win >= 0) return win;
+    final block = findBestMoveFor(XoCell.x);
+    if (block >= 0) return block;
+
+    if (difficulty == BotDifficulty.hard) {
+      if (cells[4] == XoCell.empty) return 4;
+      final corners = <int>[0, 2, 6, 8]
+          .where((index) => cells[index] == XoCell.empty)
+          .toList();
+      if (corners.isNotEmpty) return corners[random.nextInt(corners.length)];
+    }
+
+    return empty[random.nextInt(empty.length)];
   }
 
   int findBestMoveFor(XoCell player) {
@@ -388,11 +407,18 @@ class _XoGameScreenState extends State<XoGameScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('اللعب عبر QR'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _iphoneUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
+            QrImageView(
+              data: _iphoneUrl,
+              size: (MediaQuery.sizeOf(dialogContext).shortestSide * .58)
+                  .clamp(120.0, 320.0)
+                  .toDouble(),
+              backgroundColor: Colors.white,
+            ),
             const SizedBox(height: 10),
             SelectableText(_iphoneUrl, textAlign: TextAlign.center),
             const SizedBox(height: 6),
@@ -421,7 +447,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         connectedPlayers: _iphonePlayers.length,
         accent: const Color(0xFF7C3AED),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(GameAudioTheme.xo);
           setState(() => _showNetworkQrLobby = false);
           _broadcastWebState();
         },
@@ -437,8 +463,16 @@ class _XoGameScreenState extends State<XoGameScreen> {
               onPressed: _showBrowserQr,
               icon: const Icon(Icons.qr_code_2_rounded),
             ),
-          IconButton(onPressed: reset, icon: const Icon(Icons.refresh)),
-          IconButton(onPressed: resetScore, icon: const Icon(Icons.restart_alt)),
+          IconButton(
+            tooltip: 'جولة جديدة',
+            onPressed: reset,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+          IconButton(
+            tooltip: 'تصفير النتائج',
+            onPressed: resetScore,
+            icon: const Icon(Icons.restart_alt_rounded),
+          ),
         ],
       ),
       body: SafeArea(
@@ -455,11 +489,23 @@ class _XoGameScreenState extends State<XoGameScreen> {
                     padding: EdgeInsets.symmetric(horizontal: 14, vertical: compact ? 8 : 11),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: <Color>[Color(0xFF0F766E), Color(0xFF6D28D9)],
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: <Color>[
+                          Color(0xFF073B3A),
+                          Color(0xFF0F766E),
+                          Color(0xFF6D28D9),
+                        ],
+                        stops: <double>[0, .52, 1],
                       ),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0x2FFFFFFF)),
                       boxShadow: const <BoxShadow>[
-                        BoxShadow(color: Color(0x330F172A), blurRadius: 14, offset: Offset(0, 6)),
+                        BoxShadow(
+                          color: Color(0x36073B3A),
+                          blurRadius: 20,
+                          offset: Offset(0, 8),
+                        ),
                       ],
                     ),
                     child: Column(
@@ -478,9 +524,19 @@ class _XoGameScreenState extends State<XoGameScreen> {
                         if (!isNetworkGame) ...<Widget>[
                           const SizedBox(height: 7),
                           SegmentedButton<bool>(
-                            segments: const <ButtonSegment<bool>>[
-                              ButtonSegment<bool>(value: false, label: Text('لاعبان'), icon: Icon(Icons.people)),
-                              ButtonSegment<bool>(value: true, label: Text('روبوت'), icon: Icon(Icons.smart_toy)),
+                            segments: <ButtonSegment<bool>>[
+                              const ButtonSegment<bool>(
+                                value: false,
+                                label: Text('لاعبان'),
+                                icon: Icon(Icons.people_alt_rounded),
+                              ),
+                              ButtonSegment<bool>(
+                                value: true,
+                                label: Text(
+                                  'روبوت • ${settings.botDifficultyTextFor('xo')}',
+                                ),
+                                icon: const Icon(Icons.smart_toy_rounded),
+                              ),
                             ],
                             selected: <bool>{playVsBot},
                             onSelectionChanged: (value) {
@@ -534,9 +590,27 @@ class _XoGameScreenState extends State<XoGameScreen> {
                                   duration: const Duration(milliseconds: 180),
                                   decoration: BoxDecoration(
                                     gradient: winning
-                                        ? const LinearGradient(colors: <Color>[Color(0xFFFFD166), Color(0xFFFFB703)])
-                                        : const LinearGradient(colors: <Color>[Colors.white, Color(0xFFF0F7FF)]),
-                                    borderRadius: BorderRadius.circular(compact ? 18 : 24),
+                                        ? const LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: <Color>[
+                                              Color(0xFFFFE9A8),
+                                              Color(0xFFF5B82E),
+                                            ],
+                                          )
+                                        : LinearGradient(
+                                            begin: Alignment.topRight,
+                                            end: Alignment.bottomLeft,
+                                            colors: <Color>[
+                                              Colors.white,
+                                              value == 'X'
+                                                  ? const Color(0xFFFFF3F5)
+                                                  : value == 'O'
+                                                      ? const Color(0xFFF1F8FF)
+                                                      : const Color(0xFFF8FAFC),
+                                            ],
+                                          ),
+                                    borderRadius: BorderRadius.circular(compact ? 20 : 26),
                                     border: Border.all(
                                       color: value == 'X'
                                           ? const Color(0x55E11D48)
@@ -545,8 +619,18 @@ class _XoGameScreenState extends State<XoGameScreen> {
                                               : const Color(0x160F172A),
                                       width: 2,
                                     ),
-                                    boxShadow: const <BoxShadow>[
-                                      BoxShadow(color: Color(0x220F172A), blurRadius: 10, offset: Offset(0, 4)),
+                                    boxShadow: <BoxShadow>[
+                                      const BoxShadow(
+                                        color: Color(0x1F0F172A),
+                                        blurRadius: 14,
+                                        offset: Offset(0, 6),
+                                      ),
+                                      if (winning)
+                                        const BoxShadow(
+                                          color: Color(0x44F5B82E),
+                                          blurRadius: 18,
+                                          spreadRadius: 1,
+                                        ),
                                     ],
                                   ),
                                   child: Center(
@@ -590,16 +674,44 @@ class _ScoreTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Colors.white,
+            color.withValues(alpha: .08),
+          ],
+        ),
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: .18)),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x120F172A),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: <Widget>[
-          Text(label,
-              style: TextStyle(color: color, fontWeight: FontWeight.w900)),
-          Text('$value',
-              style: TextStyle(
-                  color: color, fontSize: 24, fontWeight: FontWeight.w900)),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$value',
+            style: TextStyle(
+              color: color,
+              fontSize: 25,
+              height: 1,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
