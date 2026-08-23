@@ -8,9 +8,12 @@ import 'network_transport.dart';
 class InternetRelayTransport implements NetworkTransport {
   InternetRelayTransport({required this.gameId});
 
+  /// Production relay used by normal release builds. It can still be overridden
+  /// at build time with --dart-define=INTERNET_RELAY_URL=... for staging or a
+  /// different self-hosted relay.
   static const String relayUrl = String.fromEnvironment(
     'INTERNET_RELAY_URL',
-    defaultValue: '',
+    defaultValue: 'wss://gameslocal-aljwaal1-relay.onrender.com/ws',
   );
 
   static bool get isConfigured => relayUrl.trim().isNotEmpty;
