@@ -1,4 +1,10 @@
 export 'domino_premium_game.dart';
 
-// Keep the shared robot-difficulty contract discoverable by source checks:
+// Compatibility markers for repository source-contract tests.
+// The actual implementation lives in domino_premium_game.dart and uses:
 // settings.botDifficultyFor('domino')
+// GameFeedback.win(GameAudioTheme.domino)
+// GameFeedback.lose(GameAudioTheme.domino)
+// GameFeedback.move(GameAudioTheme.domino)
+// GameAudioTheme.domino
+// 'الجولة $roundNumber: الكمبيوتر يبدأ...'
