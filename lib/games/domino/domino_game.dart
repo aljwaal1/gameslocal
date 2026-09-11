@@ -10,3 +10,4 @@ export 'domino_premium_game.dart';
 // GameAudioTheme.domino
 // 'الجولة $roundNumber: الكمبيوتر يبدأ...'
 // if (!isNetworkGame && !playerTurn) {
+// if (mounted && !roundFinished && !playerTurn) botMove();
