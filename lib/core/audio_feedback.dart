@@ -55,7 +55,7 @@ class GameFeedback {
         GameSound.tap,
         theme: theme,
         haptic: HapticFeedback.selectionClick,
-        volume: .24,
+        volume: theme == GameAudioTheme.domino ? .34 : .24,
         minInterval: const Duration(milliseconds: 35),
       );
 
@@ -63,7 +63,7 @@ class GameFeedback {
         GameSound.move,
         theme: theme,
         haptic: HapticFeedback.lightImpact,
-        volume: .34,
+        volume: theme == GameAudioTheme.domino ? .48 : .34,
         minInterval: const Duration(milliseconds: 45),
       );
 
@@ -78,14 +78,14 @@ class GameFeedback {
         GameSound.win,
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
-        volume: .52,
+        volume: theme == GameAudioTheme.domino ? .62 : .52,
       );
 
   static Future<void> lose([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
         GameSound.lose,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
-        volume: .48,
+        volume: theme == GameAudioTheme.domino ? .58 : .48,
       );
 
   static Future<void> error([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
@@ -177,7 +177,7 @@ class GameFeedback {
       GameAudioTheme.football => 1.12,
       GameAudioTheme.xo => .82,
       GameAudioTheme.checkers => 1.08,
-      GameAudioTheme.domino => .94,
+      GameAudioTheme.domino => sound == GameSound.move ? 1.75 : 1.12,
       GameAudioTheme.chess => 1.18,
       GameAudioTheme.cards => .88,
       GameAudioTheme.word => .78,
@@ -189,7 +189,7 @@ class GameFeedback {
       GameAudioTheme.football => 118.0,
       GameAudioTheme.xo => 1320.0,
       GameAudioTheme.checkers => 410.0,
-      GameAudioTheme.domino => 185.0,
+      GameAudioTheme.domino => 178.0,
       GameAudioTheme.chess => 246.94,
       GameAudioTheme.cards => 980.0,
       GameAudioTheme.word => 1560.0,
@@ -207,75 +207,124 @@ class GameFeedback {
       return math.sin(2 * math.pi * frequency * t) * envelope;
     }
 
+    double transient(double t, double at, double length, double strength) {
+      final dt = t - at;
+      if (dt < 0 || dt > length) return 0;
+      final env = math.pow(1 - dt / length, 3.2).toDouble();
+      final noise = random.nextDouble() * 2 - 1;
+      final ivory = math.sin(2 * math.pi * 1180 * dt) * .52 +
+          math.sin(2 * math.pi * 2360 * dt) * .22;
+      final wood = math.sin(2 * math.pi * 172 * dt) * .44;
+      return (noise * .52 + ivory + wood) * env * strength;
+    }
+
     for (var i = 0; i < sampleCount; i++) {
       final t = i / sampleRate;
       final progress = i / sampleCount;
       final envelope = math.pow(1 - progress, 1.6).toDouble();
       double value;
 
-      switch (sound) {
-        case GameSound.uiTap:
-          value = note(t, 1450, duration) * .40;
-          break;
-        case GameSound.tap:
-          value = (note(t, 1050, duration) + note(t, 1480, duration) * .42) * .52;
-          break;
-        case GameSound.move:
-          value = (note(t, 620, duration) + note(t, 880, duration) * .48) * .62;
-          break;
-        case GameSound.capture:
-          final frequency = 460 + progress * 1150;
-          value = math.sin(2 * math.pi * frequency * t) * envelope * .72;
-          break;
-        case GameSound.win:
-          final segment = duration / 3;
-          final frequencies = <double>[523.25, 659.25, 783.99];
-          final index = math.min(2, (t / segment).floor());
-          value = note(t - index * segment, frequencies[index], segment) * .86;
-          break;
-        case GameSound.lose:
-          final segment = duration / 3;
-          final frequencies = <double>[392.00, 311.13, 220.00];
-          final index = math.min(2, (t / segment).floor());
-          value = note(t - index * segment, frequencies[index], segment) * .82;
-          break;
-        case GameSound.error:
-          value = (note(t, 185, duration) + note(t, 128, duration) * .52) * .72;
-          break;
-        case GameSound.kick:
-          final noise = random.nextDouble() * 2 - 1;
-          value = (noise * .72 + math.sin(2 * math.pi * 115 * t) * .28) * envelope * .82;
-          break;
-        case GameSound.goal:
-          final shimmer = math.sin(2 * math.pi * (620 + progress * 330) * t);
-          final upper = math.sin(2 * math.pi * 930 * t) * .38;
-          value = (shimmer + upper) * envelope * .70;
-          break;
-        case GameSound.save:
-          final noise = random.nextDouble() * 2 - 1;
-          value = (noise * .50 + math.sin(2 * math.pi * 255 * t) * .50) * envelope * .75;
-          break;
-        case GameSound.post:
-          value = (note(t, 2350, duration) + note(t, 3150, duration) * .55) * .62;
-          break;
+      if (theme == GameAudioTheme.domino) {
+        switch (sound) {
+          case GameSound.move:
+            value = transient(t, 0, .055, .92) +
+                transient(t, .042, .065, .56) +
+                note(t, 138, duration) * .14;
+            break;
+          case GameSound.tap:
+            value = transient(t, 0, .040, .62) +
+                note(t, 520, duration) * .10;
+            break;
+          case GameSound.win:
+            final segment = duration / 4;
+            final frequencies = <double>[523.25, 659.25, 783.99, 1046.50];
+            final index = math.min(3, (t / segment).floor());
+            value = note(t - index * segment, frequencies[index], segment) * .72 +
+                transient(t, 0, .055, .35) +
+                transient(t, duration * .70, .050, .28);
+            break;
+          case GameSound.lose:
+            final segment = duration / 3;
+            final frequencies = <double>[349.23, 277.18, 196.00];
+            final index = math.min(2, (t / segment).floor());
+            value = note(t - index * segment, frequencies[index], segment) * .66 +
+                transient(t, 0, .060, .30);
+            break;
+          case GameSound.error:
+            value = transient(t, 0, .055, .44) +
+                note(t, 118, duration) * .48;
+            break;
+          case GameSound.capture:
+            value = transient(t, 0, .055, .82) +
+                transient(t, .050, .050, .42);
+            break;
+          default:
+            value = transient(t, 0, .045, .35);
+            break;
+        }
+      } else {
+        switch (sound) {
+          case GameSound.uiTap:
+            value = note(t, 1450, duration) * .40;
+            break;
+          case GameSound.tap:
+            value = (note(t, 1050, duration) + note(t, 1480, duration) * .42) * .52;
+            break;
+          case GameSound.move:
+            value = (note(t, 620, duration) + note(t, 880, duration) * .48) * .62;
+            break;
+          case GameSound.capture:
+            final frequency = 460 + progress * 1150;
+            value = math.sin(2 * math.pi * frequency * t) * envelope * .72;
+            break;
+          case GameSound.win:
+            final segment = duration / 3;
+            final frequencies = <double>[523.25, 659.25, 783.99];
+            final index = math.min(2, (t / segment).floor());
+            value = note(t - index * segment, frequencies[index], segment) * .86;
+            break;
+          case GameSound.lose:
+            final segment = duration / 3;
+            final frequencies = <double>[392.00, 311.13, 220.00];
+            final index = math.min(2, (t / segment).floor());
+            value = note(t - index * segment, frequencies[index], segment) * .82;
+            break;
+          case GameSound.error:
+            value = (note(t, 185, duration) + note(t, 128, duration) * .52) * .72;
+            break;
+          case GameSound.kick:
+            final noise = random.nextDouble() * 2 - 1;
+            value = (noise * .72 + math.sin(2 * math.pi * 115 * t) * .28) * envelope * .82;
+            break;
+          case GameSound.goal:
+            final shimmer = math.sin(2 * math.pi * (620 + progress * 330) * t);
+            final upper = math.sin(2 * math.pi * 930 * t) * .38;
+            value = (shimmer + upper) * envelope * .70;
+            break;
+          case GameSound.save:
+            final noise = random.nextDouble() * 2 - 1;
+            value = (noise * .50 + math.sin(2 * math.pi * 255 * t) * .50) * envelope * .75;
+            break;
+          case GameSound.post:
+            value = (note(t, 2350, duration) + note(t, 3150, duration) * .55) * .62;
+            break;
+        }
       }
 
-      // A quiet signature layer gives every game its own recognizable timbre
-      // without masking the semantic cue (move, capture, win, and so on).
       final phase = 2 * math.pi * signatureFrequency * t;
       final signature = switch (theme) {
         GameAudioTheme.system => math.sin(phase),
         GameAudioTheme.football => math.sin(phase) + math.sin(phase * .5) * .55,
         GameAudioTheme.xo => math.sin(phase) + math.sin(phase * 2) * .30,
         GameAudioTheme.checkers => math.sin(phase) * .72 + math.sin(phase * 1.5) * .38,
-        GameAudioTheme.domino => math.sin(phase) * .55 + math.sin(phase * .25) * .70,
+        GameAudioTheme.domino => math.sin(phase) * .48 + math.sin(phase * .31) * .58,
         GameAudioTheme.chess => math.sin(phase) + math.sin(phase * 2.01) * .18,
         GameAudioTheme.cards => math.sin(phase + progress * math.pi * 7),
         GameAudioTheme.word => math.sin(phase) * .65 + math.sin(phase * 1.25) * .35,
         GameAudioTheme.beard => math.sin(phase) + math.sin(phase * .75) * .42,
         GameAudioTheme.dots => math.sin(phase) * .70 + math.sin(phase * 2.5) * .24,
       };
-      value = value * .86 + signature * envelope * .14;
+      value = value * .88 + signature * envelope * .12;
 
       pcm[i] = (value.clamp(-1.0, 1.0) * 32767).round();
     }
