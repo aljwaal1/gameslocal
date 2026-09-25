@@ -23,6 +23,8 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
   bool running=false,gameOver=false,alive=true,remoteAlive=true;
   int networkMode=0; // 0 مواجهة، 1 تعاون
   String resultText='';
+  String effectText='';
+  bool effectVisible=false;
   StreamSubscription<NetworkMessage>? networkSub;
   int syncTick=0;
 
@@ -109,9 +111,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
             ? 'انتهت المهمة التعاونية • مجموع النقاط '+(score+remoteScore).toString()
             : (!alive&&!remoteAlive?'تعادل':(!alive?'فاز اللاعب الآخر':'فزت بالمواجهة'));
       }
+      _showEffect('💥 انتهت الجولة');
       GameFeedback.lose(GameAudioTheme.plane);
-    }else if(event==2){GameFeedback.capture(GameAudioTheme.plane);}
-    else if(event==3){GameFeedback.win(GameAudioTheme.plane);}
+    }else if(event==2){_showEffect('💥 إصابة!');GameFeedback.capture(GameAudioTheme.plane);}
+    else if(event==3){_showEffect('⛽ + وقود');GameFeedback.win(GameAudioTheme.plane);}
     else if(event==1&&distance%90==0){GameFeedback.move(GameAudioTheme.plane);}
 
     if(isNetworkGame&&isHost&&++syncTick%2==0)_sendState('plane_state');
@@ -189,6 +192,14 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
     }
   }
 
+  void _showEffect(String text){
+    if(!mounted)return;
+    setState((){effectText=text;effectVisible=true;});
+    Future<void>.delayed(const Duration(milliseconds:420),(){
+      if(mounted)setState(()=>effectVisible=false);
+    });
+  }
+
   @override Widget build(BuildContext context){
     final fuelColor=fuel>50?Colors.greenAccent:(fuel>25?Colors.orangeAccent:Colors.redAccent);
     return Scaffold(
@@ -215,6 +226,15 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
             onPanUpdate:(d)=>setPlane(d.localPosition.dx,c.maxWidth),
             child:Stack(children:[
               CustomPaint(size:Size.infinite,painter:_PlanePainter(planeX:planeX,remoteX:isNetworkGame?remoteX:null,objects:objects,bullets:bullets,level:level,distance:distance)),
+              Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
+                opacity:effectVisible?1:0,
+                duration:const Duration(milliseconds:120),
+                child:Center(child:Container(
+                  padding:const EdgeInsets.symmetric(horizontal:18,vertical:10),
+                  decoration:BoxDecoration(color:Colors.black.withAlpha(150),borderRadius:BorderRadius.circular(18),border:Border.all(color:Colors.white24)),
+                  child:Text(effectText,style:const TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.w900,shadows:[Shadow(color:Colors.black,blurRadius:10)])),
+                )),
+              ))),
               if(!running)Center(child:Container(
                 padding:const EdgeInsets.all(22),
                 decoration:BoxDecoration(color:Colors.black.withAlpha(180),borderRadius:BorderRadius.circular(22)),
