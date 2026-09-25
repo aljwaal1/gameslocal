@@ -15,6 +15,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
   final settings = AppSettingsController.instance;
   List<_C> deck=[], me=[], bot=[], discard=[];
   List<List<_C>> melds=[];
+  List<List<_C>> pendingOpening=[];
   final Set<String> selected={};
   int round=1, myPenalty=0, botPenalty=0;
   bool myOpened=false, botOpened=false, myTurn=true, drew=false, finished=false;
@@ -33,7 +34,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
     all.add(const _C('★',0,joker:true,copy:2));
     all.shuffle(rnd);
     me=all.take(13).toList(); bot=all.skip(13).take(13).toList(); deck=all.skip(26).toList();
-    discard=[deck.removeLast()]; melds=[]; selected.clear();
+    discard=[deck.removeLast()]; melds=[]; pendingOpening=[]; selected.clear();
     myOpened=false;botOpened=false;myTurn=true;drew=false;finished=false;
     message='الجولة $round: اسحب من الرزمة أو آخر ورقة';
     setState((){});
@@ -54,6 +55,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
     setState(()=>selected.add(c.id)?null:selected.remove(c.id));
   }
   List<_C> get picks=>me.where((c)=>selected.contains(c.id)).toList();
+  int get pendingOpeningPoints=>pendingOpening.expand((x)=>x).fold(0,(s,c)=>s+value(c));
 
   bool sameRank(List<_C> x){
     if(x.length<3)return false;
@@ -80,70 +82,188 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
   void meld(){
     final x=picks;
     if(!myTurn||!drew||finished||x.length<3)return;
-    if(!valid(x)){GameFeedback.error(GameAudioTheme.cards);setState(()=>message='المجموعة غير صحيحة');return;}
+    if(!valid(x)){
+      GameFeedback.error(GameAudioTheme.cards);
+      setState(()=>message='المجموعة غير صحيحة');
+      return;
+    }
     final pts=x.fold(0,(s,c)=>s+value(c));
-    if(!myOpened&&pts<51){GameFeedback.error(GameAudioTheme.cards);setState(()=>message='أول نزول يجب أن يكون 51 أو أكثر');return;}
-    me.removeWhere((c)=>selected.contains(c.id));melds.add(List.of(x));selected.clear();myOpened=true;
-    GameFeedback.capture(GameAudioTheme.cards);message='نزول صحيح بقيمة $pts';
-    if(me.isEmpty){finish(true);return;} setState((){});
+    me.removeWhere((c)=>selected.contains(c.id));
+    selected.clear();
+    if(myOpened){
+      melds.add(List.of(x));
+      message='نزول صحيح بقيمة $pts';
+    }else{
+      pendingOpening.add(List.of(x));
+      message='مجموع فتحك الآن $pendingOpeningPoints من 51';
+    }
+    GameFeedback.capture(GameAudioTheme.cards);
+    setState((){});
+  }
+
+  void confirmOpening(){
+    if(myOpened||pendingOpeningPoints<51||finished)return;
+    melds.addAll(pendingOpening.map(List<_C>.of));
+    pendingOpening.clear();
+    myOpened=true;
+    GameFeedback.win(GameAudioTheme.cards);
+    message='تم فتح 51 — يمكنك الآن التركيب على أي مجموعة';
+    if(me.isEmpty){finish(true);return;}
+    setState((){});
+  }
+
+  void cancelOpening(){
+    if(myOpened||pendingOpening.isEmpty)return;
+    me.addAll(pendingOpening.expand((x)=>x));
+    pendingOpening.clear();
+    selected.clear();
+    message='تم إلغاء مجموعات الفتح';
+    setState((){});
   }
 
   void addToMeld(int index){
     if(!myOpened||picks.length!=1||!myTurn||!drew)return;
-    final c=picks.first, test=[...melds[index],c];
-    if(!valid(test)){GameFeedback.error(GameAudioTheme.cards);return;}
-    melds[index]=test;me.remove(c);selected.clear();GameFeedback.move(GameAudioTheme.cards);
-    if(me.isEmpty){finish(true);return;} setState((){});
+    final card=picks.first;
+    final original=melds[index];
+
+    // If a natural card can legally replace a joker, return that joker to the hand.
+    if(!card.joker&&original.any((x)=>x.joker)){
+      for(int j=0;j<original.length;j++){
+        if(!original[j].joker)continue;
+        final test=List<_C>.of(original);
+        final joker=test[j];
+        test[j]=card;
+        if(valid(test)){
+          melds[index]=test;
+          me.remove(card);
+          me.add(joker);
+          selected.clear();
+          GameFeedback.capture(GameAudioTheme.cards);
+          message='استبدلت الجوكر بالورقة الأصلية وأخذت الجوكر';
+          setState((){});
+          return;
+        }
+      }
+    }
+
+    final test=[...original,card];
+    if(!valid(test)){
+      GameFeedback.error(GameAudioTheme.cards);
+      setState(()=>message='هذه الورقة لا تركب على المجموعة');
+      return;
+    }
+    melds[index]=test;
+    me.remove(card);
+    selected.clear();
+    GameFeedback.move(GameAudioTheme.cards);
+    message='تم تركيب الورقة على المجموعة';
+    if(me.isEmpty){finish(true);return;}
+    setState((){});
   }
 
   void throwSelected(){
-    if(!myTurn||!drew||picks.length!=1||finished)return;
+    if(!myTurn||!drew||picks.length!=1||finished||pendingOpening.isNotEmpty)return;
     final c=picks.first;me.remove(c);discard.add(c);selected.clear();GameFeedback.move(GameAudioTheme.cards);
     if(me.isEmpty){finish(true);return;}
     myTurn=false;drew=false;setState(()=>message='الروبوت يلعب...');
     Future.delayed(const Duration(milliseconds:550),botMove);
   }
 
-  List<_C>? findMeld(){
+  List<_C>? findMeldFor(List<_C> hand){
     for(int r=1;r<=13;r++){
-      final x=bot.where((c)=>c.joker||c.rank==r).toList();
+      final x=hand.where((c)=>c.joker||c.rank==r).toList();
       if(x.length>=3){
-        for(int k=min(5,x.length);k>=3;k--){final p=x.take(k).toList();if(valid(p))return p;}
+        for(int k=min(5,x.length);k>=3;k--){
+          final p=x.take(k).toList();
+          if(valid(p))return p;
+        }
       }
     }
     for(final s in ['♠','♥','♦','♣']){
-      final n=bot.where((c)=>c.joker||c.suit==s).toList();
-      for(int a=0;a<n.length;a++)for(int b=a+2;b<n.length;b++){final p=n.sublist(a,b+1);if(valid(p))return p;}
+      final suited=hand.where((c)=>c.joker||c.suit==s).toList()
+        ..sort((a,b)=>a.rank.compareTo(b.rank));
+      for(int a=0;a<suited.length;a++){
+        for(int b=a+2;b<suited.length;b++){
+          final p=suited.sublist(a,b+1);
+          if(valid(p))return p;
+        }
+      }
     }
     return null;
   }
 
   void botMove(){
     if(!mounted||finished)return;
-    if(discard.isNotEmpty&&bot.any((c)=>!c.joker&&c.rank==discard.last.rank)){bot.add(discard.removeLast());}
-    else if(deck.isNotEmpty)bot.add(deck.removeLast());
-    int tries=switch(settings.botDifficultyFor('hand51')){BotDifficulty.easy=>1,BotDifficulty.normal=>2,BotDifficulty.hard=>4};
-    while(tries-->0){
-      final x=findMeld();if(x==null)break;
-      final pts=x.fold(0,(s,c)=>s+value(c));
-      if(!botOpened&&pts<51)break;
-      bot.removeWhere(x.contains);melds.add(x);botOpened=true;
-      if(bot.isEmpty){finish(false);return;}
+    if(discard.isNotEmpty&&bot.any((c)=>!c.joker&&c.rank==discard.last.rank)){
+      bot.add(discard.removeLast());
+    }else if(deck.isNotEmpty){
+      bot.add(deck.removeLast());
     }
-    if(botOpened){
-      for(final c in List<_C>.of(bot)){
-        bool placed=false;
-        for(int i=0;i<melds.length;i++){
-          final t=[...melds[i],c];
-          if(valid(t)){melds[i]=t;bot.remove(c);placed=true;break;}
-        }
-        if(placed)break;
+
+    final difficulty=settings.botDifficultyFor('hand51');
+    final maxMelds=switch(difficulty){
+      BotDifficulty.easy=>1,
+      BotDifficulty.normal=>2,
+      BotDifficulty.hard=>4,
+    };
+
+    if(!botOpened){
+      final temp=List<_C>.of(bot);
+      final opening=<List<_C>>[];
+      int total=0;
+      for(int i=0;i<maxMelds;i++){
+        final x=findMeldFor(temp);
+        if(x==null)break;
+        opening.add(x);
+        total+=x.fold(0,(s,c)=>s+value(c));
+        temp.removeWhere(x.contains);
+        if(total>=51)break;
+      }
+      if(total>=51){
+        bot
+          ..clear()
+          ..addAll(temp);
+        melds.addAll(opening);
+        botOpened=true;
+      }
+    }else{
+      for(int i=0;i<maxMelds;i++){
+        final x=findMeldFor(bot);
+        if(x==null)break;
+        bot.removeWhere(x.contains);
+        melds.add(x);
       }
     }
+
+    if(botOpened){
+      bool placed=true;
+      while(placed&&bot.isNotEmpty){
+        placed=false;
+        for(final card in List<_C>.of(bot)){
+          for(int i=0;i<melds.length;i++){
+            final test=[...melds[i],card];
+            if(valid(test)){
+              melds[i]=test;
+              bot.remove(card);
+              placed=true;
+              break;
+            }
+          }
+          if(placed)break;
+        }
+        if(difficulty==BotDifficulty.easy)break;
+      }
+    }
+
     if(bot.isEmpty){finish(false);return;}
     bot.sort((a,b)=>value(b).compareTo(value(a)));
-    final c=bot.firstWhere((x)=>!x.joker,orElse:()=>bot.first);
-    bot.remove(c);discard.add(c);myTurn=true;drew=false;message='دورك: اسحب ورقة';setState((){});
+    final throwCard=bot.firstWhere((x)=>!x.joker,orElse:()=>bot.first);
+    bot.remove(throwCard);
+    discard.add(throwCard);
+    myTurn=true;
+    drew=false;
+    message='دورك: اسحب ورقة';
+    setState((){});
   }
 
   void finish(bool iWon){
@@ -189,22 +309,41 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
               InkWell(onTap:drawDiscard,child:top==null?deckButton('الرمي',drawDiscard):card(top,small:true)),
             ]),
             const SizedBox(height:8),
-            Expanded(child:melds.isEmpty?const Center(child:Text('لم ينزل أحد بعد',style:TextStyle(color:Colors.white70))):
-              Wrap(alignment:WrapAlignment.center,spacing:8,runSpacing:8,children:[
+            Expanded(child:melds.isEmpty&&pendingOpening.isEmpty
+              ?const Center(child:Text('اسحب ورقة ثم كوّن مجموعات أو تسلسلات',textAlign:TextAlign.center,style:TextStyle(color:Colors.white70,fontWeight:FontWeight.w700)))
+              :Wrap(alignment:WrapAlignment.center,spacing:8,runSpacing:8,children:[
                 for(int i=0;i<melds.length;i++) InkWell(onTap:()=>addToMeld(i),child:Container(
-                  padding:const EdgeInsets.all(5),decoration:BoxDecoration(color:Colors.black12,borderRadius:BorderRadius.circular(12)),
+                  padding:const EdgeInsets.all(5),
+                  decoration:BoxDecoration(color:Colors.black12,borderRadius:BorderRadius.circular(12),border:Border.all(color:Colors.white12)),
                   child:Row(mainAxisSize:MainAxisSize.min,children:[for(final c in melds[i]) Padding(padding:const EdgeInsets.all(1),child:card(c,small:true))])
-                ))
+                )),
+                for(final group in pendingOpening) Container(
+                  padding:const EdgeInsets.all(5),
+                  decoration:BoxDecoration(color:const Color(0x33FFD166),borderRadius:BorderRadius.circular(12),border:Border.all(color:const Color(0xFFFFD166),width:2)),
+                  child:Row(mainAxisSize:MainAxisSize.min,children:[for(final c in group) Padding(padding:const EdgeInsets.all(1),child:card(c,small:true))])
+                )
               ]))
           ]))),
         Container(color:const Color(0xFF0B1713),padding:const EdgeInsets.all(8),child:Column(children:[
           Wrap(alignment:WrapAlignment.center,spacing:4,runSpacing:4,children:[for(final c in me) card(c,onTap:()=>toggle(c),picked:selected.contains(c.id))]),
           const SizedBox(height:7),
           Row(children:[
-            Expanded(child:FilledButton.icon(onPressed:myTurn&&drew&&picks.length>=3?meld:null,icon:const Icon(Icons.call_merge),label:Text(myOpened?'نزول مجموعة':'فتح 51'))),
+            Expanded(child:FilledButton.icon(onPressed:myTurn&&drew&&picks.length>=3?meld:null,icon:const Icon(Icons.call_merge),label:Text(myOpened?'نزول مجموعة':'أضف للفتح'))),
             const SizedBox(width:8),
-            Expanded(child:OutlinedButton.icon(onPressed:myTurn&&drew&&picks.length==1?throwSelected:null,icon:const Icon(Icons.delete_sweep),label:const Text('ارمِ المحددة')))
+            Expanded(child:OutlinedButton.icon(onPressed:myTurn&&drew&&picks.length==1&&pendingOpening.isEmpty?throwSelected:null,icon:const Icon(Icons.delete_sweep),label:const Text('ارمِ المحددة')))
           ]),
+          if(!myOpened&&pendingOpening.isNotEmpty) Padding(
+            padding:const EdgeInsets.only(top:7),
+            child:Row(children:[
+              Expanded(child:FilledButton.icon(
+                onPressed:pendingOpeningPoints>=51?confirmOpening:null,
+                icon:const Icon(Icons.verified_rounded),
+                label:Text('تأكيد الفتح $pendingOpeningPoints / 51'),
+              )),
+              const SizedBox(width:7),
+              IconButton(onPressed:cancelOpening,tooltip:'إلغاء مجموعات الفتح',icon:const Icon(Icons.undo_rounded,color:Colors.white70)),
+            ]),
+          ),
           if(finished) Padding(padding:const EdgeInsets.only(top:7),child:SizedBox(width:double.infinity,child:FilledButton(onPressed:next,child:Text(round>=3?'النتيجة النهائية':'الجولة التالية'))))
         ]))
       ]))
