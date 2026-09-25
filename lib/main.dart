@@ -6,6 +6,10 @@ import 'core/game_definition.dart';
 import 'core/game_room.dart';
 import 'design/app_theme.dart';
 import 'games/cards/cards_game.dart';
+import 'games/hand51/hand51_game.dart';
+import 'games/air_hockey/air_hockey_game.dart';
+import 'games/fuel_plane/fuel_plane_game.dart';
+import 'games/retro_road/retro_road_game.dart';
 import 'games/checkers/checkers_game.dart';
 import 'games/chess/chess_game.dart';
 import 'games/domino/domino_game.dart';
@@ -91,6 +95,34 @@ class HomeScreen extends StatelessWidget {
       playersText: 'لاعبان',
       status: 'السراقة ضد الروبوت أو لاعب عبر الشبكة',
       builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
+      id: 'hand51',
+      name: 'Hand 51',
+      playersText: 'لاعبان أو أكثر',
+      status: '13 ورقة • فتح 51 • جوكران • 3 جولات على الأقل',
+      builder: (_, networkCore) => Hand51GameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
+      id: 'air_hockey',
+      name: 'الهوكي الهوائي',
+      playersText: 'لاعب ضد الروبوت',
+      status: 'هوكي سريع بفيزياء وتصادمات ومؤثرات صوتية',
+      builder: (_, networkCore) => AirHockeyGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
+      id: 'fuel_plane',
+      name: 'طائرة الوقود',
+      playersText: 'لاعب واحد',
+      status: 'حافظ على الوقود وتجنب العوائق مع سرعة متزايدة',
+      builder: (_, networkCore) => FuelPlaneGameScreen(networkCore: networkCore),
+    ),
+    GameDefinition(
+      id: 'retro_road',
+      name: 'طريق التحمل',
+      playersText: 'لاعب واحد',
+      status: 'سيارة أيام زمان • مراوغة وحركة وسرعة متصاعدة',
+      builder: (_, networkCore) => RetroRoadGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'name_animal_object',
@@ -681,7 +713,14 @@ class _GameCard extends StatelessWidget {
       case 'domino':
         return Icons.dashboard_customize_rounded;
       case 'cards':
+      case 'hand51':
         return Icons.style_rounded;
+      case 'air_hockey':
+        return Icons.sports_hockey_rounded;
+      case 'fuel_plane':
+        return Icons.flight_rounded;
+      case 'retro_road':
+        return Icons.directions_car_filled_rounded;
       case 'name_animal_object':
         return Icons.edit_note_rounded;
       case 'sheikh_beard':
@@ -706,7 +745,14 @@ class _GameCard extends StatelessWidget {
       case 'chess':
         return const Color(0xFF334155);
       case 'cards':
+      case 'hand51':
         return const Color(0xFFB42358);
+      case 'air_hockey':
+        return const Color(0xFF0284C7);
+      case 'fuel_plane':
+        return const Color(0xFFE53935);
+      case 'retro_road':
+        return const Color(0xFF2563EB);
       case 'name_animal_object':
         return AppColors.secondary;
       case 'sheikh_beard':
