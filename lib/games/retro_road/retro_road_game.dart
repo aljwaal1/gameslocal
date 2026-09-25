@@ -136,7 +136,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
       return;
     }
     if((action=='road_state'||action=='road_start')&&!isHost){
-      final rawCars=m.payload['cars'] as List<dynamic>???const[];
+      final rawCars=m.payload['cars'] as List<dynamic>? ?? const [];
       setState((){
         playerX=((m.payload['remoteX'] as num?)?.toDouble()??playerX).clamp(.16,.84);
         remoteX=((m.payload['playerX'] as num?)?.toDouble()??remoteX).clamp(.16,.84);
