@@ -298,7 +298,16 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
           padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:const Color(0xFF1D4E3F),borderRadius:BorderRadius.circular(18)),
           child:Column(children:[
             Row(children:[stat('الجولة','$round/3'),stat('نقاطك','$myPenalty'),stat('الروبوت','$botPenalty'),stat('يده','${bot.length}')]),
-            const SizedBox(height:6),Text(message,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w800))
+            const SizedBox(height:6),AnimatedSwitcher(
+              duration:const Duration(milliseconds:220),
+              transitionBuilder:(child,animation)=>FadeTransition(opacity:animation,child:ScaleTransition(scale:Tween<double>(begin:.96,end:1).animate(animation),child:child)),
+              child:Container(
+                key:ValueKey<String>(message),
+                padding:const EdgeInsets.symmetric(horizontal:10,vertical:6),
+                decoration:BoxDecoration(color:myOpened?const Color(0x3322C55E):Colors.white10,borderRadius:BorderRadius.circular(12),border:Border.all(color:myOpened?const Color(0x6622C55E):Colors.white12)),
+                child:Text(message,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w800)),
+              ),
+            )
           ]))),
         Expanded(child:Container(
           margin:const EdgeInsets.symmetric(horizontal:10),padding:const EdgeInsets.all(8),
