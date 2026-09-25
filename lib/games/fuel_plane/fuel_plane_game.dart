@@ -58,7 +58,7 @@ class _PlanePainter extends CustomPainter{
   @override void paint(Canvas c,Size s){
     final sky=Paint()..shader=const LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[Color(0xFF4FC3F7),Color(0xFFB3E5FC),Color(0xFF0D7E53)]).createShader(Offset.zero&s);
     c.drawRect(Offset.zero&s,sky);
-    for(int i=0;i<8;i++){final y=((i*130+score*6)%s.height);c.drawOval(Rect.fromCenter(center:Offset((i%2==0?.18:.78)*s.width,y),width:90,height:28),Paint()..color=Colors.white.withOpacity(.55));}
+    for(int i=0;i<8;i++){final y=((i*130+score*6)%s.height);c.drawOval(Rect.fromCenter(center:Offset((i % 2 == 0 ? .18 : .78)*s.width,y),width:90,height:28),Paint()..color=Colors.white.withOpacity(.55));}
     for(final o in objs){
       final p=Offset(o.x*s.width,o.y*s.height);
       if(o.fuel){c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:p,width:38,height:52),const Radius.circular(8)),Paint()..color=Colors.amber);c.drawRect(Rect.fromCenter(center:p,width:10,height:25),Paint()..color=Colors.black54);}
