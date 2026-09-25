@@ -68,7 +68,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
     if(rnd.nextDouble()<spawn){
       final roll=rnd.nextDouble();
       final type=roll<.25?_ObjType.fuel:(roll<.78?_ObjType.rock:_ObjType.enemy);
-      objects.add(_Obj(x:.12+rnd.nextDouble()*.76,y:-.08,type:type,size:type==_ObjType.fuel?.052:.066));
+      objects.add(_Obj(x:.12+rnd.nextDouble()*.76,y:-.08,type:type,size:type == _ObjType.fuel ? .052 : .066));
     }
 
     for(final o in objects){o.y+=speed;}
