@@ -51,7 +51,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
 
     if(botMode&&p.dy<.64){
       final attacking=p.dy<.46;
-      final targetX=(p.dx+v.dx*(attacking?.10:.18)).clamp(.10,.90).toDouble();
+      final targetX=(p.dx+v.dx*(attacking ? .10 : .18)).clamp(.10,.90).toDouble();
       final targetY=(attacking?(p.dy+.045).clamp(.10,.39):.16).toDouble();
       final delta=Offset(targetX-top.dx,targetY-top.dy);
       final maxStep=(attacking?1.15:.72)*dt;
@@ -93,7 +93,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     final approach=relative.dx*n.dx+relative.dy*n.dy;
     if(approach>=0&&paddleSpeed.distance<.08)return(position:p,velocity:current,contact:true);
     var result=relative-n*(1.96*approach)+paddleSpeed*1.42;
-    final minimum=upper&&botMode?.48:.25;
+    final minimum=upper && botMode ? .48 : .25;
     if(result.distance<minimum)result=n*minimum+paddleSpeed*.72;
     result=_limit(result,2.65);GameFeedback.capture();
     return(position:paddle+n*.109,velocity:result,contact:true);
@@ -150,7 +150,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     if(bottomScore>=5||topScore>=5)playing=false;
     setState((){
       puck=const Offset(.5,.5);
-      velocity=Offset((Random().nextDouble()-.5)*.32,human?.34:-.34);
+      velocity=Offset((Random().nextDouble()-.5)*.32,human ? .34 : -.34);
       bottomContact=false;topContact=false;slowTime=0;
     });
   }
