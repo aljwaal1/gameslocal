@@ -99,29 +99,29 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'hand51',
       name: 'Hand 51',
-      playersText: 'لاعبان أو أكثر',
+      playersText: 'روبوت أو عدة لاعبين LAN / Internet',
       status: '13 ورقة • فتح 51 • جوكران • 3 جولات على الأقل',
       builder: (_, networkCore) => Hand51GameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'air_hockey',
       name: 'الهوكي الهوائي',
-      playersText: 'لاعب ضد الروبوت',
-      status: 'هوكي سريع بفيزياء وتصادمات ومؤثرات صوتية',
+      playersText: 'روبوت / لاعبان محليًا / LAN / Internet',
+      status: 'هوكي سريع بفيزياء وتصادمات ولعب مباشر بين جهازين',
       builder: (_, networkCore) => AirHockeyGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'fuel_plane',
       name: 'طائرة الوقود',
-      playersText: 'لاعب واحد',
-      status: 'حافظ على الوقود وتجنب العوائق مع سرعة متزايدة',
+      playersText: 'فردي أو لاعبان LAN / Internet',
+      status: 'فردي، مواجهة أو تعاون بطائرتين عبر جهازين',
       builder: (_, networkCore) => FuelPlaneGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'retro_road',
       name: 'طريق التحمل',
-      playersText: 'لاعب واحد',
-      status: 'سيارة أيام زمان • مراوغة وحركة وسرعة متصاعدة',
+      playersText: 'فردي / لاعبان محليًا / LAN / Internet',
+      status: 'سباق ومراوغة بطريقتين مع مزامنة بين جهازين',
       builder: (_, networkCore) => RetroRoadGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -683,6 +683,10 @@ class _GameCard extends StatelessWidget {
         'name_animal_object',
         'sheikh_beard',
         'dots_boxes',
+        'hand51',
+        'air_hockey',
+        'fuel_plane',
+        'retro_road',
       }.contains(game.id);
 
   bool get experimental => !const <String>{
