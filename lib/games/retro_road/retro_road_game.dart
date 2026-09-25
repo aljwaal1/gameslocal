@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
 
 class RetroRoadGameScreen extends StatefulWidget{
   const RetroRoadGameScreen({super.key,this.networkCore});
@@ -22,25 +24,36 @@ class _Traffic{_Traffic(this.x,this.y,this.lane,this.factor);double x,y;final in
 class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   final Random rnd=Random();
   Timer? timer;
-  double playerX=.5,speed=.0068;
+  double playerX=.5,remoteX=.5,speed=.0068;
   int score=0,distance=0,day=1,passed=0,best=0,scoreTick=0;
-  bool running=false,gameOver=false;
+  bool running=false,gameOver=false,localCrashed=false,remoteCrashed=false;
+  String resultText='';
+  StreamSubscription<NetworkMessage>? networkSub;
+  int syncTick=0;
+
+  bool get isNetworkGame=>widget.networkCore!=null;
+  bool get isHost=>widget.networkCore?.state.mode==LocalNetworkMode.host;
+  String get localPlayerId=>widget.networkCore?.localPlayerId??'local';
   _Weather weather=_Weather.day,lastWeather=_Weather.day;
   final List<_Traffic> cars=[];
 
-  @override void dispose(){timer?.cancel();super.dispose();}
+  @override void initState(){super.initState();if(isNetworkGame)networkSub=widget.networkCore!.messages.listen(_onNetworkMessage);}
+  @override void dispose(){networkSub?.cancel();timer?.cancel();super.dispose();}
 
   void start(){
+    if(isNetworkGame&&!isHost){widget.networkCore?.sendMove(<String,dynamic>{'action':'road_start_request'},senderId:localPlayerId);return;}
     timer?.cancel();
     setState((){
-      playerX=.5;speed=.0068;score=0;distance=0;day=1;passed=0;scoreTick=0;running=true;gameOver=false;
+      playerX=.5;remoteX=.5;speed=.0068;score=0;distance=0;day=1;passed=0;scoreTick=0;running=true;gameOver=false;localCrashed=false;remoteCrashed=false;resultText='';
       weather=_Weather.day;lastWeather=_Weather.day;cars.clear();
     });
     timer=Timer.periodic(const Duration(milliseconds:30),(_)=>tick());
+    if(isNetworkGame&&isHost)_sendState('road_start');
   }
 
   void tick(){
     if(!running)return;
+    if(isNetworkGame&&!isHost)return;
     var event=0;
     distance++;scoreTick++;
     if(scoreTick>=10){score++;scoreTick=0;}
@@ -65,7 +78,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
       day++;passed=0;cars.clear();score+=750;event=3;
     }
 
-    if(hasCrash()){
+    if(isNetworkGame){
+      if(!localCrashed&&hasCrashAt(playerX)){localCrashed=true;event=4;}
+      if(!remoteCrashed&&hasCrashAt(remoteX)){remoteCrashed=true;event=4;}
+      if(localCrashed||remoteCrashed){
+        running=false;gameOver=true;timer?.cancel();
+        resultText=localCrashed&&remoteCrashed?'تعادل — اصطدمتما معًا':(localCrashed?'فاز اللاعب الآخر':'فزت بالسباق');
+      }
+    }else if(hasCrashAt(playerX)){
       running=false;gameOver=true;best=max(best,score);timer?.cancel();event=4;
     }
 
@@ -73,6 +93,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
     else if(event==3){GameFeedback.win();}
     else if(event==2){GameFeedback.tap();}
     else if(event==1&&passed%5==0){GameFeedback.capture();}
+    if(isNetworkGame&&isHost&&++syncTick%2==0)_sendState('road_state');
     if(mounted)setState((){});
   }
 
@@ -81,16 +102,63 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
     weather=p<.16?_Weather.day:p<.31?_Weather.sunset:p<.47?_Weather.night:p<.63?_Weather.fog:p<.81?_Weather.snow:_Weather.rain;
   }
 
-  bool hasCrash(){
+  bool hasCrashAt(double x){
     for(final c in cars){
-      if((playerX-c.x).abs()<.050&&(.82-c.y).abs()<.066)return true;
+      if((x-c.x).abs()<.050&&(.82-c.y).abs()<.066)return true;
     }
     return false;
   }
 
   void move(double dir){
-    if(!running)return;
+    if(!running||localCrashed)return;
     setState(()=>playerX=(playerX+dir*.034*weather.steering).clamp(.16,.84));
+    if(isNetworkGame&&!isHost){
+      widget.networkCore?.sendMove(<String,dynamic>{'action':'road_control','x':playerX},senderId:localPlayerId);
+    }
+  }
+
+  void _sendState(String action){
+    widget.networkCore?.sendMove(<String,dynamic>{
+      'action':action,'playerX':playerX,'remoteX':remoteX,'score':score,'distance':distance,
+      'day':day,'passed':passed,'weather':weather.index,'running':running,'gameOver':gameOver,
+      'localCrashed':localCrashed,'remoteCrashed':remoteCrashed,'resultText':resultText,
+      'cars':cars.map((e)=><String,dynamic>{'x':e.x,'y':e.y,'lane':e.lane,'factor':e.factor}).toList(),
+    },senderId:localPlayerId);
+  }
+
+  void _onNetworkMessage(NetworkMessage m){
+    if(!mounted||m.senderId==localPlayerId||m.type!=NetworkMessageType.move)return;
+    final action=m.payload['action']?.toString();
+    if(action=='road_start_request'&&isHost){start();return;}
+    if(action=='road_control'&&isHost){
+      final x=(m.payload['x'] as num?)?.toDouble();
+      if(x!=null){remoteX=x.clamp(.16,.84);setState((){});}
+      return;
+    }
+    if((action=='road_state'||action=='road_start')&&!isHost){
+      final rawCars=m.payload['cars'] as List<dynamic>???const[];
+      setState((){
+        playerX=((m.payload['remoteX'] as num?)?.toDouble()??playerX).clamp(.16,.84);
+        remoteX=((m.payload['playerX'] as num?)?.toDouble()??remoteX).clamp(.16,.84);
+        score=(m.payload['score'] as num?)?.toInt()??score;
+        distance=(m.payload['distance'] as num?)?.toInt()??distance;
+        day=(m.payload['day'] as num?)?.toInt()??day;
+        passed=(m.payload['passed'] as num?)?.toInt()??passed;
+        final wi=(m.payload['weather'] as num?)?.toInt()??0;
+        weather=_Weather.values[wi.clamp(0,_Weather.values.length-1)];
+        running=m.payload['running']==true;
+        gameOver=m.payload['gameOver']==true;
+        localCrashed=m.payload['remoteCrashed']==true;
+        remoteCrashed=m.payload['localCrashed']==true;
+        final hostText=(m.payload['resultText']??'').toString();
+        resultText=hostText=='فزت بالسباق'?'فاز اللاعب الآخر':hostText=='فاز اللاعب الآخر'?'فزت بالسباق':hostText;
+        cars
+          ..clear()
+          ..addAll(rawCars.whereType<Map>().map((e)=>_Traffic(
+            (e['x'] as num).toDouble(),(e['y'] as num).toDouble(),
+            (e['lane'] as num).toInt(),(e['factor'] as num).toDouble())));
+      });
+    }
   }
 
   @override Widget build(BuildContext context){
@@ -116,14 +184,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
           margin:const EdgeInsets.symmetric(horizontal:12),clipBehavior:Clip.antiAlias,
           decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),border:Border.all(color:Colors.white12)),
           child:Stack(children:[
-            CustomPaint(size:Size.infinite,painter:_RoadPainter(playerX:playerX,cars:cars,weather:weather,day:day,score:score)),
+            CustomPaint(size:Size.infinite,painter:_RoadPainter(playerX:playerX,opponentX:isNetworkGame?remoteX:null,cars:cars,weather:weather,day:day,score:score)),
             if(!running)Center(child:Container(
               padding:const EdgeInsets.all(22),
               decoration:BoxDecoration(color:Colors.black.withAlpha(180),borderRadius:BorderRadius.circular(22)),
               child:Column(mainAxisSize:MainAxisSize.min,children:[
                 Text(gameOver?'انتهى السباق':'جاهز للطريق؟',style:const TextStyle(color:Colors.white,fontSize:27,fontWeight:FontWeight.w900)),
                 const SizedBox(height:7),
-                Text(gameOver?'نقاطك: '+score.toString():'تجاوز 40 سيارة لتنتقل إلى يوم جديد',textAlign:TextAlign.center,style:const TextStyle(color:Colors.white70)),
+                Text(gameOver?(isNetworkGame?resultText:'نقاطك: '+score.toString()):(isNetworkGame?'سباق مباشر: تجنب السيارات وابقَ آخر سيارة':'تجاوز 40 سيارة لتنتقل إلى يوم جديد'),textAlign:TextAlign.center,style:const TextStyle(color:Colors.white70)),
                 const SizedBox(height:14),
                 FilledButton.icon(onPressed:start,icon:const Icon(Icons.play_arrow_rounded),label:Text(gameOver?'إعادة اللعب':'ابدأ'))
               ])
@@ -141,8 +209,8 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
 }
 
 class _RoadPainter extends CustomPainter{
-  const _RoadPainter({required this.playerX,required this.cars,required this.weather,required this.day,required this.score});
-  final double playerX;final List<_Traffic> cars;final _Weather weather;final int day,score;
+  const _RoadPainter({required this.playerX,this.opponentX,required this.cars,required this.weather,required this.day,required this.score});
+  final double playerX;final double? opponentX;final List<_Traffic> cars;final _Weather weather;final int day,score;
 
   List<Color> sky()=>switch(weather){
     _Weather.sunset=>const[Color(0xFF26113F),Color(0xFFD94679),Color(0xFFF59E0B)],
@@ -165,6 +233,10 @@ class _RoadPainter extends CustomPainter{
     final pc=Offset(playerX*s.width,s.height*.82);
     if(weather==_Weather.night||weather==_Weather.fog||weather==_Weather.rain)drawLights(c,s,pc);
     drawCar(c,pc,max(19.0,s.width*.045),false,0);
+    if(opponentX!=null){
+      final op=Offset(opponentX!*s.width,s.height*.82);
+      drawCar(c,op,max(18.0,s.width*.042),false,4);
+    }
     drawWeather(c,s);
 
     final scan=Paint()..color=Colors.black12;
@@ -227,7 +299,7 @@ class _RoadPainter extends CustomPainter{
 
   void drawCar(Canvas c,Offset p,double k,bool enemy,int lane){
     final colors=[const Color(0xFFEF4444),const Color(0xFFFFD166),const Color(0xFF22C55E),const Color(0xFFA78BFA),const Color(0xFFF97316)];
-    final body=enemy?colors[lane%colors.length]:const Color(0xFF38BDF8);
+    final body=enemy?colors[lane%colors.length]:(lane==4?const Color(0xFFFF8A3D):const Color(0xFF38BDF8));
     final r=Rect.fromCenter(center:p,width:k*1.45,height:k*2.15);
     c.drawRRect(RRect.fromRectAndRadius(r,Radius.circular(k*.32)),Paint()..color=body);
     c.drawRRect(RRect.fromCenter(center:p.translate(0,-k*.35),width:k*.92,height:k*.55),Radius.circular(k*.18)),Paint()..color=const Color(0xFFDDEAFE));
