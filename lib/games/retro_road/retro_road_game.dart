@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
@@ -8,73 +9,246 @@ class RetroRoadGameScreen extends StatefulWidget{
   final LocalNetworkCore? networkCore;
   @override State<RetroRoadGameScreen> createState()=>_RetroRoadGameScreenState();
 }
-class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> with SingleTickerProviderStateMixin{
-  late final AnimationController ticker;
+
+enum _Weather{day,sunset,night,fog,snow,rain}
+extension on _Weather{
+  String get label=>switch(this){
+    _Weather.day=>'نهار',_Weather.sunset=>'غروب',_Weather.night=>'ليل',_Weather.fog=>'ضباب',_Weather.snow=>'ثلج',_Weather.rain=>'مطر'
+  };
+  double get steering=>switch(this){_Weather.snow=>1.45,_Weather.rain=>1.22,_=>1.0};
+}
+class _Traffic{_Traffic(this.x,this.y,this.lane,this.factor);double x,y;final int lane;final double factor;}
+
+class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   final Random rnd=Random();
-  int lane=1,score=0,lives=3,tick=0;
-  double speed=.006;
-  bool over=false;
-  final List<_RoadObj> traffic=[];
-  @override void initState(){super.initState();ticker=AnimationController(vsync:this,duration:const Duration(days:1))..addListener(step)..repeat();}
-  @override void dispose(){ticker.dispose();super.dispose();}
-  void step(){
-    if(over)return;
-    tick++;score++;speed=min(.014,.006+score/90000);
-    if(tick%72==0)traffic.add(_RoadObj(rnd.nextInt(3),-.12));
-    for(final o in traffic)o.y+=speed;
-    for(final o in List<_RoadObj>.of(traffic)){
-      if(o.y>.77&&o.y<.96&&o.lane==lane){
-        traffic.remove(o);lives--;GameFeedback.error(GameAudioTheme.football);
-        if(lives<=0){over=true;GameFeedback.lose(GameAudioTheme.football);}
-      }else if(o.y>1.1){traffic.remove(o);}
+  Timer? timer;
+  double playerX=.5,speed=.0068;
+  int score=0,distance=0,day=1,passed=0,best=0,scoreTick=0;
+  bool running=false,gameOver=false;
+  _Weather weather=_Weather.day,lastWeather=_Weather.day;
+  final List<_Traffic> cars=[];
+
+  @override void dispose(){timer?.cancel();super.dispose();}
+
+  void start(){
+    timer?.cancel();
+    setState((){
+      playerX=.5;speed=.0068;score=0;distance=0;day=1;passed=0;scoreTick=0;running=true;gameOver=false;
+      weather=_Weather.day;lastWeather=_Weather.day;cars.clear();
+    });
+    timer=Timer.periodic(const Duration(milliseconds:30),(_)=>tick());
+  }
+
+  void tick(){
+    if(!running)return;
+    var event=0;
+    distance++;scoreTick++;
+    if(scoreTick>=10){score++;scoreTick=0;}
+    speed=min(.020,.0068+day*.0008+distance/220000);
+    updateWeather();
+    if(weather!=lastWeather){event=2;lastWeather=weather;}
+
+    final spawn=.018+min(.014,day*.0022);
+    if(rnd.nextDouble()<spawn){
+      const lanes=[.28,.40,.52,.64,.76];
+      final lane=rnd.nextInt(lanes.length);
+      cars.add(_Traffic(lanes[lane]+(rnd.nextDouble()-.5)*.020,-.10,lane,.70+rnd.nextDouble()*.42));
     }
+
+    for(final car in cars){car.y+=speed*car.factor;}
+    final before=cars.length;
+    cars.removeWhere((c)=>c.y>1.15);
+    final removed=before-cars.length;
+    if(removed>0){passed+=removed;score+=removed*100;event=1;}
+
+    if(passed>=40){
+      day++;passed=0;cars.clear();score+=750;event=3;
+    }
+
+    if(hasCrash()){
+      running=false;gameOver=true;best=max(best,score);timer?.cancel();event=4;
+    }
+
+    if(event==4){GameFeedback.lose();}
+    else if(event==3){GameFeedback.win();}
+    else if(event==2){GameFeedback.tap();}
+    else if(event==1&&passed%5==0){GameFeedback.capture();}
     if(mounted)setState((){});
   }
-  void move(int d){if(over)return;final n=(lane+d).clamp(0,2);if(n!=lane){lane=n;GameFeedback.move(GameAudioTheme.football);setState((){});}}
-  void reset(){setState((){lane=1;score=0;lives=3;tick=0;speed=.006;traffic.clear();over=false;});}
-  @override Widget build(BuildContext context)=>Scaffold(
-    backgroundColor:const Color(0xFF18130E),
-    appBar:AppBar(title:const Text('طريق التحمل'),backgroundColor:const Color(0xFF18130E),foregroundColor:Colors.white,
-      actions:[Padding(padding:const EdgeInsets.all(12),child:Text('$score',style:const TextStyle(fontSize:19,fontWeight:FontWeight.w900))) ]),
-    body:SafeArea(child:Column(children:[
-      Padding(padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),child:Row(children:[
-        Text('❤️ $lives',style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900)),
-        const Spacer(),Text('السرعة ×${(speed/.006).toStringAsFixed(1)}',style:const TextStyle(color:Colors.amber,fontWeight:FontWeight.w800))
-      ])),
-      Expanded(child:Padding(padding:const EdgeInsets.all(10),child:GestureDetector(
-        onHorizontalDragEnd:(d){if((d.primaryVelocity??0)<0)move(-1);else if((d.primaryVelocity??0)>0)move(1);},
-        child:CustomPaint(size:Size.infinite,painter:_RoadPainter(lane:lane,traffic:traffic,score:score,over:over))
-      ))),
-      Padding(padding:const EdgeInsets.fromLTRB(10,0,10,10),child:Row(children:[
-        Expanded(child:FilledButton.icon(onPressed:()=>move(-1),icon:const Icon(Icons.arrow_left),label:const Text('يسار'))),
-        const SizedBox(width:10),
-        Expanded(child:FilledButton.icon(onPressed:()=>move(1),icon:const Icon(Icons.arrow_right),label:const Text('يمين')))
-      ])),
-      if(over) Padding(padding:const EdgeInsets.fromLTRB(10,0,10,10),child:SizedBox(width:double.infinity,child:OutlinedButton.icon(onPressed:reset,icon:const Icon(Icons.refresh),label:const Text('إعادة اللعب'))))
-    ]))
-  );
-}
-class _RoadObj{_RoadObj(this.lane,this.y);final int lane;double y;}
-class _RoadPainter extends CustomPainter{
-  const _RoadPainter({required this.lane,required this.traffic,required this.score,required this.over});
-  final int lane,score;final List<_RoadObj> traffic;final bool over;
-  @override void paint(Canvas c,Size s){
-    c.drawRect(Offset.zero&s,Paint()..color=const Color(0xFF7A9A4A));
-    final road=Rect.fromLTWH(s.width*.12,0,s.width*.76,s.height);c.drawRect(road,Paint()..color=const Color(0xFF383838));
-    c.drawRect(Rect.fromLTWH(road.left,0,5,s.height),Paint()..color=Colors.white70);c.drawRect(Rect.fromLTWH(road.right-5,0,5,s.height),Paint()..color=Colors.white70);
-    final laneW=road.width/3;
-    for(int k=1;k<3;k++)for(double y=-60+(score%90);y<s.height;y+=90)c.drawRect(Rect.fromLTWH(road.left+laneW*k-2,y,4,46),Paint()..color=Colors.white54);
-    Offset carPos(int l,double y)=>Offset(road.left+laneW*(l+.5),s.height*y);
-    void drawCar(Offset p,Color col,double scale){
-      final r=Rect.fromCenter(center:p,width:laneW*.52*scale,height:82*scale);
-      c.drawRRect(RRect.fromRectAndRadius(r,const Radius.circular(12)),Paint()..color=col);
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(p.dx,p.dy-13*scale),width:r.width*.66,height:24*scale),const Radius.circular(6)),Paint()..color=const Color(0xFF90CAF9));
-      c.drawCircle(Offset(r.left,p.dy-20*scale),7*scale,Paint()..color=Colors.black);c.drawCircle(Offset(r.right,p.dy-20*scale),7*scale,Paint()..color=Colors.black);
-      c.drawCircle(Offset(r.left,p.dy+22*scale),7*scale,Paint()..color=Colors.black);c.drawCircle(Offset(r.right,p.dy+22*scale),7*scale,Paint()..color=Colors.black);
-    }
-    for(final o in traffic)drawCar(carPos(o.lane,o.y),const Color(0xFFFF7043),.85);
-    drawCar(carPos(lane,.88),const Color(0xFF42A5F5),1);
-    if(over){c.drawRect(Offset.zero&s,Paint()..color=Colors.black54);final tp=TextPainter(text:const TextSpan(text:'انتهت الجولة',style:TextStyle(color:Colors.white,fontSize:30,fontWeight:FontWeight.w900)),textDirection:TextDirection.rtl)..layout();tp.paint(c,Offset((s.width-tp.width)/2,s.height*.43));}
+
+  void updateWeather(){
+    final p=passed/40;
+    weather=p<.16?_Weather.day:p<.31?_Weather.sunset:p<.47?_Weather.night:p<.63?_Weather.fog:p<.81?_Weather.snow:_Weather.rain;
   }
+
+  bool hasCrash(){
+    for(final c in cars){
+      if((playerX-c.x).abs()<.050&&(.82-c.y).abs()<.066)return true;
+    }
+    return false;
+  }
+
+  void move(double dir){
+    if(!running)return;
+    setState(()=>playerX=(playerX+dir*.034*weather.steering).clamp(.16,.84));
+  }
+
+  @override Widget build(BuildContext context){
+    final progress=(passed/40).clamp(0.0,1.0);
+    return Scaffold(
+      backgroundColor:const Color(0xFF090D13),
+      appBar:AppBar(title:const Text('طريق التحمل'),backgroundColor:const Color(0xFF090D13),foregroundColor:Colors.white),
+      body:SafeArea(child:Column(children:[
+        Padding(padding:const EdgeInsets.symmetric(horizontal:14,vertical:8),child:Column(children:[
+          Row(mainAxisAlignment:MainAxisAlignment.spaceAround,children:[
+            Text('النقاط: '+score.toString(),style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold)),
+            Text('اليوم: '+day.toString(),style:const TextStyle(color:Colors.white70)),
+            Text('الأفضل: '+best.toString(),style:const TextStyle(color:Colors.amber,fontWeight:FontWeight.bold))
+          ]),
+          const SizedBox(height:7),
+          Row(children:[
+            Expanded(child:ClipRRect(borderRadius:BorderRadius.circular(18),child:LinearProgressIndicator(value:progress,minHeight:11,backgroundColor:Colors.white12))),
+            const SizedBox(width:9),
+            Container(padding:const EdgeInsets.symmetric(horizontal:9,vertical:5),decoration:BoxDecoration(color:Colors.white10,borderRadius:BorderRadius.circular(12)),child:Text(weather.label,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w800)))
+          ])
+        ])),
+        Expanded(child:Container(
+          margin:const EdgeInsets.symmetric(horizontal:12),clipBehavior:Clip.antiAlias,
+          decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),border:Border.all(color:Colors.white12)),
+          child:Stack(children:[
+            CustomPaint(size:Size.infinite,painter:_RoadPainter(playerX:playerX,cars:cars,weather:weather,day:day,score:score)),
+            if(!running)Center(child:Container(
+              padding:const EdgeInsets.all(22),
+              decoration:BoxDecoration(color:Colors.black.withAlpha(180),borderRadius:BorderRadius.circular(22)),
+              child:Column(mainAxisSize:MainAxisSize.min,children:[
+                Text(gameOver?'انتهى السباق':'جاهز للطريق؟',style:const TextStyle(color:Colors.white,fontSize:27,fontWeight:FontWeight.w900)),
+                const SizedBox(height:7),
+                Text(gameOver?'نقاطك: '+score.toString():'تجاوز 40 سيارة لتنتقل إلى يوم جديد',textAlign:TextAlign.center,style:const TextStyle(color:Colors.white70)),
+                const SizedBox(height:14),
+                FilledButton.icon(onPressed:start,icon:const Icon(Icons.play_arrow_rounded),label:Text(gameOver?'إعادة اللعب':'ابدأ'))
+              ])
+            ))
+          ])
+        )),
+        Padding(padding:const EdgeInsets.all(12),child:Row(children:[
+          Expanded(child:FilledButton.icon(onPressed:running?()=>move(-1):null,icon:const Icon(Icons.arrow_back_rounded),label:const Text('يسار'))),
+          const SizedBox(width:10),
+          Expanded(child:FilledButton.icon(onPressed:running?()=>move(1):null,icon:const Icon(Icons.arrow_forward_rounded),label:const Text('يمين')))
+        ]))
+      ]))
+    );
+  }
+}
+
+class _RoadPainter extends CustomPainter{
+  const _RoadPainter({required this.playerX,required this.cars,required this.weather,required this.day,required this.score});
+  final double playerX;final List<_Traffic> cars;final _Weather weather;final int day,score;
+
+  List<Color> sky()=>switch(weather){
+    _Weather.sunset=>const[Color(0xFF26113F),Color(0xFFD94679),Color(0xFFF59E0B)],
+    _Weather.night=>const[Color(0xFF020617),Color(0xFF0A1025),Color(0xFF172033)],
+    _Weather.fog=>const[Color(0xFF64748B),Color(0xFFA3B1C2),Color(0xFFD7DDE6)],
+    _Weather.snow=>const[Color(0xFF9CC8F5),Color(0xFFDBEAFE),Colors.white],
+    _Weather.rain=>const[Color(0xFF0F172A),Color(0xFF334155),Color(0xFF475569)],
+    _=>const[Color(0xFF0EA5E9),Color(0xFF67E8F9),Color(0xFF86EFAC)]
+  };
+
+  @override void paint(Canvas c,Size s){
+    final bg=Offset.zero&s;
+    c.drawRect(bg,Paint()..shader=LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:sky(),stops:const[0,.42,1]).createShader(bg));
+    drawSky(c,s);drawHorizon(c,s);drawRoad(c,s);drawMarks(c,s);drawRoadside(c,s);
+
+    for(final car in cars){
+      final p=Offset(car.x*s.width,car.y*s.height);
+      drawCar(c,p,max(12.0,s.width*(.014+car.y.clamp(0.0,1.0)*.026)),true,car.lane);
+    }
+    final pc=Offset(playerX*s.width,s.height*.82);
+    if(weather==_Weather.night||weather==_Weather.fog||weather==_Weather.rain)drawLights(c,s,pc);
+    drawCar(c,pc,max(19.0,s.width*.045),false,0);
+    drawWeather(c,s);
+
+    final scan=Paint()..color=Colors.black12;
+    for(double y=0;y<s.height;y+=6){c.drawRect(Rect.fromLTWH(0,y,s.width,1),scan);}
+  }
+
+  void drawSky(Canvas c,Size s){
+    if(weather==_Weather.night){
+      c.drawCircle(Offset(s.width*.78,s.height*.13),24,Paint()..color=const Color(0xFFE5E7EB));
+      for(final p in [const Offset(.22,.08),const Offset(.48,.17),const Offset(.67,.07)])c.drawCircle(Offset(p.dx*s.width,p.dy*s.height),2,Paint()..color=Colors.white70);
+    }else if(weather==_Weather.sunset){
+      c.drawCircle(Offset(s.width*.72,s.height*.19),32,Paint()..color=const Color(0xFFFFD166));
+    }else if(weather==_Weather.day){
+      c.drawCircle(Offset(s.width*.78,s.height*.16),30,Paint()..color=const Color(0xFFFFF3B0));
+    }
+  }
+
+  void drawHorizon(Canvas c,Size s){
+    final mountain=Path()..moveTo(0,s.height*.36)..lineTo(s.width*.15,s.height*.25)..lineTo(s.width*.31,s.height*.35)..lineTo(s.width*.47,s.height*.22)..lineTo(s.width*.67,s.height*.36)..lineTo(s.width*.83,s.height*.26)..lineTo(s.width,s.height*.34)..lineTo(s.width,s.height*.48)..lineTo(0,s.height*.48)..close();
+    c.drawPath(mountain,Paint()..color=weather==_Weather.night?const Color(0xFF0B1220):const Color(0x551D4ED8));
+    final ground=weather==_Weather.snow?const Color(0xFFF8FAFC):weather==_Weather.rain?const Color(0xFF1E3A2F):const Color(0xFF166534);
+    c.drawRect(Rect.fromLTWH(0,s.height*.40,s.width,s.height*.60),Paint()..color=ground);
+  }
+
+  void drawRoad(Canvas c,Size s){
+    final path=Path()..moveTo(s.width*.46,s.height*.37)..lineTo(s.width*.54,s.height*.37)..lineTo(s.width*.96,s.height)..lineTo(s.width*.04,s.height)..close();
+    c.drawPath(path,Paint()..shader=const LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[Color(0xFF111827),Color(0xFF1F2937),Color(0xFF020617)]).createShader(Rect.fromLTWH(0,s.height*.37,s.width,s.height*.63)));
+    c.drawPath(path,Paint()..style=PaintingStyle.stroke..strokeWidth=4..color=Colors.white30);
+  }
+
+  void drawMarks(Canvas c,Size s){
+    final p=Paint()..color=weather==_Weather.fog?Colors.white24:Colors.white70;
+    for(var lane=1;lane<5;lane++){
+      for(var i=0;i<10;i++){
+        final y=((i*86+score*3)%(s.height+120)).toDouble()-60;
+        if(y<s.height*.38)continue;
+        final t=(y/s.height).clamp(0.0,1.0);
+        final roadLeft=s.width*(.46-.42*t),roadRight=s.width*(.54+.42*t);
+        final x=roadLeft+(roadRight-roadLeft)*lane/5;
+        c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(x,y),width:2+t*4,height:10+t*32),const Radius.circular(3)),p);
+      }
+    }
+  }
+
+  void drawRoadside(Canvas c,Size s){
+    for(var i=0;i<10;i++){
+      final y=((i*72+score*3)%(s.height+120)).toDouble()-60;if(y<s.height*.38)continue;
+      final t=(y/s.height).clamp(0.0,1.0),left=s.width*(.43-.37*t),right=s.width*(.57+.37*t),h=6+t*16;
+      for(final x in [left,right]){
+        c.drawRect(Rect.fromCenter(center:Offset(x,y),width:h*.35,height:h),Paint()..color=Colors.white);
+        c.drawRect(Rect.fromCenter(center:Offset(x,y-h*.32),width:h*.55,height:h*.22),Paint()..color=Colors.redAccent);
+      }
+    }
+  }
+
+  void drawLights(Canvas c,Size s,Offset p){
+    final beam=Path()..moveTo(p.dx-20,p.dy-10)..lineTo(p.dx-s.width*.23,p.dy-s.height*.36)..lineTo(p.dx+s.width*.23,p.dy-s.height*.36)..lineTo(p.dx+20,p.dy-10)..close();
+    c.drawPath(beam,Paint()..color=const Color(0x33FFF3B0));
+  }
+
+  void drawCar(Canvas c,Offset p,double k,bool enemy,int lane){
+    final colors=[const Color(0xFFEF4444),const Color(0xFFFFD166),const Color(0xFF22C55E),const Color(0xFFA78BFA),const Color(0xFFF97316)];
+    final body=enemy?colors[lane%colors.length]:const Color(0xFF38BDF8);
+    final r=Rect.fromCenter(center:p,width:k*1.45,height:k*2.15);
+    c.drawRRect(RRect.fromRectAndRadius(r,Radius.circular(k*.32)),Paint()..color=body);
+    c.drawRRect(RRect.fromCenter(center:p.translate(0,-k*.35),width:k*.92,height:k*.55),Radius.circular(k*.18)),Paint()..color=const Color(0xFFDDEAFE));
+    c.drawRect(Rect.fromCenter(center:p.translate(0,k*.55),width:k*.92,height:k*.18),Paint()..color=enemy?Colors.amberAccent:Colors.redAccent);
+    for(final x in [r.left,r.right]){
+      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(x,p.dy-k*.45),width:k*.22,height:k*.48),Radius.circular(k*.08)),Paint()..color=Colors.black87);
+      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(x,p.dy+k*.45),width:k*.22,height:k*.48),Radius.circular(k*.08)),Paint()..color=Colors.black87);
+    }
+  }
+
+  void drawWeather(Canvas c,Size s){
+    if(weather==_Weather.fog)c.drawRect(Offset.zero&s,Paint()..color=Colors.white30);
+    if(weather==_Weather.rain||weather==_Weather.snow){
+      for(var i=0;i<90;i++){
+        final x=((i*61+score*2)%s.width).toDouble(),y=((i*47+score*5)%s.height).toDouble();
+        if(weather==_Weather.rain)c.drawLine(Offset(x,y),Offset(x-6,y+18),Paint()..color=const Color(0xAA93C5FD)..strokeWidth=1.5);
+        else c.drawCircle(Offset(x,y),i%3==0?2.4:1.4,Paint()..color=Colors.white);
+      }
+    }
+    if(weather==_Weather.night)c.drawRect(Offset.zero&s,Paint()..color=Colors.black12);
+  }
+
   @override bool shouldRepaint(covariant _RoadPainter old)=>true;
 }
