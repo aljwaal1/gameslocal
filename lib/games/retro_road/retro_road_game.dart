@@ -28,6 +28,8 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   int score=0,distance=0,day=1,passed=0,best=0,scoreTick=0;
   bool running=false,gameOver=false,localCrashed=false,remoteCrashed=false;
   String resultText='';
+  String effectText='';
+  bool effectVisible=false;
   StreamSubscription<NetworkMessage>? networkSub;
   int syncTick=0;
 
@@ -89,9 +91,9 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
       running=false;gameOver=true;best=max(best,score);timer?.cancel();event=4;
     }
 
-    if(event==4){GameFeedback.lose(GameAudioTheme.road);}
-    else if(event==3){GameFeedback.win(GameAudioTheme.road);}
-    else if(event==2){GameFeedback.tap(GameAudioTheme.road);}
+    if(event==4){_showEffect('💥 حادث!');GameFeedback.lose(GameAudioTheme.road);}
+    else if(event==3){_showEffect('🏁 يوم جديد!');GameFeedback.win(GameAudioTheme.road);}
+    else if(event==2){_showEffect('🌦 '+weather.label);GameFeedback.tap(GameAudioTheme.road);}
     else if(event==1&&passed%5==0){GameFeedback.capture(GameAudioTheme.road);}
     if(isNetworkGame&&isHost&&++syncTick%2==0)_sendState('road_state');
     if(mounted)setState((){});
@@ -161,6 +163,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
     }
   }
 
+  void _showEffect(String text){
+    if(!mounted)return;
+    setState((){effectText=text;effectVisible=true;});
+    Future<void>.delayed(const Duration(milliseconds:460),(){
+      if(mounted)setState(()=>effectVisible=false);
+    });
+  }
+
   @override Widget build(BuildContext context){
     final progress=(passed/40).clamp(0.0,1.0);
     return Scaffold(
@@ -185,6 +195,19 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
           decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),border:Border.all(color:Colors.white12)),
           child:Stack(children:[
             CustomPaint(size:Size.infinite,painter:_RoadPainter(playerX:playerX,opponentX:isNetworkGame?remoteX:null,cars:cars,weather:weather,day:day,score:score)),
+            Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
+              opacity:effectVisible?1:0,
+              duration:const Duration(milliseconds:120),
+              child:Container(
+                alignment:Alignment.center,
+                color:effectText.contains('حادث')?Colors.red.withAlpha(42):Colors.transparent,
+                child:Container(
+                  padding:const EdgeInsets.symmetric(horizontal:18,vertical:10),
+                  decoration:BoxDecoration(color:Colors.black.withAlpha(150),borderRadius:BorderRadius.circular(18),border:Border.all(color:Colors.white24)),
+                  child:Text(effectText,style:const TextStyle(color:Colors.white,fontSize:24,fontWeight:FontWeight.w900,shadows:[Shadow(color:Colors.black,blurRadius:10)])),
+                ),
+              ),
+            ))),
             if(!running)Center(child:Container(
               padding:const EdgeInsets.all(22),
               decoration:BoxDecoration(color:Colors.black.withAlpha(180),borderRadius:BorderRadius.circular(22)),
