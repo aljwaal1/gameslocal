@@ -89,10 +89,10 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
       running=false;gameOver=true;best=max(best,score);timer?.cancel();event=4;
     }
 
-    if(event==4){GameFeedback.lose();}
-    else if(event==3){GameFeedback.win();}
-    else if(event==2){GameFeedback.tap();}
-    else if(event==1&&passed%5==0){GameFeedback.capture();}
+    if(event==4){GameFeedback.lose(GameAudioTheme.road);}
+    else if(event==3){GameFeedback.win(GameAudioTheme.road);}
+    else if(event==2){GameFeedback.tap(GameAudioTheme.road);}
+    else if(event==1&&passed%5==0){GameFeedback.capture(GameAudioTheme.road);}
     if(isNetworkGame&&isHost&&++syncTick%2==0)_sendState('road_state');
     if(mounted)setState((){});
   }
