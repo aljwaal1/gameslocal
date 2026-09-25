@@ -109,10 +109,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
             ? 'انتهت المهمة التعاونية • مجموع النقاط '+(score+remoteScore).toString()
             : (!alive&&!remoteAlive?'تعادل':(!alive?'فاز اللاعب الآخر':'فزت بالمواجهة'));
       }
-      GameFeedback.lose();
-    }else if(event==2){GameFeedback.capture();}
-    else if(event==3){GameFeedback.win();}
-    else if(event==1&&distance%90==0){GameFeedback.move();}
+      GameFeedback.lose(GameAudioTheme.plane);
+    }else if(event==2){GameFeedback.capture(GameAudioTheme.plane);}
+    else if(event==3){GameFeedback.win(GameAudioTheme.plane);}
+    else if(event==1&&distance%90==0){GameFeedback.move(GameAudioTheme.plane);}
 
     if(isNetworkGame&&isHost&&++syncTick%2==0)_sendState('plane_state');
     if(mounted)setState((){});
