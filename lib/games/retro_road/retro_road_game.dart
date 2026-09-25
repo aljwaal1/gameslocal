@@ -302,7 +302,7 @@ class _RoadPainter extends CustomPainter{
     final body=enemy?colors[lane%colors.length]:(lane==4?const Color(0xFFFF8A3D):const Color(0xFF38BDF8));
     final r=Rect.fromCenter(center:p,width:k*1.45,height:k*2.15);
     c.drawRRect(RRect.fromRectAndRadius(r,Radius.circular(k*.32)),Paint()..color=body);
-    c.drawRRect(RRect.fromCenter(center:p.translate(0,-k*.35),width:k*.92,height:k*.55),Radius.circular(k*.18)),Paint()..color=const Color(0xFFDDEAFE));
+    c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:p.translate(0,-k*.35),width:k*.92,height:k*.55),Radius.circular(k*.18)),Paint()..color=const Color(0xFFDDEAFE));
     c.drawRect(Rect.fromCenter(center:p.translate(0,k*.55),width:k*.92,height:k*.18),Paint()..color=enemy?Colors.amberAccent:Colors.redAccent);
     for(final x in [r.left,r.right]){
       c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(x,p.dy-k*.45),width:k*.22,height:k*.48),Radius.circular(k*.08)),Paint()..color=Colors.black87);
