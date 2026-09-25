@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
+import '../../core/network/network_message.dart';
 
 class AirHockeyGameScreen extends StatefulWidget {
   const AirHockeyGameScreen({super.key, this.networkCore});
@@ -21,14 +23,26 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
   int bottomScore=0, topScore=0, lastMicros=0;
   double slowTime=0;
   bool botMode=true, playing=true, bottomContact=false, topContact=false;
+  StreamSubscription<NetworkMessage>? networkSub;
+  int syncTick=0;
 
-  @override void initState(){super.initState();physicsClock.start();clock=AnimationController(vsync:this,duration:const Duration(seconds:1))..addListener(_tick)..repeat();}
-  @override void dispose(){clock.dispose();physicsClock.stop();super.dispose();}
+  bool get isNetworkGame=>widget.networkCore!=null;
+  bool get isHost=>widget.networkCore?.state.mode==LocalNetworkMode.host;
+  String get localPlayerId=>widget.networkCore?.localPlayerId??'local';
+
+  @override void initState(){
+    super.initState();
+    if(isNetworkGame){botMode=false;networkSub=widget.networkCore!.messages.listen(_onNetworkMessage);}
+    physicsClock.start();
+    clock=AnimationController(vsync:this,duration:const Duration(seconds:1))..addListener(_tick)..repeat();
+  }
+  @override void dispose(){networkSub?.cancel();clock.dispose();physicsClock.stop();super.dispose();}
 
   Offset _limit(Offset v,double max)=>v.distance>max?v/v.distance*max:v;
 
   void _tick(){
     if(!mounted||!playing)return;
+    if(isNetworkGame&&!isHost)return;
     final now=physicsClock.elapsedMicroseconds;
     if(lastMicros==0){lastMicros=now;return;}
     final dt=((now-lastMicros)/1000000).clamp(.001,.034).toDouble();lastMicros=now;
@@ -67,6 +81,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     if(v.distance<.075){slowTime+=dt;}else{slowTime=0;}
     if(slowTime>.85){final dir=p.dy<.5?1.0:-1.0;v=Offset((.5-p.dx)*.45,dir*.30);slowTime=0;}
     setState((){puck=p;velocity=v;});
+    if(isNetworkGame&&isHost&&++syncTick%2==0)_sendState();
   }
 
   ({Offset position,Offset velocity,bool contact}) _collide(Offset paddle,Offset p,Offset paddleSpeed,bool wasTouching,Offset current,bool upper){
@@ -84,6 +99,52 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     return(position:paddle+n*.109,velocity:result,contact:true);
   }
 
+  void _sendState(){
+    widget.networkCore?.sendMove(<String,dynamic>{
+      'action':'hockey_state',
+      'puckX':puck.dx,'puckY':puck.dy,
+      'bottomX':bottom.dx,'bottomY':bottom.dy,
+      'topX':top.dx,'topY':top.dy,
+      'bottomScore':bottomScore,'topScore':topScore,
+      'playing':playing,
+    },senderId:localPlayerId);
+  }
+
+  void _onNetworkMessage(NetworkMessage m){
+    if(!mounted||m.senderId==localPlayerId||m.type!=NetworkMessageType.move)return;
+    final action=m.payload['action']?.toString();
+    if(action=='hockey_control'&&isHost){
+      final x=(m.payload['x'] as num?)?.toDouble();
+      final y=(m.payload['y'] as num?)?.toDouble();
+      if(x==null||y==null)return;
+      final old=top;
+      top=Offset(x.clamp(.10,.90),(1-y).clamp(.08,.44));
+      topVelocity=(top-old)*18;
+      setState((){});
+      return;
+    }
+    if(action=='hockey_reset'){
+      if(isHost){_reset(send:false);_sendState();}
+      return;
+    }
+    if(action=='hockey_state'&&!isHost){
+      final px=(m.payload['puckX'] as num?)?.toDouble()??.5;
+      final py=(m.payload['puckY'] as num?)?.toDouble()??.5;
+      final bx=(m.payload['bottomX'] as num?)?.toDouble()??.5;
+      final by=(m.payload['bottomY'] as num?)?.toDouble()??.84;
+      final tx=(m.payload['topX'] as num?)?.toDouble()??.5;
+      final ty=(m.payload['topY'] as num?)?.toDouble()??.16;
+      setState((){
+        puck=Offset(px,1-py);
+        bottom=Offset(tx,1-ty);
+        top=Offset(bx,1-by);
+        bottomScore=(m.payload['topScore'] as num?)?.toInt()??bottomScore;
+        topScore=(m.payload['bottomScore'] as num?)?.toInt()??topScore;
+        playing=m.payload['playing']!=false;
+      });
+    }
+  }
+
   void _goal(bool human){
     GameFeedback.win();
     if(bottomScore>=5||topScore>=5)playing=false;
@@ -94,17 +155,24 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     });
   }
 
-  void _reset(){
+  void _reset({bool send=true}){
+    if(isNetworkGame&&!isHost&&send){
+      widget.networkCore?.sendMove(<String,dynamic>{'action':'hockey_reset'},senderId:localPlayerId);
+      return;
+    }
     setState((){
       bottomScore=0;topScore=0;playing=true;puck=const Offset(.5,.5);velocity=const Offset(.24,.34);
       bottom=const Offset(.5,.84);top=const Offset(.5,.16);bottomVelocity=Offset.zero;topVelocity=Offset.zero;
       bottomContact=false;topContact=false;slowTime=0;lastMicros=physicsClock.elapsedMicroseconds;pointerSamples.clear();pointerLower.clear();
     });
+    if(isNetworkGame&&isHost&&send)_sendState();
   }
 
   Offset _norm(PointerEvent e,BoxConstraints c)=>Offset((e.localPosition.dx/c.maxWidth).clamp(.10,.90),(e.localPosition.dy/c.maxHeight).clamp(.08,.92));
   void _down(PointerDownEvent e,BoxConstraints c){
-    final pos=_norm(e,c), lower=pos.dy>=.5;if(!lower&&botMode)return;
+    final pos=_norm(e,c), lower=pos.dy>=.5;
+    if(isNetworkGame&&!lower)return;
+    if(!lower&&botMode)return;
     pointerLower[e.pointer]=lower;pointerSamples[e.pointer]=_PointerSample(pos,e.timeStamp);
     if(lower){bottom=Offset(pos.dx,pos.dy.clamp(.56,.92));bottomVelocity=Offset.zero;}
     else{top=Offset(pos.dx,pos.dy.clamp(.08,.44));topVelocity=Offset.zero;}
@@ -115,7 +183,10 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     final raw=_norm(e,c);final next=lower?Offset(raw.dx,raw.dy.clamp(.56,.92)):Offset(raw.dx,raw.dy.clamp(.08,.44));
     final dt=(e.timeStamp-sample.time).inMicroseconds/1000000;if(dt<=0)return;
     final instant=_limit((next-sample.position)/dt,3.2);
-    if(lower){bottomVelocity=bottomVelocity*.28+instant*.72;bottom=next;}else{topVelocity=topVelocity*.28+instant*.72;top=next;}
+    if(lower){
+      bottomVelocity=bottomVelocity*.28+instant*.72;bottom=next;
+      if(isNetworkGame&&!isHost){widget.networkCore?.sendMove(<String,dynamic>{'action':'hockey_control','x':bottom.dx,'y':bottom.dy},senderId:localPlayerId);}
+    }else{topVelocity=topVelocity*.28+instant*.72;top=next;}
     pointerSamples[e.pointer]=_PointerSample(next,e.timeStamp);setState((){});
   }
   void _up(PointerEvent e){pointerSamples.remove(e.pointer);pointerLower.remove(e.pointer);}
@@ -129,9 +200,9 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
         Text(subtitle,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:16)),
         const SizedBox(height:8),
         Row(children:[
-          Expanded(child:ChoiceChip(label:const Text('ضد الروبوت'),selected:botMode,onSelected:(_){botMode=true;_reset();})),
-          const SizedBox(width:8),
-          Expanded(child:ChoiceChip(label:const Text('مع صديق'),selected:!botMode,onSelected:(_){botMode=false;_reset();}))
+          if(!isNetworkGame)Expanded(child:ChoiceChip(label:const Text('ضد الروبوت'),selected:botMode,onSelected:(_){botMode=true;_reset();})),
+          if(!isNetworkGame)const SizedBox(width:8),
+          Expanded(child:ChoiceChip(label:Text(isNetworkGame?'عبر الشبكة':'مع صديق'),selected:isNetworkGame||!botMode,onSelected:isNetworkGame?null:(_){botMode=false;_reset();}))
         ]),
         const SizedBox(height:8),
         Row(mainAxisAlignment:MainAxisAlignment.center,children:[
