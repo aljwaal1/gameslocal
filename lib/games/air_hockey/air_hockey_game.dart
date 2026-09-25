@@ -16,7 +16,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
   final Random rnd=Random();
   @override void initState(){super.initState();ticker=AnimationController(vsync:this,duration:const Duration(days:1))..addListener(step)..repeat();}
   @override void dispose(){ticker.dispose();super.dispose();}
-  void reset(bool toMe){puck=Offset(.5,.5);vel=Offset((rnd.nextBool()?1:-1)*.0045,toMe?.0055:-.0055);}
+  void reset(bool toMe){puck=Offset(.5,.5);vel=Offset((rnd.nextBool()?1:-1)*.0045,toMe ? .0055 : -.0055);}
   void step(){
     var x=puck.dx+vel.dx,y=puck.dy+vel.dy;var vx=vel.dx,vy=vel.dy;
     if(x<.035||x>.965){vx=-vx;x=x.clamp(.035,.965);}
