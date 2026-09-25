@@ -15,6 +15,8 @@ class AppSettingsController extends ChangeNotifier {
     'domino',
     'chess',
     'cards',
+    'hand51',
+    'air_hockey',
     'sheikh_beard',
     'dots_boxes',
   ];
