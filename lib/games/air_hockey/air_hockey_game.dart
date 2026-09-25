@@ -23,6 +23,8 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
   int bottomScore=0, topScore=0, lastMicros=0;
   double slowTime=0;
   bool botMode=true, playing=true, bottomContact=false, topContact=false;
+  bool goalFlash=false;
+  String goalEffect='';
   StreamSubscription<NetworkMessage>? networkSub;
   int syncTick=0;
 
@@ -146,7 +148,10 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
   }
 
   void _goal(bool human){
-    GameFeedback.win(GameAudioTheme.hockey);
+    GameFeedback.goal(GameAudioTheme.hockey);
+    goalEffect=human?'هدف لك!':'هدف للخصم!';
+    goalFlash=true;
+    Future<void>.delayed(const Duration(milliseconds:420),(){if(mounted)setState(()=>goalFlash=false);});
     if(bottomScore>=5||topScore>=5)playing=false;
     setState((){
       puck=const Offset(.5,.5);
@@ -211,7 +216,18 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
           _Score(name:botMode?'الروبوت':'اللاعب 2',score:topScore,color:const Color(0xFFF472B6))
         ]),
         const SizedBox(height:8),
-        Expanded(child:LayoutBuilder(builder:(context,c)=>Listener(onPointerDown:(e)=>_down(e,c),onPointerMove:(e)=>_move(e,c),onPointerUp:_up,onPointerCancel:_up,child:CustomPaint(size:Size(c.maxWidth,c.maxHeight),painter:_HockeyPainter(puck,bottom,top))))),
+        Expanded(child:Stack(children:[
+          Positioned.fill(child:LayoutBuilder(builder:(context,c)=>Listener(onPointerDown:(e)=>_down(e,c),onPointerMove:(e)=>_move(e,c),onPointerUp:_up,onPointerCancel:_up,child:CustomPaint(size:Size(c.maxWidth,c.maxHeight),painter:_HockeyPainter(puck,bottom,top))))),
+          Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
+            opacity:goalFlash?1:0,
+            duration:const Duration(milliseconds:120),
+            child:Container(
+              decoration:BoxDecoration(borderRadius:BorderRadius.circular(30),color:Colors.white.withAlpha(32)),
+              alignment:Alignment.center,
+              child:Text(goalEffect,style:const TextStyle(color:Colors.white,fontSize:34,fontWeight:FontWeight.w900,shadows:[Shadow(color:Colors.black54,blurRadius:12)])),
+            ),
+          )))
+        ])),
         if(!playing)Padding(padding:const EdgeInsets.only(top:8),child:SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:_reset,icon:const Icon(Icons.replay_rounded),label:const Text('مباراة جديدة'))))
       ])))
     );
