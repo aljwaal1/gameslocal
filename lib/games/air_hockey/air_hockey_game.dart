@@ -65,11 +65,11 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
 
     const radius=.042;
     if(p.dx<radius||p.dx>1-radius){
-      v=Offset(-v.dx*.94,v.dy);p=Offset(p.dx.clamp(radius,1-radius),p.dy);GameFeedback.move();
+      v=Offset(-v.dx*.94,v.dy);p=Offset(p.dx.clamp(radius,1-radius),p.dy);GameFeedback.move(GameAudioTheme.hockey);
     }
     final inGoal=p.dx>.31&&p.dx<.69;
-    if(!inGoal&&p.dy<radius){v=Offset(v.dx,-v.dy*.94);p=Offset(p.dx,radius);GameFeedback.move();}
-    if(!inGoal&&p.dy>1-radius){v=Offset(v.dx,-v.dy*.94);p=Offset(p.dx,1-radius);GameFeedback.move();}
+    if(!inGoal&&p.dy<radius){v=Offset(v.dx,-v.dy*.94);p=Offset(p.dx,radius);GameFeedback.move(GameAudioTheme.hockey);}
+    if(!inGoal&&p.dy>1-radius){v=Offset(v.dx,-v.dy*.94);p=Offset(p.dx,1-radius);GameFeedback.move(GameAudioTheme.hockey);}
 
     final lower=_collide(bottom,p,bottomVelocity,bottomContact,v,false);p=lower.position;v=lower.velocity;bottomContact=lower.contact;
     final upper=_collide(top,p,topVelocity,topContact,v,true);p=upper.position;v=upper.velocity;topContact=upper.contact;
@@ -95,7 +95,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     var result=relative-n*(1.96*approach)+paddleSpeed*1.42;
     final minimum=upper && botMode ? .48 : .25;
     if(result.distance<minimum)result=n*minimum+paddleSpeed*.72;
-    result=_limit(result,2.65);GameFeedback.capture();
+    result=_limit(result,2.65);GameFeedback.capture(GameAudioTheme.hockey);
     return(position:paddle+n*.109,velocity:result,contact:true);
   }
 
@@ -146,7 +146,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
   }
 
   void _goal(bool human){
-    GameFeedback.win();
+    GameFeedback.win(GameAudioTheme.hockey);
     if(bottomScore>=5||topScore>=5)playing=false;
     setState((){
       puck=const Offset(.5,.5);
