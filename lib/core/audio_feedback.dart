@@ -32,6 +32,9 @@ enum GameAudioTheme {
   word,
   beard,
   dots,
+  hockey,
+  plane,
+  road,
 }
 
 class GameFeedback {
@@ -183,6 +186,9 @@ class GameFeedback {
       GameAudioTheme.word => .78,
       GameAudioTheme.beard => 1.10,
       GameAudioTheme.dots => .90,
+      GameAudioTheme.hockey => .72,
+      GameAudioTheme.plane => 1.02,
+      GameAudioTheme.road => 1.06,
     };
     final signatureFrequency = switch (theme) {
       GameAudioTheme.system => 760.0,
@@ -195,6 +201,9 @@ class GameFeedback {
       GameAudioTheme.word => 1560.0,
       GameAudioTheme.beard => 330.0,
       GameAudioTheme.dots => 720.0,
+      GameAudioTheme.hockey => 1850.0,
+      GameAudioTheme.plane => 420.0,
+      GameAudioTheme.road => 160.0,
     };
     final duration = baseDuration * durationScale;
     final sampleCount = (sampleRate * duration).round();
@@ -323,6 +332,9 @@ class GameFeedback {
         GameAudioTheme.word => math.sin(phase) * .65 + math.sin(phase * 1.25) * .35,
         GameAudioTheme.beard => math.sin(phase) + math.sin(phase * .75) * .42,
         GameAudioTheme.dots => math.sin(phase) * .70 + math.sin(phase * 2.5) * .24,
+        GameAudioTheme.hockey => math.sin(phase) * .55 + math.sin(phase * 2.15) * .28,
+        GameAudioTheme.plane => math.sin(phase) * .62 + math.sin(phase * .5) * .34,
+        GameAudioTheme.road => math.sin(phase) * .58 + math.sin(phase * .33) * .46,
       };
       value = value * .88 + signature * envelope * .12;
 
