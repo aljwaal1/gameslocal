@@ -68,7 +68,7 @@ class _RoadPainter extends CustomPainter{
     void drawCar(Offset p,Color col,double scale){
       final r=Rect.fromCenter(center:p,width:laneW*.52*scale,height:82*scale);
       c.drawRRect(RRect.fromRectAndRadius(r,const Radius.circular(12)),Paint()..color=col);
-      c.drawRRect(RRect.fromCenter(center:Offset(p.dx,p.dy-13*scale),width:r.width*.66,height:24*scale),const Radius.circular(6)),Paint()..color=const Color(0xFF90CAF9));
+      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(p.dx,p.dy-13*scale),width:r.width*.66,height:24*scale),const Radius.circular(6)),Paint()..color=const Color(0xFF90CAF9));
       c.drawCircle(Offset(r.left,p.dy-20*scale),7*scale,Paint()..color=Colors.black);c.drawCircle(Offset(r.right,p.dy-20*scale),7*scale,Paint()..color=Colors.black);
       c.drawCircle(Offset(r.left,p.dy+22*scale),7*scale,Paint()..color=Colors.black);c.drawCircle(Offset(r.right,p.dy+22*scale),7*scale,Paint()..color=Colors.black);
     }
