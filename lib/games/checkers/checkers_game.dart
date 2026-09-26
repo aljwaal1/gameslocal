@@ -196,7 +196,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
   void requestBoardReset() {
     if (networkMode) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.checkers);
       setState(() => message =
           'إعادة الضبط متوقفة أثناء اللعب عبر Wi‑Fi حتى لا تختلف اللوحة بين الجهازين');
       return;
@@ -243,7 +243,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (gameFinished || botThinking) return;
     if (playVsBot && !redTurn) return;
     if (networkMode && !(fromIphone ? !redTurn : isMyNetworkTurn)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.checkers);
       setState(() => message = 'انتظر حركة اللاعب الآخر');
       return;
     }
@@ -251,7 +251,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final piece = board[r][c];
     if (selectedRow == null) {
       if (isCurrentPlayerPiece(piece)) {
-        GameFeedback.tap();
+        GameFeedback.tap(GameAudioTheme.checkers);
         setState(() {
           selectedRow = r;
           selectedCol = c;
@@ -266,11 +266,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     if (sr == r && sc == c) {
       if (mustContinueCapture) {
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.checkers);
         setState(() => message = 'يجب إكمال الأكل بالحجر نفسه');
         return;
       }
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.checkers);
       setState(() {
         selectedRow = null;
         selectedCol = null;
@@ -282,11 +282,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     if (board[r][c] != Piece.empty) {
       if (isCurrentPlayerPiece(board[r][c])) {
         if (mustContinueCapture) {
-          GameFeedback.error();
+          GameFeedback.error(GameAudioTheme.checkers);
           setState(() => message = 'يجب إكمال الأكل بالحجر نفسه');
           return;
         }
-        GameFeedback.tap();
+        GameFeedback.tap(GameAudioTheme.checkers);
         setState(() {
           selectedRow = r;
           selectedCol = c;
@@ -297,12 +297,16 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
 
     final move = legalMoveFor(sr, sc, r, c, redTurn);
     if (move == null) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.checkers);
       setState(() => message = 'حركة غير صحيحة');
       return;
     }
 
-    GameFeedback.move();
+    if (move.isCapture) {
+      GameFeedback.capture(GameAudioTheme.checkers);
+    } else {
+      GameFeedback.move(GameAudioTheme.checkers);
+    }
     applyMove(move);
     if (networkMode && !fromIphone) {
       widget.networkCore!.sendMove(move.toJson(), senderId: _localPlayerId());
@@ -405,7 +409,17 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     botThinking = false;
     mustContinueCapture = false;
     message = status.resultText;
-    GameFeedback.win();
+    if (status.winner == CheckersWinner.draw) {
+      GameFeedback.tap(GameAudioTheme.checkers);
+    } else {
+      final bool localWon = status.winner ==
+          (localPlayerIsRed ? CheckersWinner.red : CheckersWinner.black);
+      if (!playVsBot && !networkMode || localWon) {
+        GameFeedback.win(GameAudioTheme.checkers);
+      } else {
+        GameFeedback.lose(GameAudioTheme.checkers);
+      }
+    }
     _showMatchResultDialog(status);
     return true;
   }
@@ -488,7 +502,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     }
 
     while (move != null) {
-      GameFeedback.move();
+      GameFeedback.move(GameAudioTheme.checkers);
       applyMove(move);
       if (updateMatchStatus()) {
         setState(() {});
@@ -516,7 +530,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     final moves = allLegalMoves(forRed: false);
     if (moves.isEmpty) return null;
 
-    switch (settings.botDifficulty) {
+    switch (settings.botDifficultyFor('checkers')) {
       case BotDifficulty.easy:
         return moves[random.nextInt(moves.length)];
       case BotDifficulty.normal:
@@ -621,7 +635,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
           move.fromRow, move.fromCol, move.toRow, move.toCol, redTurn);
       if (validMove == null) return;
 
-      GameFeedback.move();
+      GameFeedback.move(GameAudioTheme.checkers);
       applyMove(validMove);
       if (updateMatchStatus()) {
         setState(() {});
@@ -725,11 +739,18 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('الضامة عبر QR'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _iphoneUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
+            QrImageView(
+              data: _iphoneUrl,
+              size: (MediaQuery.sizeOf(dialogContext).shortestSide * .58)
+                  .clamp(120.0, 320.0)
+                  .toDouble(),
+              backgroundColor: Colors.white,
+            ),
             const SizedBox(height: 8),
             SelectableText(_iphoneUrl, textAlign: TextAlign.center),
             Text('المتصلون: $_iphonePlayers'),
@@ -754,7 +775,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
         connectedPlayers: _iphonePlayers,
         accent: const Color(0xFFE11D48),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(GameAudioTheme.checkers);
           setState(() => _showNetworkQrLobby = false);
           _broadcastIphoneState();
         },
@@ -770,25 +791,62 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
             actions: [
               if (networkMode && localPlayerIsRed && _iphoneUrl.startsWith('http') && !hasAndroidGuest)
                 IconButton(tooltip: 'QR للمتصفح', onPressed: _showBrowserQr, icon: const Icon(Icons.qr_code_2_rounded)),
-              IconButton(onPressed: requestBoardReset, icon: const Icon(Icons.refresh))
+              IconButton(
+                tooltip: 'إعادة المباراة',
+                onPressed: requestBoardReset,
+                icon: const Icon(Icons.refresh_rounded),
+              )
             ],
           ),
           body: Column(
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
-                child: Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18)),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                      colors: <Color>[
+                        Color(0xFFFFFFFF),
+                        Color(0xFFF5FAF9),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: const Color(0x1A0F172A)),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(
+                        color: Color(0x140F172A),
+                        blurRadius: 14,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(9),
+                    padding: const EdgeInsets.all(11),
                     child: Column(
                       children: [
                         Row(
                           children: [
-                            Icon(
-                                redTurn ? Icons.circle : Icons.circle_outlined),
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: BoxDecoration(
+                                color: redTurn
+                                    ? const Color(0x16E11D48)
+                                    : const Color(0x120F172A),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                redTurn
+                                    ? Icons.circle_rounded
+                                    : Icons.circle_outlined,
+                                color: redTurn
+                                    ? const Color(0xFFE11D48)
+                                    : const Color(0xFF0F172A),
+                                size: 20,
+                              ),
+                            ),
                             const SizedBox(width: 10),
                             Expanded(
                                 child: Text(message,
@@ -805,7 +863,7 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                                     label: 'المستوى',
                                     value: networkMode
                                         ? 'Wi‑Fi'
-                                        : settings.botDifficultyText)),
+                                        : settings.botDifficultyTextFor('checkers'))),
                             const SizedBox(width: 8),
                             Expanded(
                                 child: _InfoChip(
@@ -848,11 +906,11 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                               ButtonSegment(
                                   value: false,
                                   label: Text('لاعب ضد لاعب'),
-                                  icon: Icon(Icons.people)),
+                                  icon: Icon(Icons.people_alt_rounded)),
                               ButtonSegment(
                                   value: true,
                                   label: Text('ضد الكمبيوتر'),
-                                  icon: Icon(Icons.smart_toy)),
+                                  icon: Icon(Icons.smart_toy_rounded)),
                             ],
                             selected: {playVsBot},
                             onSelectionChanged: (value) {
@@ -878,18 +936,26 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [
-                              tableColor.withOpacity(0.95),
-                              tableColor.withOpacity(0.65)
+                            colors: <Color>[
+                              tableColor.withValues(alpha: .98),
+                              tableColor.withValues(alpha: .72),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: AppColors.accent, width: 5),
-                          boxShadow: const [
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(
+                            color: const Color(0xFFF5B82E),
+                            width: 3,
+                          ),
+                          boxShadow: const <BoxShadow>[
                             BoxShadow(
-                                color: Colors.black38,
-                                blurRadius: 18,
-                                offset: Offset(0, 7))
+                              color: Color(0x42000000),
+                              blurRadius: 22,
+                              offset: Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: Color(0x33F5B82E),
+                              blurRadius: 12,
+                            ),
                           ],
                         ),
                         child: ClipRRect(

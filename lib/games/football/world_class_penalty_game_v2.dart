@@ -1,9 +1,12 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/app_settings.dart';
+import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import 'elite_penalty_game_v2.dart' as legacy;
 
@@ -129,7 +132,11 @@ class _PenaltyShellState extends State<_PenaltyShell> {
           children: <Widget>[
             ValueListenableBuilder<PenaltyHud>(
               valueListenable: _game.hud,
-              builder: (context, hud, _) => _ScoreBar(hud: hud),
+              builder: (context, hud, _) => _ScoreBar(
+                hud: hud,
+                botLevel: AppSettingsController.instance
+                    .botDifficultyTextFor('football_penalties'),
+              ),
             ),
             Expanded(
               child: LayoutBuilder(
@@ -207,8 +214,9 @@ class _PenaltyShellState extends State<_PenaltyShell> {
 }
 
 class _ScoreBar extends StatelessWidget {
-  const _ScoreBar({required this.hud});
+  const _ScoreBar({required this.hud, required this.botLevel});
   final PenaltyHud hud;
+  final String botLevel;
 
   @override
   Widget build(BuildContext context) {
@@ -268,7 +276,7 @@ class _ScoreBar extends StatelessWidget {
               color: const Color(0xFF0B1723),
             ),
             child: Text(
-              hud.suddenDeath ? 'SUDDEN DEATH' : 'PENALTIES',
+              hud.suddenDeath ? 'SUDDEN DEATH' : 'روبوت • $botLevel',
               style: const TextStyle(
                 color: Color(0xFF77D7FF),
                 fontWeight: FontWeight.w900,
@@ -390,8 +398,14 @@ class CinematicPenaltyGame extends FlameGame {
         );
 
   final bool championsMode;
+  final AppSettingsController settings = AppSettingsController.instance;
   final ValueNotifier<PenaltyHud> hud;
   final math.Random _random = math.Random();
+  ui.Image? _keeperReadyImage;
+  ui.Image? _keeperDiveImage;
+  ui.Image? _playerReadyImage;
+  ui.Image? _playerRunImage;
+  ui.Image? _playerKickImage;
 
   PenaltyPhase phase = PenaltyPhase.aiming;
   PenaltyOutcome outcome = PenaltyOutcome.goal;
@@ -415,6 +429,31 @@ class CinematicPenaltyGame extends FlameGame {
   bool get canShoot => phase == PenaltyPhase.aiming;
   bool get canDive => phase == PenaltyPhase.saving;
   bool get suddenDeath => playerShots >= 5 && robotShots >= 5;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    _keeperReadyImage =
+        await _loadAssetImage('assets/football/keeper_pro_v2.png');
+    _keeperDiveImage =
+        await _loadAssetImage('assets/football/keeper_dive_pro_v2.png');
+    _playerReadyImage =
+        await _loadAssetImage('assets/football/player_ready_pro_v2.png');
+    _playerRunImage =
+        await _loadAssetImage('assets/football/player_run_pro_v2.png');
+    _playerKickImage =
+        await _loadAssetImage('assets/football/player_kick_pro_v2.png');
+  }
+
+  Future<ui.Image> _loadAssetImage(String path) async {
+    final data = await rootBundle.load(path);
+    final codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+    );
+    final frame = await codec.getNextFrame();
+    codec.dispose();
+    return frame.image;
+  }
 
   void preview(Offset target, double newPower, double newCurve) {
     if (!canShoot) return;
@@ -441,7 +480,14 @@ class CinematicPenaltyGame extends FlameGame {
           .toDouble(),
     );
 
-    final reads = _random.nextDouble() < ((championsMode ? .24 : .31) + (1 - power) * .16);
+    final difficulty = settings.botDifficultyFor('football_penalties');
+    final readBase = switch (difficulty) {
+      BotDifficulty.easy => .12,
+      BotDifficulty.normal => .23,
+      BotDifficulty.hard => .32,
+    };
+    final reads =
+        _random.nextDouble() < (readBase + (1 - power) * .13);
     keeperTarget = reads
         ? Offset(
             (actualAim.dx + (_random.nextDouble() - .5) * .10).clamp(.04, .96).toDouble(),
@@ -465,6 +511,7 @@ class CinematicPenaltyGame extends FlameGame {
     shotDuration = (1.06 - power * .25).clamp(.76, .94).toDouble();
     flight = 0;
     phase = PenaltyPhase.flying;
+    GameFeedback.kick(GameAudioTheme.football);
     HapticFeedback.lightImpact();
     _syncHud(message: power > .94 ? 'قذيفة قوية...' : 'تسديدة...');
   }
@@ -474,7 +521,13 @@ class CinematicPenaltyGame extends FlameGame {
     chosenDive = dive;
     keeperTarget = dive;
 
-    final robotPower = .69 + _random.nextDouble() * .28;
+    final difficulty = settings.botDifficultyFor('football_penalties');
+    final (minimumPower, powerRange) = switch (difficulty) {
+      BotDifficulty.easy => (.58, .30),
+      BotDifficulty.normal => (.66, .28),
+      BotDifficulty.hard => (.72, .25),
+    };
+    final robotPower = minimumPower + _random.nextDouble() * powerRange;
     actualAim = Offset(.07 + _random.nextDouble() * .86, .07 + _random.nextDouble() * .82);
     aim = actualAim;
     power = robotPower;
@@ -482,7 +535,12 @@ class CinematicPenaltyGame extends FlameGame {
     final distance = (actualAim - chosenDive).distance;
     final risk = _random.nextDouble();
 
-    if (risk < .03) {
+    final missChance = switch (difficulty) {
+      BotDifficulty.easy => .13,
+      BotDifficulty.normal => .07,
+      BotDifficulty.hard => .035,
+    };
+    if (risk < missChance) {
       outcome = PenaltyOutcome.miss;
     } else if ((actualAim.dx < .06 || actualAim.dx > .94) && risk < .13) {
       outcome = PenaltyOutcome.post;
@@ -495,6 +553,7 @@ class CinematicPenaltyGame extends FlameGame {
     shotDuration = (1.04 - robotPower * .22).clamp(.78, .94).toDouble();
     flight = 0;
     phase = PenaltyPhase.flying;
+    GameFeedback.kick(GameAudioTheme.football);
     HapticFeedback.mediumImpact();
     _syncHud(message: 'المنافس يسدد...');
   }
@@ -531,15 +590,19 @@ class CinematicPenaltyGame extends FlameGame {
     phase = PenaltyPhase.result;
     switch (outcome) {
       case PenaltyOutcome.goal:
+        GameFeedback.goal(GameAudioTheme.football);
         HapticFeedback.heavyImpact();
         _syncHud(message: championsMode ? 'هــــدف عالمي!' : 'هــــدف!');
       case PenaltyOutcome.save:
+        GameFeedback.save(GameAudioTheme.football);
         HapticFeedback.mediumImpact();
         _syncHud(message: 'تصـــدٍ مذهل!');
       case PenaltyOutcome.post:
+        GameFeedback.post(GameAudioTheme.football);
         HapticFeedback.heavyImpact();
         _syncHud(message: 'في القائم!');
       case PenaltyOutcome.miss:
+        GameFeedback.error(GameAudioTheme.football);
         HapticFeedback.mediumImpact();
         _syncHud(message: 'خارج المرمى!');
     }
@@ -548,7 +611,13 @@ class CinematicPenaltyGame extends FlameGame {
   void _advanceTurn() {
     if (_isFinished()) {
       phase = PenaltyPhase.finished;
-      _syncHud(message: playerGoals > robotGoals ? '🏆 أنت البطل' : 'انتهت المباراة — الروبوت يفوز');
+      if (playerGoals > robotGoals) {
+        GameFeedback.win(GameAudioTheme.football);
+        _syncHud(message: '🏆 أنت البطل');
+      } else {
+        GameFeedback.lose(GameAudioTheme.football);
+        _syncHud(message: 'انتهت المباراة — الروبوت يفوز');
+      }
       return;
     }
     if (playerShots == robotShots) {
@@ -754,154 +823,158 @@ class CinematicPenaltyGame extends FlameGame {
   }
 
   void _drawKeeper(Canvas canvas, double w, double h) {
+    final readyImage = _keeperReadyImage;
+    final diveImage = _keeperDiveImage;
+    if (readyImage == null || diveImage == null) return;
+
     final goal = _goalRect(w, h);
-    final t = phase == PenaltyPhase.flying
-        ? Curves.easeOutCubic.transform(flight.clamp(0.0, 1.0))
+    final reaction = phase == PenaltyPhase.flying
+        ? ((flight - .16) / .58).clamp(0.0, 1.0).toDouble()
         : (phase == PenaltyPhase.result ? 1.0 : 0.0);
+    final t = Curves.easeOutCubic.transform(reaction);
     final start = Offset(goal.center.dx, goal.top + goal.height * .67);
     final target = Offset(
       goal.left + keeperTarget.dx * goal.width,
       goal.top + keeperTarget.dy * goal.height,
     );
-    final pos = Offset.lerp(start, target, t)!;
+    final jump = math.sin(t * math.pi) * goal.height * .065;
+    final pos = Offset.lerp(start, target, t)! - Offset(0, jump);
     final dir = keeperTarget.dx - .5;
     final reach = dir.abs();
-    final s = w * .047;
+    final lateralDive = (reach / .12).clamp(0.0, 1.0).toDouble();
+    final diveBlend = Curves.easeInOut.transform(
+          ((reaction - .12) / .42).clamp(0.0, 1.0).toDouble(),
+        ) *
+        lateralDive;
+    final readyHeight = goal.height * .54;
+    final readyWidth = readyHeight * .67;
+    final diveWidth = goal.height * (1.02 + reach * .16);
+    final diveHeight = diveWidth / 1.50;
 
     canvas.save();
     canvas.translate(pos.dx, pos.dy);
-    canvas.rotate(dir * 1.12 * t);
+    canvas.rotate(dir * .07 * t);
 
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(0, s * 1.8), width: s * 4.3, height: s * .52),
-      Paint()..color = Colors.black.withAlpha(95),
-    );
-
-    final jersey = championsMode
-        ? const Color(0xFFFFA928)
-        : const Color(0xFF22B7E8);
-    final darkJersey = championsMode
-        ? const Color(0xFFC56B00)
-        : const Color(0xFF0874B8);
-
-    final torso = Path()
-      ..moveTo(-s * .62, -s * .82)
-      ..quadraticBezierTo(0, -s * 1.05, s * .62, -s * .82)
-      ..lineTo(s * .50, s * .72)
-      ..quadraticBezierTo(0, s * .93, -s * .50, s * .72)
-      ..close();
-    canvas.drawPath(
-      torso,
+      Rect.fromCenter(
+        center: Offset(0, goal.height * .29),
+        width: readyWidth * (1.18 + reach * t * 1.7),
+        height: readyHeight * .10,
+      ),
       Paint()
-        ..shader = LinearGradient(colors: <Color>[jersey, darkJersey]).createShader(Rect.fromLTWH(-s, -s, s * 2, s * 2.2)),
+        ..color = Colors.black.withAlpha(100)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
 
-    final armPaint = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .34
-      ..color = jersey;
-    final extension = 1.45 + reach * 1.8;
-    final lift = t * .55;
-    canvas.drawLine(Offset(-s * .48, -s * .55), Offset(-s * extension, -s * (.05 + lift)), armPaint);
-    canvas.drawLine(Offset(s * .48, -s * .55), Offset(s * extension, -s * (.05 + lift)), armPaint);
-
-    final shorts = Paint()..color = const Color(0xFF111820);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(0, s * .87), width: s * 1.15, height: s * .58), Radius.circular(s * .12)),
-      shorts,
+    final readySource = Rect.fromLTWH(
+      0,
+      0,
+      readyImage.width.toDouble(),
+      readyImage.height.toDouble(),
+    );
+    final readyDestination = Rect.fromCenter(
+      center: Offset(0, -readyHeight * .10),
+      width: readyWidth,
+      height: readyHeight,
+    );
+    canvas.drawImageRect(
+      readyImage,
+      readySource,
+      readyDestination,
+      Paint()
+        ..isAntiAlias = true
+        ..filterQuality = FilterQuality.high
+        ..color = Colors.white.withAlpha(((1 - diveBlend) * 255).round()),
     );
 
-    final legPaint = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .30
-      ..color = const Color(0xFF18232C);
-    canvas.drawLine(Offset(-s * .28, s * 1.02), Offset(-s * (.55 + reach * .35), s * 1.92), legPaint);
-    canvas.drawLine(Offset(s * .28, s * 1.02), Offset(s * (.55 + reach * .35), s * 1.92), legPaint);
-
-    final skin = Paint()..color = const Color(0xFFC9895D);
-    canvas.drawCircle(Offset(0, -s * 1.22), s * .42, skin);
-    canvas.drawArc(
-      Rect.fromCenter(center: Offset(0, -s * 1.34), width: s * .88, height: s * .48),
-      math.pi,
-      math.pi,
-      true,
-      Paint()..color = const Color(0xFF3A2418),
+    canvas.save();
+    if (dir < 0) canvas.scale(-1, 1);
+    final diveSource = Rect.fromLTWH(
+      0,
+      0,
+      diveImage.width.toDouble(),
+      diveImage.height.toDouble(),
     );
-
-    final gloves = Paint()..color = const Color(0xFFF5FAFF);
-    canvas.drawCircle(Offset(-s * extension, -s * (.05 + lift)), s * .27, gloves);
-    canvas.drawCircle(Offset(s * extension, -s * (.05 + lift)), s * .27, gloves);
+    final diveDestination = Rect.fromCenter(
+      center: Offset(0, -diveHeight * .05),
+      width: diveWidth,
+      height: diveHeight,
+    );
+    canvas.drawImageRect(
+      diveImage,
+      diveSource,
+      diveDestination,
+      Paint()
+        ..isAntiAlias = true
+        ..filterQuality = FilterQuality.high
+        ..color = Colors.white.withAlpha((diveBlend * 255).round()),
+    );
+    canvas.restore();
     canvas.restore();
   }
 
   void _drawPlayer(Canvas canvas, double w, double h) {
+    final readyImage = _playerReadyImage;
+    final runImage = _playerRunImage;
+    final kickImage = _playerKickImage;
+    if (readyImage == null || runImage == null || kickImage == null) return;
+
     final active = phase == PenaltyPhase.flying || phase == PenaltyPhase.result;
-    final run = active ? Curves.easeInOut.transform(math.min(1.0, flight * 1.65)) : 0.0;
-    final kick = active ? math.sin(math.min(1.0, flight * 2.45) * math.pi) : 0.0;
-    final x = w * (.36 + run * .105);
-    final y = h * (.84 - run * .025);
-    final s = w * .047;
+    final approach = active
+        ? Curves.easeOutCubic.transform((flight / .43).clamp(0.0, 1.0))
+        : 0.0;
+    final runBlend = active
+        ? math.sin((flight / .48).clamp(0.0, 1.0) * math.pi)
+        : 0.0;
+    final kickBlend = active
+        ? Curves.easeOutCubic.transform(
+            ((flight - .27) / .28).clamp(0.0, 1.0).toDouble(),
+          )
+        : 0.0;
+    final x = w * (.355 + approach * .105);
+    final feetY = h * (.86 - approach * .043);
+    final playerHeight = h * (.205 - approach * .018);
+    final playerWidth = playerHeight * (2 / 3);
 
     canvas.save();
-    canvas.translate(x, y);
-    canvas.rotate(-.10 + run * .20);
-
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(s * .25, s * 2.25), width: s * 3.8, height: s * .48),
-      Paint()..color = Colors.black.withAlpha(100),
-    );
-
-    final primary = championsMode ? const Color(0xFF6D3FD8) : const Color(0xFFD32935);
-    final secondary = championsMode ? const Color(0xFF2347B6) : const Color(0xFF7C1119);
-    final torso = Path()
-      ..moveTo(-s * .55, -s * .80)
-      ..quadraticBezierTo(0, -s * 1.0, s * .55, -s * .80)
-      ..lineTo(s * .45, s * .70)
-      ..quadraticBezierTo(0, s * .88, -s * .45, s * .70)
-      ..close();
-    canvas.drawPath(
-      torso,
+      Rect.fromCenter(
+        center: Offset(x + playerWidth * .03, feetY + playerHeight * .018),
+        width: playerWidth * .82,
+        height: playerHeight * .075,
+      ),
       Paint()
-        ..shader = LinearGradient(colors: <Color>[primary, secondary]).createShader(Rect.fromLTWH(-s, -s, s * 2, s * 2.1)),
+        ..color = Colors.black.withAlpha(105)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
 
-    final arm = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .30
-      ..color = primary;
-    canvas.drawLine(Offset(-s * .45, -s * .45), Offset(-s * (1.1 + run * .25), s * (.25 + run * .2)), arm);
-    canvas.drawLine(Offset(s * .45, -s * .45), Offset(s * (1.0 + run * .25), s * (.15 - run * .15)), arm);
+    void drawPose(ui.Image image, double opacity) {
+      if (opacity <= 0) return;
+      final destination = Rect.fromCenter(
+        center: Offset(x, feetY - playerHeight * .5),
+        width: playerWidth,
+        height: playerHeight,
+      );
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        destination,
+        Paint()
+          ..isAntiAlias = true
+          ..filterQuality = FilterQuality.high
+          ..color = Colors.white.withAlpha((opacity * 255).round()),
+      );
+    }
 
-    final shorts = Paint()..color = const Color(0xFF10161D);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(0, s * .83), width: s * 1.08, height: s * .56), Radius.circular(s * .12)),
-      shorts,
+    drawPose(
+      readyImage,
+      (1 - math.max(runBlend, kickBlend)).clamp(0.0, 1.0).toDouble(),
     );
-
-    final leg = Paint()
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = s * .32
-      ..color = const Color(0xFF151C24);
-    canvas.drawLine(Offset(-s * .25, s * 1.0), Offset(-s * .48, s * 1.95), leg);
-    canvas.drawLine(
-      Offset(s * .25, s * 1.0),
-      Offset(s * (.42 + kick * 1.55), s * (1.92 - kick * 1.05)),
-      leg,
+    drawPose(
+      runImage,
+      (runBlend * (1 - kickBlend)).clamp(0.0, 1.0).toDouble(),
     );
-
-    final boot = Paint()..color = const Color(0xFF05090D);
-    canvas.drawOval(Rect.fromCenter(center: Offset(-s * .58, s * 2.02), width: s * .72, height: s * .28), boot);
-    canvas.drawOval(Rect.fromCenter(center: Offset(s * (.55 + kick * 1.55), s * (1.98 - kick * 1.05)), width: s * .76, height: s * .28), boot);
-
-    final skin = Paint()..color = const Color(0xFFBC7E58);
-    canvas.drawCircle(Offset(0, -s * 1.18), s * .40, skin);
-    canvas.drawArc(
-      Rect.fromCenter(center: Offset(0, -s * 1.31), width: s * .82, height: s * .43),
-      math.pi,
-      math.pi,
-      true,
-      Paint()..color = const Color(0xFF281913),
-    );
+    drawPose(kickImage, kickBlend);
     canvas.restore();
   }
 
@@ -916,21 +989,29 @@ class CinematicPenaltyGame extends FlameGame {
       t = 1.0;
     }
 
-    final curveOffset = math.sin(t * math.pi) * curve * w * .11;
-    final lift = math.sin(t * math.pi) * h * (.055 + power * .018);
-    final base = Offset.lerp(start, target, t)!;
-    final pos = Offset(base.dx + curveOffset, base.dy - lift);
-    final radius = w * (.041 - t * .018);
+    Offset ballPosition(double travel) {
+      final bend = math.sin(travel * math.pi);
+      final base = Offset.lerp(start, target, travel)!;
+      return Offset(
+        base.dx + bend * curve * w * .14,
+        base.dy - bend * h * (.072 + power * .027),
+      );
+    }
+
+    final pos = ballPosition(t);
+    final radius = w * (.041 - t * .025);
 
     if (t > .03) {
       for (var i = 1; i <= 5; i++) {
         final tt = (t - i * .035).clamp(0.0, 1.0);
-        final trailBase = Offset.lerp(start, target, tt)!;
-        final trailPos = Offset(
-          trailBase.dx + math.sin(tt * math.pi) * curve * w * .11,
-          trailBase.dy - math.sin(tt * math.pi) * h * (.055 + power * .018),
+        final trailPos = ballPosition(tt);
+        canvas.drawCircle(
+          trailPos,
+          radius * (.76 - i * .08),
+          Paint()
+            ..color = Colors.white.withAlpha(42 - i * 6)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
         );
-        canvas.drawCircle(trailPos, radius * (.75 - i * .08), Paint()..color = Colors.white.withAlpha(38 - i * 5));
       }
     }
 

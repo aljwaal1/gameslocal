@@ -70,6 +70,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  String get inviterName => widget.networkCore?.hostPlayerName ?? 'الداعي';
   bool get isLocalTurn =>
       isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
   List<PlayingCardModel> get localHand =>
@@ -213,7 +214,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void _startNextRound() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'انتظر المضيف لبدء الجولة الجديدة');
+      setState(() => message = 'انتظر $inviterName لبدء الجولة الجديدة');
       return;
     }
     newRound();
@@ -222,7 +223,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void _resetMatch() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'المضيف وحده يستطيع تصفير المباراة');
+      setState(() => message = '$inviterName وحده يستطيع تصفير المباراة');
       return;
     }
     newRound(resetScore: true);
@@ -243,7 +244,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void playPlayerCard(PlayingCardModel card) {
     if (!isLocalTurn || roundFinished) return;
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.cards);
     final ownPile = isNetworkGame && !isHost ? botPile : playerPile;
     final opponentPile = isNetworkGame && !isHost ? playerPile : botPile;
     playCard(card, localHand, ownPile, opponentPile,
@@ -279,7 +280,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         .where((card) => playerPile.any((p) => p.value == card.value))
         .toList();
 
-    switch (settings.botDifficulty) {
+    switch (settings.botDifficultyFor('cards')) {
       case BotDifficulty.easy:
         if (tablePlayable.isNotEmpty && random.nextBool())
           return tablePlayable.first;
@@ -340,7 +341,11 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
             ? 'الكمبيوتر عمل بسرا +10'
             : 'الكمبيوتر التقط أوراقًا متشابهة وربح $gained نقطة';
       }
-      GameFeedback.win();
+      if (madeBasra) {
+        GameFeedback.win(GameAudioTheme.cards);
+      } else {
+        GameFeedback.capture(GameAudioTheme.cards);
+      }
     } else {
       final stolen = opponentPile.where((p) => p.value == card.value).toList();
       if (stolen.isNotEmpty) {
@@ -359,7 +364,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
           botSteals++;
           message = 'الكمبيوتر سرق متشابهات منك وربح $gained نقطة';
         }
-        GameFeedback.win();
+        GameFeedback.capture(GameAudioTheme.cards);
       } else {
         table.add(card);
         message = isPlayer
@@ -387,15 +392,20 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         }
         table.clear();
       }
-      if (playerScore > botScore) {
-        message = 'انتهت الجولة: فزت $playerScore مقابل $botScore';
-        GameFeedback.win();
-      } else if (botScore > playerScore) {
-        message = 'انتهت الجولة: فاز الكمبيوتر $botScore مقابل $playerScore';
-        GameFeedback.error();
+      final int localScore = isNetworkGame && !isHost ? botScore : playerScore;
+      final int opponentScore =
+          isNetworkGame && !isHost ? playerScore : botScore;
+      if (localScore > opponentScore) {
+        message = 'انتهت الجولة: فزت $localScore مقابل $opponentScore';
+        GameFeedback.win(GameAudioTheme.cards);
+      } else if (opponentScore > localScore) {
+        message = isNetworkGame
+            ? 'انتهت الجولة: فاز اللاعب الآخر $opponentScore مقابل $localScore'
+            : 'انتهت الجولة: فاز الكمبيوتر $opponentScore مقابل $localScore';
+        GameFeedback.lose(GameAudioTheme.cards);
       } else {
-        message = 'انتهت الجولة بتعادل $playerScore - $botScore';
-        GameFeedback.tap();
+        message = 'انتهت الجولة بتعادل $localScore - $opponentScore';
+        GameFeedback.tap(GameAudioTheme.cards);
       }
       setState(() {});
       return true;
@@ -452,7 +462,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                     botBasra: botBasra,
                     playerSteals: playerSteals,
                     botSteals: botSteals,
-                    botLevel: settings.botDifficultyText,
+                    botLevel: settings.botDifficultyTextFor('cards'),
                   ),
                   const SizedBox(height: 8),
                   _OpponentPanel(count: botHand.length, pile: botPile.length),
