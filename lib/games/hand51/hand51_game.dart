@@ -291,8 +291,8 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
   @override Widget build(BuildContext context){
     final top=discard.isEmpty?null:discard.last;
     return Scaffold(
-      backgroundColor:const Color(0xFF10251E),
-      appBar:AppBar(title:const Text('Hand 51'),backgroundColor:const Color(0xFF173D31),foregroundColor:Colors.white),
+      backgroundColor:const Color(0xFF17181D),
+      appBar:AppBar(title:const Text('Hand 51'),centerTitle:true,backgroundColor:const Color(0xFF17181D),foregroundColor:Colors.white),
       body:SafeArea(child:Column(children:[
         Padding(padding:const EdgeInsets.all(10),child:Container(
           padding:const EdgeInsets.all(10),decoration:BoxDecoration(color:const Color(0xFF1D4E3F),borderRadius:BorderRadius.circular(18)),
@@ -311,8 +311,23 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
           ]))),
         Expanded(child:Container(
           margin:const EdgeInsets.symmetric(horizontal:10),padding:const EdgeInsets.all(8),
-          decoration:BoxDecoration(color:const Color(0xFF0B6B4F),borderRadius:BorderRadius.circular(22)),
+          decoration:BoxDecoration(
+            gradient:const LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[Color(0xFF147A43),Color(0xFF0C5A35)]),
+            borderRadius:BorderRadius.circular(28),
+            border:Border.all(color:const Color(0xFFC8A45B),width:3),
+            boxShadow:const [BoxShadow(color:Color(0x66000000),blurRadius:18,offset:Offset(0,10))]
+          ),
           child:Column(children:[
+            Row(mainAxisAlignment:MainAxisAlignment.center,children:[
+              Container(width:38,height:38,decoration:BoxDecoration(shape:BoxShape.circle,color:const Color(0xFF2A2D35),border:Border.all(color:const Color(0xFFC8A45B),width:2)),child:const Icon(Icons.smart_toy_rounded,color:Colors.white70,size:22)),
+              const SizedBox(width:8),
+              Column(children:[
+                Text('الروبوت • '+bot.length.toString()+' ورقة',style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:12)),
+                const SizedBox(height:3),
+                Row(children:[for(int i=0;i<min(bot.length,8);i++)Container(width:14,height:22,margin:const EdgeInsets.only(left:2),decoration:BoxDecoration(color:const Color(0xFFB11F2E),borderRadius:BorderRadius.circular(3),border:Border.all(color:Colors.white54,width:.6)))])
+              ])
+            ]),
+            const SizedBox(height:8),
             Row(mainAxisAlignment:MainAxisAlignment.center,children:[
               deckButton('الرزمة\n${deck.length}',drawDeck),const SizedBox(width:14),
               InkWell(onTap:drawDiscard,child:top==null?deckButton('الرمي',drawDiscard):card(top,small:true)),
@@ -333,8 +348,24 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
                 )
               ]))
           ]))),
-        Container(color:const Color(0xFF0B1713),padding:const EdgeInsets.all(8),child:Column(children:[
-          Wrap(alignment:WrapAlignment.center,spacing:4,runSpacing:4,children:[for(final c in me) card(c,onTap:()=>toggle(c),picked:selected.contains(c.id))]),
+        Container(
+          decoration:const BoxDecoration(color:Color(0xFF17181D),border:Border(top:BorderSide(color:Color(0x33FFFFFF)))),
+          padding:const EdgeInsets.fromLTRB(8,6,8,10),
+          child:Column(children:[
+          SizedBox(height:104,child:LayoutBuilder(builder:(context,constraints)=>Stack(
+            clipBehavior:Clip.none,
+            alignment:Alignment.bottomCenter,
+            children:[
+              for(int i=0;i<me.length;i++) Positioned(
+                left:me.length<=1?constraints.maxWidth/2-24:(constraints.maxWidth-54)*i/(me.length-1),
+                bottom:selected.contains(me[i].id)?10:0,
+                child:Transform.rotate(
+                  angle:me.length<=1?0:(i-(me.length-1)/2)*.018,
+                  child:card(me[i],onTap:()=>toggle(me[i]),picked:selected.contains(me[i].id)),
+                ),
+              )
+            ]
+          ))),
           const SizedBox(height:7),
           Row(children:[
             Expanded(child:FilledButton.icon(onPressed:myTurn&&drew&&picks.length>=3?meld:null,icon:const Icon(Icons.call_merge),label:Text(myOpened?'نزول مجموعة':'أضف للفتح'))),
@@ -363,10 +394,10 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
   Widget deckButton(String t,VoidCallback f)=>InkWell(onTap:f,child:Container(width:62,height:82,alignment:Alignment.center,decoration:BoxDecoration(color:const Color(0xFF173D31),borderRadius:BorderRadius.circular(13),border:Border.all(color:Colors.white24)),child:Text(t,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w800))));
   Widget card(_C c,{bool small=false,bool picked=false,VoidCallback? onTap}){
     final red=c.suit=='♥'||c.suit=='♦';
-    return GestureDetector(onTap:onTap,child:AnimatedContainer(duration:const Duration(milliseconds:140),width:small?36:43,height:small?53:65,
+    return GestureDetector(onTap:onTap,child:AnimatedContainer(duration:const Duration(milliseconds:140),width:small?38:54,height:small?56:82,
       transform:picked?(Matrix4.identity()..translate(0.0,-5.0)):Matrix4.identity(),
       decoration:BoxDecoration(color:c.joker?const Color(0xFFFFF3C4):Colors.white,borderRadius:BorderRadius.circular(9),border:Border.all(color:picked?const Color(0xFFFFD166):Colors.black26,width:picked?2.5:1)),
-      alignment:Alignment.center,child:Text(c.joker?'J\n★':'${c.label}\n${c.suit}',textAlign:TextAlign.center,style:TextStyle(color:red?Colors.red.shade800:const Color(0xFF17212B),fontWeight:FontWeight.w900,fontSize:small?12:14,height:1))));
+      alignment:Alignment.center,child:Text(c.joker?'J\n★':'${c.label}\n${c.suit}',textAlign:TextAlign.center,style:TextStyle(color:red?Colors.red.shade800:const Color(0xFF17212B),fontWeight:FontWeight.w900,fontSize:small?12:18,height:1))));
   }
 }
 
