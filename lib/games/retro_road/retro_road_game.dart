@@ -138,6 +138,10 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
     }
     if((action=='road_state'||action=='road_start')&&!isHost){
       final rawCars=m.payload['cars'] as List<dynamic>? ?? const [];
+      final oldWeather=weather;
+      final oldDay=day;
+      final wasCrashed=localCrashed;
+      final wasGameOver=gameOver;
       setState((){
         playerX=((m.payload['remoteX'] as num?)?.toDouble()??playerX).clamp(.16,.84);
         remoteX=((m.payload['playerX'] as num?)?.toDouble()??remoteX).clamp(.16,.84);
@@ -159,6 +163,10 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
             (e['x'] as num).toDouble(),(e['y'] as num).toDouble(),
             (e['lane'] as num).toInt(),(e['factor'] as num).toDouble())));
       });
+      if(!wasCrashed&&localCrashed){_showEffect('💥 حادث!');GameFeedback.lose(GameAudioTheme.road);}
+      else if(!wasGameOver&&gameOver){_showEffect(resultText);GameFeedback.lose(GameAudioTheme.road);}
+      else if(day>oldDay){_showEffect('🏁 يوم جديد!');GameFeedback.win(GameAudioTheme.road);}
+      else if(weather!=oldWeather){_showEffect('🌦 '+weather.label);GameFeedback.tap(GameAudioTheme.road);}
     }
   }
 
