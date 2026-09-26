@@ -156,6 +156,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
     if((action=='plane_state'||action=='plane_start')&&!isHost){
       final rawObjects=m.payload['objects'] as List<dynamic>? ?? const [];
       final rawBullets=m.payload['bullets'] as List<dynamic>? ?? const [];
+      final oldScore=score;
+      final oldFuel=fuel;
+      final wasAlive=alive;
+      final wasGameOver=gameOver;
       setState((){
         networkMode=((m.payload['mode'] as num?)?.toInt()??networkMode).clamp(0,1);
         planeX=((m.payload['remoteX'] as num?)?.toDouble()??planeX).clamp(.08,.92);
@@ -181,6 +185,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
           ..addAll(rawBullets.whereType<Map>().map((e)=>_Bullet(
             (e['x'] as num).toDouble(),(e['y'] as num).toDouble(),remote:e['remote']!=true)));
       });
+      if(wasAlive&&!alive){_showEffect('💥 طائرتك تحطمت');GameFeedback.lose(GameAudioTheme.plane);}
+      else if(!wasGameOver&&gameOver){_showEffect('🏁 انتهت الجولة');GameFeedback.lose(GameAudioTheme.plane);}
+      else if(fuel>oldFuel+5){_showEffect('⛽ + وقود');GameFeedback.win(GameAudioTheme.plane);}
+      else if(score>=oldScore+75){_showEffect('💥 إصابة!');GameFeedback.capture(GameAudioTheme.plane);}
     }
   }
 
