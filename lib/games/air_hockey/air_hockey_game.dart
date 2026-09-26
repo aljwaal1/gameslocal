@@ -136,14 +136,25 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
       final by=(m.payload['bottomY'] as num?)?.toDouble()??.84;
       final tx=(m.payload['topX'] as num?)?.toDouble()??.5;
       final ty=(m.payload['topY'] as num?)?.toDouble()??.16;
+      final nextBottom=(m.payload['topScore'] as num?)?.toInt()??bottomScore;
+      final nextTop=(m.payload['bottomScore'] as num?)?.toInt()??topScore;
+      final scored=nextBottom!=bottomScore||nextTop!=topScore;
       setState((){
         puck=Offset(px,1-py);
         bottom=Offset(tx,1-ty);
         top=Offset(bx,1-by);
-        bottomScore=(m.payload['topScore'] as num?)?.toInt()??bottomScore;
-        topScore=(m.payload['bottomScore'] as num?)?.toInt()??topScore;
+        bottomScore=nextBottom;
+        topScore=nextTop;
         playing=m.payload['playing']!=false;
+        if(scored){
+          goalEffect=nextBottom>bottomScore?'هدف لك!':'هدف للخصم!';
+          goalFlash=true;
+        }
       });
+      if(scored){
+        GameFeedback.goal(GameAudioTheme.hockey);
+        Future<void>.delayed(const Duration(milliseconds:420),(){if(mounted)setState(()=>goalFlash=false);});
+      }
     }
   }
 
