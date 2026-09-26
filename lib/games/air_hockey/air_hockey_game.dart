@@ -139,6 +139,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
       final nextBottom=(m.payload['topScore'] as num?)?.toInt()??bottomScore;
       final nextTop=(m.payload['bottomScore'] as num?)?.toInt()??topScore;
       final scored=nextBottom!=bottomScore||nextTop!=topScore;
+      final localScored=nextBottom>bottomScore;
       setState((){
         puck=Offset(px,1-py);
         bottom=Offset(tx,1-ty);
@@ -147,7 +148,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
         topScore=nextTop;
         playing=m.payload['playing']!=false;
         if(scored){
-          goalEffect=nextBottom>bottomScore?'هدف لك!':'هدف للخصم!';
+          goalEffect=localScored?'هدف لك!':'هدف للخصم!';
           goalFlash=true;
         }
       });
