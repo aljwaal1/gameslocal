@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
+import '../../core/graphics/retro_pixels.dart';
 
 class RetroRoadGameScreen extends StatefulWidget{
   const RetroRoadGameScreen({super.key,this.networkCore});
@@ -229,9 +230,9 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
           ])
         )),
         Padding(padding:const EdgeInsets.all(12),child:Row(children:[
-          Expanded(child:FilledButton.icon(onPressed:running?()=>move(-1):null,icon:const Icon(Icons.arrow_back_rounded),label:const Text('يسار'))),
+          Expanded(child:FilledButton.icon(onPressed:running?()=>move(1):null,icon:const Icon(Icons.arrow_forward_rounded),label:const Text('يمين'))),
           const SizedBox(width:10),
-          Expanded(child:FilledButton.icon(onPressed:running?()=>move(1):null,icon:const Icon(Icons.arrow_forward_rounded),label:const Text('يمين')))
+          Expanded(child:FilledButton.icon(onPressed:running?()=>move(-1):null,icon:const Icon(Icons.arrow_back_rounded),label:const Text('يسار')))
         ]))
       ]))
     );
@@ -328,16 +329,24 @@ class _RoadPainter extends CustomPainter{
   }
 
   void drawCar(Canvas c,Offset p,double k,bool enemy,int lane){
-    final colors=[const Color(0xFFEF4444),const Color(0xFFFFD166),const Color(0xFF22C55E),const Color(0xFFA78BFA),const Color(0xFFF97316)];
-    final body=enemy?colors[lane%colors.length]:(lane==4?const Color(0xFFFF8A3D):const Color(0xFF38BDF8));
-    final r=Rect.fromCenter(center:p,width:k*1.45,height:k*2.15);
-    c.drawRRect(RRect.fromRectAndRadius(r,Radius.circular(k*.32)),Paint()..color=body);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:p.translate(0,-k*.35),width:k*.92,height:k*.55),Radius.circular(k*.18)),Paint()..color=const Color(0xFFDDEAFE));
-    c.drawRect(Rect.fromCenter(center:p.translate(0,k*.55),width:k*.92,height:k*.18),Paint()..color=enemy?Colors.amberAccent:Colors.redAccent);
-    for(final x in [r.left,r.right]){
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(x,p.dy-k*.45),width:k*.22,height:k*.48),Radius.circular(k*.08)),Paint()..color=Colors.black87);
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:Offset(x,p.dy+k*.45),width:k*.22,height:k*.48),Radius.circular(k*.08)),Paint()..color=Colors.black87);
-    }
+    final colors=[const Color(0xffef4444),const Color(0xffffd166),const Color(0xff22c55e),const Color(0xffa78bfa),const Color(0xfff97316)];
+    final body=enemy?colors[lane.abs()%colors.length]:(lane==4?const Color(0xffff8a3d):const Color(0xff38bdf8));
+    final glass=const Color(0xffe0f2fe);
+    RetroPixels.draw(c,p,k/3.2,const[
+      '...WW...',
+      '..WBBW..',
+      '.WBBBBW.',
+      'RBBBBBBR',
+      'BBBBBBBB',
+      'KBBBBBBK',
+      'KBB..BBK',
+      '.BB..BB.',
+    ],{
+      'W':glass,
+      'B':body,
+      'R':enemy?const Color(0xfffff176):const Color(0xffef4444),
+      'K':const Color(0xff020617),
+    },shadow:4);
   }
 
   void drawWeather(Canvas c,Size s){
