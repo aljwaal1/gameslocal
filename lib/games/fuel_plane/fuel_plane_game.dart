@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
+import '../../core/graphics/retro_pixels.dart';
 
 class FuelPlaneGameScreen extends StatefulWidget {
   const FuelPlaneGameScreen({super.key, this.networkCore});
@@ -258,12 +259,18 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
           ))
         )),
         Container(
-          margin:const EdgeInsets.fromLTRB(14,10,14,12),padding:const EdgeInsets.symmetric(horizontal:12,vertical:8),
-          decoration:BoxDecoration(color:Colors.white.withAlpha(12),borderRadius:BorderRadius.circular(18),border:Border.all(color:Colors.white12)),
-          child:Row(children:[
-            const Icon(Icons.touch_app_rounded,color:Colors.lightBlueAccent),
-            const SizedBox(width:8),
-            Expanded(child:Text(running?'اسحب الطائرة يمينًا ويسارًا • اجمع الوقود • دمّر العوائق':'اضغط ابدأ لبدء الجولة',style:const TextStyle(color:Colors.white70,fontWeight:FontWeight.w700,fontSize:12)))
+          margin:const EdgeInsets.fromLTRB(14,10,14,12),padding:const EdgeInsets.fromLTRB(14,10,14,12),
+          decoration:BoxDecoration(color:Colors.black.withAlpha(55),borderRadius:BorderRadius.circular(22),border:Border.all(color:Colors.white12)),
+          child:Column(children:[
+            Row(children:[
+              const Icon(Icons.mouse_rounded,size:20,color:Colors.white70),
+              const SizedBox(width:8),
+              Expanded(child:Text(running?'حرّك المقبض مثل الماوس':'اضغط ابدأ ثم استخدم شريط التحكم',style:const TextStyle(color:Colors.white70,fontWeight:FontWeight.bold)))
+            ]),
+            SliderTheme(
+              data:SliderTheme.of(context).copyWith(trackHeight:12,thumbShape:const RoundSliderThumbShape(enabledThumbRadius:18),overlayShape:const RoundSliderOverlayShape(overlayRadius:26),activeTrackColor:Colors.lightBlueAccent,inactiveTrackColor:Colors.white24,thumbColor:Colors.white,overlayColor:Colors.lightBlueAccent.withAlpha(45)),
+              child:Slider(value:planeX.clamp(.08,.92),min:.08,max:.92,onChanged:running?(v){setState(()=>planeX=v);if(isNetworkGame&&!isHost)widget.networkCore?.sendMove(<String,dynamic>{'action':'plane_control','x':planeX},senderId:localPlayerId);}:null),
+            )
           ])
         )
       ]))
@@ -274,61 +281,48 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
 class _PlanePainter extends CustomPainter{
   const _PlanePainter({required this.planeX,this.remoteX,required this.objects,required this.bullets,required this.level,required this.distance});
   final double planeX;final double? remoteX;final List<_Obj> objects;final List<_Bullet> bullets;final int level,distance;
-  @override void paint(Canvas c,Size s){
-    final rect=Offset.zero&s;
-    c.drawRect(rect,Paint()..shader=const LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[Color(0xFF061022),Color(0xFF0A2E4F),Color(0xFF061022)]).createShader(rect));
-    final star=Paint()..color=Colors.white54;
-    for(var i=0;i<42;i++){
-      final x=((i*73+level*17)%s.width).toDouble();
-      final y=((i*41+distance*.35)%(s.height*.46)).toDouble();
-      c.drawCircle(Offset(x,y),i%7==0?1.8:1.0,star);
-    }
-    final river=Path()
-      ..moveTo(s.width*.22,0)..quadraticBezierTo(s.width*.13,s.height*.26,s.width*.28,s.height*.50)
-      ..quadraticBezierTo(s.width*.42,s.height*.72,s.width*.16,s.height)
-      ..lineTo(s.width*.84,s.height)
-      ..quadraticBezierTo(s.width*.58,s.height*.72,s.width*.72,s.height*.50)
-      ..quadraticBezierTo(s.width*.87,s.height*.26,s.width*.78,0)..close();
-    c.drawPath(river,Paint()..color=const Color(0xFF145D87));
-    c.drawPath(river,Paint()..style=PaintingStyle.stroke..strokeWidth=3..color=const Color(0x557DD3FC));
 
+  @override void paint(Canvas canvas,Size size){
+    final w=size.width,h=size.height,bg=Offset.zero&size;
+    canvas.drawRect(bg,Paint()..shader=const LinearGradient(begin:Alignment.topCenter,end:Alignment.bottomCenter,colors:[Color(0xff061022),Color(0xff0a2e4f),Color(0xff061022)]).createShader(bg));
+    final star=Paint()..color=Colors.white.withOpacity(.55);
+    for(var i=0;i<48;i++){
+      final x=((i*73+level*17)%w).toDouble();
+      final y=((i*41+level*13)%(h*.45)).toDouble();
+      canvas.drawRect(Rect.fromLTWH(x,y,i%6==0?3:2,i%6==0?3:2),star);
+    }
+    final river=Path()..moveTo(w*.22,0)..quadraticBezierTo(w*.13,h*.26,w*.28,h*.50)..quadraticBezierTo(w*.42,h*.72,w*.16,h)..lineTo(w*.84,h)..quadraticBezierTo(w*.58,h*.72,w*.72,h*.50)..quadraticBezierTo(w*.87,h*.26,w*.78,0)..close();
+    canvas.drawPath(river,Paint()..color=const Color(0xff145d87));
+    canvas.drawPath(river,Paint()..style=PaintingStyle.stroke..strokeWidth=3..color=const Color(0xff7dd3fc).withOpacity(.35));
+    final bank=Paint()..color=const Color(0xff0f3b1d);
+    for(var i=0;i<14;i++){
+      final y=((i*64+level*9)%(h+80)).toDouble()-40;
+      canvas.drawRect(Rect.fromLTWH(0,y,w*.12,18),bank);
+      canvas.drawRect(Rect.fromLTWH(w*.88,y+28,w*.12,18),bank);
+    }
     for(final b in bullets){
-      final p=Offset(b.x*s.width,b.y*s.height);
-      c.drawCircle(p,4,Paint()..color=const Color(0xFFFFF176));
-      c.drawCircle(p,10,Paint()..color=const Color(0x33FFF176));
+      canvas.drawCircle(Offset(b.x*w,b.y*h),5,Paint()..color=const Color(0xfffff176));
+      canvas.drawCircle(Offset(b.x*w,b.y*h),11,Paint()..color=const Color(0x2AFFF176));
     }
     for(final o in objects){
-      final p=Offset(o.x*s.width,o.y*s.height),r=max(14.0,o.size*s.width*.72);
+      final p=Offset(o.x*w,o.y*h),px=max(2.2,o.size*w/9);
       if(o.type==_ObjType.fuel){
-        c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:p,width:r*1.1,height:r*1.5),const Radius.circular(7)),Paint()..color=const Color(0xFFFFC107));
-        c.drawRect(Rect.fromCenter(center:p,width:r*.24,height:r*.75),Paint()..color=const Color(0xFFE53935));
+        RetroPixels.draw(canvas,p,px,const ['..GG..','..YY..','.YYYY.','.YRR.','.YRR.','.YYYY.','..GG..'],{'G':const Color(0xff22c55e),'Y':const Color(0xffffd166),'R':const Color(0xffef4444)},shadow:3);
       }else if(o.type==_ObjType.enemy){
-        final path=Path()..moveTo(p.dx,p.dy-r)..lineTo(p.dx+r*.8,p.dy+r*.75)..lineTo(p.dx,p.dy+r*.35)..lineTo(p.dx-r*.8,p.dy+r*.75)..close();
-        c.drawPath(path,Paint()..color=const Color(0xFFEF4444));
-        c.drawCircle(p.translate(0,-r*.15),r*.18,Paint()..color=const Color(0xFF90CAF9));
+        RetroPixels.draw(canvas,p,px,const ['...R...','..RRR..','.RBRBR.','RRBBB.R','..BBB..','.B...B.'],{'R':const Color(0xffef4444),'B':const Color(0xff374151)},shadow:3);
       }else{
-        c.drawCircle(p,r,Paint()..color=const Color(0xFF94A3B8));
-        c.drawCircle(p.translate(-r*.28,-r*.2),r*.18,Paint()..color=const Color(0xFF475569));
+        RetroPixels.draw(canvas,p,px,const ['..SS..','.SSSS.','SSSSSS','SDSDSS','.SSSS.','..SS..'],{'S':const Color(0xff94a3b8),'D':const Color(0xff334155)},shadow:3);
       }
     }
-
-    if(remoteX!=null){drawPlane(c,Offset(remoteX!*s.width,s.height*.82),s,const Color(0xFFFF8A3D));}
-    final p=Offset(planeX*s.width,s.height*.82),scale=max(1.0,s.width/390);
-    final body=Path()..moveTo(p.dx,p.dy-34*scale)..lineTo(p.dx+17*scale,p.dy+24*scale)..lineTo(p.dx,p.dy+16*scale)..lineTo(p.dx-17*scale,p.dy+24*scale)..close();
-    c.drawPath(body,Paint()..color=const Color(0xFF38BDF8));
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:p.translate(0,4*scale),width:72*scale,height:11*scale),const Radius.circular(4)),Paint()..color=const Color(0xFF2563EB));
-    c.drawCircle(p.translate(0,-10*scale),7*scale,Paint()..color=const Color(0xFFE0F2FE));
-    c.drawCircle(p.translate(0,34*scale),7*scale,Paint()..color=const Color(0xFFFF7A18));
-
-    final scan=Paint()..color=Colors.black12;
-    for(double y=0;y<s.height;y+=6){c.drawRect(Rect.fromLTWH(0,y,s.width,1),scan);}
+    _plane(canvas,Offset(planeX*w,h*.82),max(3,w*.012),const Color(0xff38bdf8));
+    if(remoteX!=null)_plane(canvas,Offset(remoteX!*w,h*.82),max(3,w*.012),const Color(0xffff8a3d));
+    final scan=Paint()..color=Colors.black.withOpacity(.12);
+    for(double y=0;y<h;y+=5)canvas.drawRect(Rect.fromLTWH(0,y,w,1),scan);
   }
-  void drawPlane(Canvas c,Offset p,Size s,Color color){
-    final scale=max(1.0,s.width/390);
-    final body=Path()..moveTo(p.dx,p.dy-31*scale)..lineTo(p.dx+15*scale,p.dy+22*scale)..lineTo(p.dx,p.dy+14*scale)..lineTo(p.dx-15*scale,p.dy+22*scale)..close();
-    c.drawPath(body,Paint()..color=color);
-    c.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center:p.translate(0,4*scale),width:64*scale,height:10*scale),const Radius.circular(4)),Paint()..color=color.withAlpha(190));
-    c.drawCircle(p.translate(0,-9*scale),6*scale,Paint()..color=const Color(0xFFE0F2FE));
+
+  void _plane(Canvas c,Offset p,double px,Color color){
+    RetroPixels.draw(c,p,px,const ['.....C.....','....CCC....','....YYY....','B..YYYYY..B','BBYYYYYYYBB','..RYYYR...','...Y.Y....','..B...B...'],{'C':const Color(0xffe0f2fe),'Y':color,'B':const Color(0xff2563eb),'R':const Color(0xffef4444)},shadow:4);
+    c.drawCircle(p.translate(0,38),8+(level%3).toDouble(),Paint()..color=const Color(0xbfff7a18));
   }
 
   @override bool shouldRepaint(covariant _PlanePainter old)=>true;
