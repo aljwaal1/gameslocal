@@ -99,8 +99,8 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'hand51',
       name: 'Hand 51',
-      playersText: 'روبوت أو عدة لاعبين LAN / Internet',
-      status: '13 ورقة • فتح 51 • جوكران • 3 جولات على الأقل',
+      playersText: 'ضد الروبوت',
+      status: '13 ورقة • فتح 51 • جوكران • 3 جولات على الأقل • الشبكة قيد الاستكمال',
       builder: (_, networkCore) => Hand51GameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -120,8 +120,8 @@ class HomeScreen extends StatelessWidget {
     GameDefinition(
       id: 'retro_road',
       name: 'طريق التحمل',
-      playersText: 'فردي / لاعبان محليًا / LAN / Internet',
-      status: 'سباق ومراوغة بطريقتين مع مزامنة بين جهازين',
+      playersText: 'فردي / لاعبان LAN / Internet',
+      status: 'سباق مباشر ومراوغة مع مزامنة بين جهازين',
       builder: (_, networkCore) => RetroRoadGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -500,7 +500,7 @@ class _ModeStrip extends StatelessWidget {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                'اختر كرة القدم أو إكس أو أو الضامة أو الدومينو أو الشدة للعب ضد الروبوت.',
+                'اختر كرة القدم أو إكس أو أو الضامة أو الدومينو أو الشدة أو Hand 51 أو الهوكي للعب ضد الروبوت.',
               ),
             ),
           );
@@ -683,7 +683,6 @@ class _GameCard extends StatelessWidget {
         'name_animal_object',
         'sheikh_beard',
         'dots_boxes',
-        'hand51',
         'air_hockey',
         'fuel_plane',
         'retro_road',
