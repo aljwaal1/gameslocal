@@ -66,8 +66,15 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
     final spawn=.018+min(.014,day*.0022);
     if(rnd.nextDouble()<spawn){
       const lanes=[.28,.40,.52,.64,.76];
-      final lane=rnd.nextInt(lanes.length);
-      cars.add(_Traffic(lanes[lane]+(rnd.nextDouble()-.5)*.020,-.10,lane,.70+rnd.nextDouble()*.42));
+      final available=<int>[];
+      for(int i=0;i<lanes.length;i++){
+        final blocked=cars.any((car)=>car.y<.24&&(car.lane-i).abs()<=0);
+        if(!blocked)available.add(i);
+      }
+      if(available.isNotEmpty){
+        final lane=available[rnd.nextInt(available.length)];
+        cars.add(_Traffic(lanes[lane]+(rnd.nextDouble()-.5)*.016,-.10,lane,.72+rnd.nextDouble()*.34));
+      }
     }
 
     for(final car in cars){car.y+=speed*car.factor;}
@@ -114,6 +121,18 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   void move(double dir){
     if(!running||localCrashed)return;
     setState(()=>playerX=(playerX+dir*.034*weather.steering).clamp(.16,.84));
+    _sendRoadControl();
+  }
+
+  void dragRoad(double dx,double width){
+    if(!running||localCrashed||width<=0)return;
+    final target=(dx/width).clamp(.16,.84);
+    final blend=weather==_Weather.snow?.28:weather==_Weather.rain?.38:.52;
+    setState(()=>playerX=(playerX+(target-playerX)*blend).clamp(.16,.84));
+    _sendRoadControl();
+  }
+
+  void _sendRoadControl(){
     if(isNetworkGame&&!isHost){
       widget.networkCore?.sendMove(<String,dynamic>{'action':'road_control','x':playerX},senderId:localPlayerId);
     }
@@ -201,8 +220,13 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
         Expanded(child:Container(
           margin:const EdgeInsets.symmetric(horizontal:12),clipBehavior:Clip.antiAlias,
           decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),border:Border.all(color:Colors.white12)),
-          child:Stack(children:[
-            CustomPaint(size:Size.infinite,painter:_RoadPainter(playerX:playerX,opponentX:isNetworkGame?remoteX:null,cars:cars,weather:weather,day:day,score:score)),
+          child:LayoutBuilder(builder:(context,roadBox)=>Stack(children:[
+            Positioned.fill(child:GestureDetector(
+              behavior:HitTestBehavior.opaque,
+              onPanDown:(d)=>dragRoad(d.localPosition.dx,roadBox.maxWidth),
+              onPanUpdate:(d)=>dragRoad(d.localPosition.dx,roadBox.maxWidth),
+              child:CustomPaint(size:Size.infinite,painter:_RoadPainter(playerX:playerX,opponentX:isNetworkGame?remoteX:null,cars:cars,weather:weather,day:day,score:score)),
+            )),
             Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
               opacity:effectVisible?1:0,
               duration:const Duration(milliseconds:120),
@@ -227,7 +251,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
                 FilledButton.icon(onPressed:start,icon:const Icon(Icons.play_arrow_rounded),label:Text(gameOver?'إعادة اللعب':'ابدأ'))
               ])
             ))
-          ])
+          ]))
         )),
         Padding(padding:const EdgeInsets.all(12),child:Row(children:[
           Expanded(child:FilledButton.icon(onPressed:running?()=>move(1):null,icon:const Icon(Icons.arrow_forward_rounded),label:const Text('يمين'))),
