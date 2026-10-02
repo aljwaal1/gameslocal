@@ -406,7 +406,8 @@ class GameFeedback {
       // tones clear instead of clipping harshly.
       final attack = (t / .004).clamp(0.0, 1.0);
       final release = ((duration - t) / .010).clamp(0.0, 1.0);
-      final shaped = math.tanh(value * 1.18) * attack * release;
+      final driven = value * 1.18;
+      final shaped = (driven / (1 + driven.abs())) * 1.72 * attack * release;
       pcm[i] = (shaped.clamp(-1.0, 1.0) * 32767).round();
     }
 
