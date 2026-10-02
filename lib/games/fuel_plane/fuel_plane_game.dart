@@ -22,6 +22,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
   double planeX=.42,remoteX=.58,fuel=100,remoteFuel=100,speed=.0065;
   int score=0,remoteScore=0,distance=0,level=1,best=0,fireCooldown=0,remoteFireCooldown=0,scoreTick=0;
   bool running=false,gameOver=false,alive=true,remoteAlive=true;
+  bool lowFuelPulse=false;
   int networkMode=0; // 0 مواجهة، 1 تعاون
   String resultText='';
   String effectText='';
@@ -69,9 +70,17 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
 
     final spawn=.018+min(.018,level*.002);
     if(rnd.nextDouble()<spawn){
+      final fuelBias=fuel<28?.48:fuel<45?.34:.25;
       final roll=rnd.nextDouble();
-      final type=roll<.25?_ObjType.fuel:(roll<.78?_ObjType.rock:_ObjType.enemy);
-      objects.add(_Obj(x:.12+rnd.nextDouble()*.76,y:-.08,type:type,size:type == _ObjType.fuel ? .052 : .066));
+      final type=roll<fuelBias?_ObjType.fuel:(roll<.78?_ObjType.rock:_ObjType.enemy);
+      for(int attempt=0;attempt<5;attempt++){
+        final x=.12+rnd.nextDouble()*.76;
+        final crowded=objects.any((o)=>o.y<.18&&(o.x-x).abs()<.14);
+        if(!crowded){
+          objects.add(_Obj(x:x,y:-.08,type:type,size:type == _ObjType.fuel ? .052 : .066));
+          break;
+        }
+      }
     }
 
     for(final o in objects){o.y+=speed;}
@@ -99,6 +108,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
       }
     }
 
+    lowFuelPulse=alive&&fuel<25;
     if(alive&&fuel<=0){fuel=0;alive=false;event=4;}
     if(isNetworkGame&&remoteAlive&&remoteFuel<=0){remoteFuel=0;remoteAlive=false;event=4;}
 
@@ -224,7 +234,13 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
           ]),
           if(isNetworkGame&&!running)Padding(padding:const EdgeInsets.only(top:7),child:SegmentedButton<int>(segments:const [ButtonSegment(value:0,label:Text('مواجهة')),ButtonSegment(value:1,label:Text('تعاون'))],selected:{networkMode},onSelectionChanged:(v)=>setNetworkMode(v.first))),
           const SizedBox(height:8),
-          ClipRRect(borderRadius:BorderRadius.circular(20),child:LinearProgressIndicator(value:(fuel.clamp(0,100))/100,minHeight:12,valueColor:AlwaysStoppedAnimation(fuelColor),backgroundColor:Colors.white12))
+          Row(children:[
+            Icon(fuel<25?Icons.warning_amber_rounded:Icons.local_gas_station_rounded,color:fuelColor,size:20),
+            const SizedBox(width:7),
+            Expanded(child:ClipRRect(borderRadius:BorderRadius.circular(20),child:LinearProgressIndicator(value:(fuel.clamp(0,100))/100,minHeight:12,valueColor:AlwaysStoppedAnimation(fuelColor),backgroundColor:Colors.white12))),
+            const SizedBox(width:8),
+            Text(fuel.round().toString()+'%',style:TextStyle(color:fuelColor,fontWeight:FontWeight.w900))
+          ])
         ])),
         Expanded(child:Container(
           margin:const EdgeInsets.symmetric(horizontal:12),clipBehavior:Clip.antiAlias,
@@ -235,6 +251,11 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
             onPanUpdate:(d)=>setPlane(d.localPosition.dx,c.maxWidth),
             child:Stack(children:[
               CustomPaint(size:Size.infinite,painter:_PlanePainter(planeX:planeX,remoteX:isNetworkGame?remoteX:null,objects:objects,bullets:bullets,level:level,distance:distance)),
+              Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
+                opacity:lowFuelPulse?1:0,
+                duration:const Duration(milliseconds:220),
+                child:Container(decoration:BoxDecoration(borderRadius:BorderRadius.circular(22),border:Border.all(color:Colors.redAccent.withAlpha(170),width:4),gradient:const RadialGradient(colors:[Colors.transparent,Color(0x22FF1744)],radius:1.0))),
+              ))),
               Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
                 opacity:effectVisible?1:0,
                 duration:const Duration(milliseconds:120),
