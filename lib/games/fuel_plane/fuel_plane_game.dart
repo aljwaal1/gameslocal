@@ -70,7 +70,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
 
     final spawn=.018+min(.018,level*.002);
     if(rnd.nextDouble()<spawn){
-      final fuelBias=fuel<28?.48:fuel<45?.34:.25;
+      final fuelBias=fuel < 28 ? .48 : fuel < 45 ? .34 : .25;
       final roll=rnd.nextDouble();
       final type=roll<fuelBias?_ObjType.fuel:(roll<.78?_ObjType.rock:_ObjType.enemy);
       for(int attempt=0;attempt<5;attempt++){
