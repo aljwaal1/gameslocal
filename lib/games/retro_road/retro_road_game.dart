@@ -372,7 +372,7 @@ class _RoadPainter extends CustomPainter{
   }
 
   void _laneMarks(Canvas c,Size s){
-    final p=Paint()..color=Colors.white.withOpacity(weather==_Weather.fog?.28:.70);
+    final p=Paint()..color=Colors.white.withOpacity(weather == _Weather.fog ? .28 : .70);
     for(var i=0;i<11;i++){
       final y=((i*78+score*3)%(s.height+110)).toDouble()-55;
       if(y<s.height*.38)continue;
@@ -384,7 +384,7 @@ class _RoadPainter extends CustomPainter{
 
   void _headLights(Canvas c,Size s,Offset pc){
     final light=Path()..moveTo(pc.dx-22,pc.dy-12)..lineTo(pc.dx-s.width*.23,pc.dy-s.height*.37)..lineTo(pc.dx+s.width*.23,pc.dy-s.height*.37)..lineTo(pc.dx+22,pc.dy-12)..close();
-    c.drawPath(light,Paint()..color=const Color(0xfffff3b0).withOpacity(weather==_Weather.fog?.22:.16));
+    c.drawPath(light,Paint()..color=const Color(0xfffff3b0).withOpacity(weather == _Weather.fog ? .22 : .16));
   }
 
   void _weatherParticles(Canvas c,Size s){
