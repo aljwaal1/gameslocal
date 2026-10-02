@@ -40,7 +40,7 @@ enum GameAudioTheme {
 class GameFeedback {
   static final AppSettingsController _settings = AppSettingsController.instance;
   static final List<AudioPlayer> _players = List<AudioPlayer>.generate(
-    4,
+    8,
     (_) => AudioPlayer(),
   );
   static final Map<String, Uint8List> _cache = <String, Uint8List>{};
@@ -50,7 +50,7 @@ class GameFeedback {
   static Future<void> uiTap() => _emit(
         GameSound.uiTap,
         vibration: false,
-        volume: .12,
+        volume: .28,
         minInterval: const Duration(milliseconds: 45),
       );
 
@@ -58,7 +58,7 @@ class GameFeedback {
         GameSound.tap,
         theme: theme,
         haptic: HapticFeedback.selectionClick,
-        volume: theme == GameAudioTheme.domino ? .34 : .24,
+        volume: theme == GameAudioTheme.domino ? .56 : .46,
         minInterval: const Duration(milliseconds: 35),
       );
 
@@ -66,7 +66,7 @@ class GameFeedback {
         GameSound.move,
         theme: theme,
         haptic: HapticFeedback.lightImpact,
-        volume: theme == GameAudioTheme.domino ? .48 : .34,
+        volume: theme == GameAudioTheme.domino ? .66 : .56,
         minInterval: const Duration(milliseconds: 45),
       );
 
@@ -74,56 +74,56 @@ class GameFeedback {
         GameSound.capture,
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
-        volume: .42,
+        volume: .64,
       );
 
   static Future<void> win([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
         GameSound.win,
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
-        volume: theme == GameAudioTheme.domino ? .62 : .52,
+        volume: theme == GameAudioTheme.domino ? .82 : .76,
       );
 
   static Future<void> lose([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
         GameSound.lose,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
-        volume: theme == GameAudioTheme.domino ? .58 : .48,
+        volume: theme == GameAudioTheme.domino ? .76 : .70,
       );
 
   static Future<void> error([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
         GameSound.error,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
-        volume: .40,
+        volume: .58,
       );
 
   static Future<void> kick([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
         GameSound.kick,
         theme: theme,
         haptic: HapticFeedback.lightImpact,
-        volume: .48,
+        volume: .70,
       );
 
   static Future<void> goal([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
         GameSound.goal,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
-        volume: .58,
+        volume: .84,
       );
 
   static Future<void> save([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
         GameSound.save,
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
-        volume: .48,
+        volume: .70,
       );
 
   static Future<void> post([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
         GameSound.post,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
-        volume: .55,
+        volume: .78,
       );
 
   static Future<void> _emit(
@@ -161,19 +161,19 @@ class GameFeedback {
   }
 
   static Uint8List _buildWav(GameSound sound, GameAudioTheme theme) {
-    const sampleRate = 22050;
+    const sampleRate = 44100;
     final baseDuration = switch (sound) {
-      GameSound.uiTap => .045,
-      GameSound.tap => .065,
-      GameSound.move => .09,
-      GameSound.capture => .16,
-      GameSound.win => .42,
-      GameSound.lose => .38,
-      GameSound.error => .20,
-      GameSound.kick => .14,
-      GameSound.goal => .50,
-      GameSound.save => .26,
-      GameSound.post => .18,
+      GameSound.uiTap => .060,
+      GameSound.tap => .085,
+      GameSound.move => .120,
+      GameSound.capture => .190,
+      GameSound.win => .520,
+      GameSound.lose => .460,
+      GameSound.error => .240,
+      GameSound.kick => .170,
+      GameSound.goal => .620,
+      GameSound.save => .310,
+      GameSound.post => .220,
     };
     final durationScale = switch (theme) {
       GameAudioTheme.system => 1.0,
@@ -401,7 +401,27 @@ class GameFeedback {
       };
       value = value * .88 + signature * envelope * .12;
 
-      pcm[i] = (value.clamp(-1.0, 1.0) * 32767).round();
+      // A tiny attack prevents the hard digital click that can happen when a
+      // generated cue starts away from zero. Soft limiting also keeps layered
+      // tones clear instead of clipping harshly.
+      final attack = (t / .004).clamp(0.0, 1.0);
+      final release = ((duration - t) / .010).clamp(0.0, 1.0);
+      final shaped = math.tanh(value * 1.18) * attack * release;
+      pcm[i] = (shaped.clamp(-1.0, 1.0) * 32767).round();
+    }
+
+    // Normalize every generated cue to a consistent peak. Previously some
+    // themes were much quieter than others, especially XO/cards/word.
+    var peak = 1;
+    for (final sample in pcm) {
+      final magnitude = sample.abs();
+      if (magnitude > peak) peak = magnitude;
+    }
+    final gain = math.min(1.0, (32767 * .90) / peak);
+    if (gain < .999) {
+      for (var i = 0; i < pcm.length; i++) {
+        pcm[i] = (pcm[i] * gain).round();
+      }
     }
 
     final dataLength = pcm.lengthInBytes;
