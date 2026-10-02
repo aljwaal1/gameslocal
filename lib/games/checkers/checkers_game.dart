@@ -697,42 +697,6 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     });
   }
 
-  Widget _iphoneCard() {
-    if (!networkMode || !localPlayerIsRed) return const SizedBox.shrink();
-    if (hasAndroidGuest) {
-      return const Card(
-        color: Color(0xFFFFF4D8),
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Text(
-            'تم اتصال لاعب أندرويد؛ تم تعطيل دخول Safari لأن الضامة مخصصة للاعبين فقط.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-      );
-    }
-    return Card(
-      color: const Color(0xFFEAF8F1),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: <Widget>[
-            const Text('دخول الآيفون',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-            const SizedBox(height: 8),
-            if (_iphoneUrl.startsWith('http'))
-              QrImageView(
-                  data: _iphoneUrl, size: 150, backgroundColor: Colors.white),
-            SelectableText(
-                _iphoneUrl.isEmpty ? 'جاري تجهيز الرابط...' : _iphoneUrl,
-                textAlign: TextAlign.center),
-            Text('لاعبو Safari: $_iphonePlayers'),
-          ],
-        ),
-      ),
-    );
-  }
 
   Future<void> _showBrowserQr() async {
     if (!_iphoneUrl.startsWith('http') || hasAndroidGuest) return;
