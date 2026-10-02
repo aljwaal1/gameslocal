@@ -583,7 +583,7 @@ class _XoGameScreenState extends State<XoGameScreen> with SingleTickerProviderSt
         ),
       ),
     );
-
+  }
 }
 
 class _ScorePill extends StatelessWidget {
