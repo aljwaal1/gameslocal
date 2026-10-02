@@ -56,6 +56,42 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
     setState(()=>selected.add(c.id)?null:selected.remove(c.id));
   }
   List<_C> get picks=>me.where((c)=>selected.contains(c.id)).toList();
+
+  void _selectHandCardAt(double x,double width){
+    if(!myTurn||!drew||finished||me.isEmpty||width<=0)return;
+    final step=me.length<=1?width:((width-54)/(me.length-1)).clamp(12.0,54.0);
+    final raw=((x-4)/step).floor();
+    final index=raw.clamp(0,me.length-1);
+    final card=me[index];
+    setState((){
+      if(selected.contains(card.id)){
+        selected.remove(card.id);
+      }else{
+        selected
+          ..clear()
+          ..add(card.id);
+      }
+      message=selected.contains(card.id)
+          ? 'محددة للرمي: ${card.label}${card.joker?' ★':' ${card.suit}'}'
+          : 'اختر ورقة للرمي أو مجموعة للنزول';
+    });
+    GameFeedback.tap(GameAudioTheme.cards);
+  }
+
+  void _discardSelectedFromPile(){
+    if(!myTurn||!drew||finished)return;
+    if(pendingOpening.isNotEmpty){
+      GameFeedback.error(GameAudioTheme.cards);
+      setState(()=>message='أكد أو ألغِ مجموعات الفتح قبل رمي ورقة');
+      return;
+    }
+    if(picks.length!=1){
+      GameFeedback.error(GameAudioTheme.cards);
+      setState(()=>message='اختر ورقة واحدة فقط ثم ارمِها');
+      return;
+    }
+    throwSelected();
+  }
   int get pendingOpeningPoints=>pendingOpening.expand((x)=>x).fold(0,(s,c)=>s+value(c));
 
   void _sortHand({required bool bySuit}){
@@ -180,10 +216,31 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
   }
 
   void throwSelected(){
-    if(!myTurn||!drew||picks.length!=1||finished||pendingOpening.isNotEmpty)return;
-    final c=picks.first;me.remove(c);discard.add(c);selected.clear();GameFeedback.move(GameAudioTheme.cards);
+    if(!myTurn||!drew||finished)return;
+    if(pendingOpening.isNotEmpty){
+      GameFeedback.error(GameAudioTheme.cards);
+      setState(()=>message='أكد أو ألغِ مجموعات الفتح قبل رمي ورقة');
+      return;
+    }
+    if(picks.length!=1){
+      GameFeedback.error(GameAudioTheme.cards);
+      setState(()=>message='اختر ورقة واحدة فقط للرمي');
+      return;
+    }
+    final c=picks.first;
+    final removed=me.remove(c);
+    if(!removed){
+      GameFeedback.error(GameAudioTheme.cards);
+      setState(()=>message='تعذر رمي الورقة — اخترها من جديد');
+      return;
+    }
+    discard.add(c);
+    selected.clear();
+    GameFeedback.move(GameAudioTheme.cards);
     if(me.isEmpty){finish(true);return;}
-    myTurn=false;drew=false;setState(()=>message='الروبوت يلعب...');
+    myTurn=false;
+    drew=false;
+    setState(()=>message='رميت ${c.label}${c.joker?' ★':' ${c.suit}'} — الروبوت يلعب...');
     Future.delayed(const Duration(milliseconds:550),botMove);
   }
 
@@ -348,7 +405,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
             const SizedBox(height:8),
             Row(mainAxisAlignment:MainAxisAlignment.center,children:[
               deckButton('الرزمة\n${deck.length}',drawDeck),const SizedBox(width:14),
-              InkWell(onTap:drawDiscard,child:top==null?deckButton('الرمي',drawDiscard):card(top,small:true)),
+              InkWell(onTap:()=>drew?_discardSelectedFromPile():drawDiscard(),child:top==null?deckButton('الرمي',drawDiscard):Stack(alignment:Alignment.center,children:[card(top,small:true),if(drew&&picks.length==1)Positioned.fill(child:Container(decoration:BoxDecoration(borderRadius:BorderRadius.circular(7),border:Border.all(color:const Color(0xFFFFD166),width:3))))])),
             ]),
             const SizedBox(height:8),
             Expanded(child:melds.isEmpty&&pendingOpening.isEmpty
@@ -376,25 +433,34 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
             IconButton(onPressed:()=>_sortHand(bySuit:true),tooltip:'ترتيب حسب النوع',visualDensity:VisualDensity.compact,icon:const Icon(Icons.filter_alt_rounded,color:Color(0xFFFFD166),size:20)),
             IconButton(onPressed:()=>_sortHand(bySuit:false),tooltip:'ترتيب حسب الرقم',visualDensity:VisualDensity.compact,icon:const Icon(Icons.sort_rounded,color:Colors.white70,size:20)),
           ]),
-          SizedBox(height:104,child:LayoutBuilder(builder:(context,constraints)=>Stack(
-            clipBehavior:Clip.none,
-            alignment:Alignment.bottomCenter,
-            children:[
-              for(int i=0;i<me.length;i++) Positioned(
-                left:me.length<=1?constraints.maxWidth/2-24:(constraints.maxWidth-54)*i/(me.length-1),
-                bottom:selected.contains(me[i].id)?10:0,
-                child:Transform.rotate(
-                  angle:me.length<=1?0:(i-(me.length-1)/2)*.018,
-                  child:card(me[i],onTap:()=>toggle(me[i]),picked:selected.contains(me[i].id)),
-                ),
-              )
-            ]
-          ))),
+          SizedBox(
+            height:104,
+            child:LayoutBuilder(builder:(context,constraints)=>GestureDetector(
+              behavior:HitTestBehavior.opaque,
+              onTapUp:(details)=>_selectHandCardAt(details.localPosition.dx,constraints.maxWidth),
+              child:Stack(
+                clipBehavior:Clip.none,
+                alignment:Alignment.bottomCenter,
+                children:[
+                  for(int i=0;i<me.length;i++) Positioned(
+                    left:me.length<=1?constraints.maxWidth/2-24:(constraints.maxWidth-54)*i/(me.length-1),
+                    bottom:selected.contains(me[i].id)?10:0,
+                    child:IgnorePointer(
+                      child:Transform.rotate(
+                        angle:me.length<=1?0:(i-(me.length-1)/2)*.018,
+                        child:card(me[i],picked:selected.contains(me[i].id)),
+                      ),
+                    ),
+                  )
+                ]
+              ),
+            )),
+          ),
           const SizedBox(height:7),
           Row(children:[
             Expanded(child:FilledButton.icon(onPressed:myTurn&&drew&&picks.length>=3?meld:null,icon:const Icon(Icons.call_merge),label:Text(myOpened?'نزول مجموعة':'أضف للفتح'))),
             const SizedBox(width:8),
-            Expanded(child:OutlinedButton.icon(onPressed:myTurn&&drew&&picks.length==1&&pendingOpening.isEmpty?throwSelected:null,icon:const Icon(Icons.delete_sweep),label:const Text('ارمِ المحددة')))
+            Expanded(child:FilledButton.tonalIcon(onPressed:myTurn&&drew?_discardSelectedFromPile:null,icon:const Icon(Icons.delete_sweep),label:Text(picks.length==1?'ارمِ ${picks.first.label}${picks.first.joker?' ★':' ${picks.first.suit}'}':'اختر ورقة للرمي')))
           ]),
           if(!myOpened&&pendingOpening.isNotEmpty) Padding(
             padding:const EdgeInsets.only(top:7),
