@@ -70,6 +70,10 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
       v=Offset(-v.dx*.94,v.dy);p=Offset(p.dx.clamp(radius,1-radius),p.dy);GameFeedback.move(GameAudioTheme.hockey);
     }
     final inGoal=p.dx>.31&&p.dx<.69;
+    for(final post in const [Offset(.31,.035),Offset(.69,.035),Offset(.31,.965),Offset(.69,.965)]){
+      final hit=_collidePost(post,p,v);
+      p=hit.position;v=hit.velocity;
+    }
     if(!inGoal&&p.dy<radius){v=Offset(v.dx,-v.dy*.94);p=Offset(p.dx,radius);GameFeedback.move(GameAudioTheme.hockey);}
     if(!inGoal&&p.dy>1-radius){v=Offset(v.dx,-v.dy*.94);p=Offset(p.dx,1-radius);GameFeedback.move(GameAudioTheme.hockey);}
 
@@ -99,6 +103,19 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     if(result.distance<minimum)result=n*minimum+paddleSpeed*.72;
     result=_limit(result,2.65);GameFeedback.capture(GameAudioTheme.hockey);
     return(position:paddle+n*.109,velocity:result,contact:true);
+  }
+
+  ({Offset position,Offset velocity}) _collidePost(Offset post,Offset p,Offset current){
+    final d=p-post;
+    final distance=d.distance;
+    const combined=.064;
+    if(distance>=combined||distance==0)return(position:p,velocity:current);
+    final n=d/distance;
+    final approach=current.dx*n.dx+current.dy*n.dy;
+    if(approach>=0)return(position:post+n*combined,velocity:current);
+    final bounced=current-n*(1.92*approach);
+    GameFeedback.post(GameAudioTheme.hockey);
+    return(position:post+n*combined,velocity:_limit(bounced,2.65));
   }
 
   void _sendState(){
@@ -229,7 +246,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
         ]),
         const SizedBox(height:8),
         Expanded(child:Stack(children:[
-          Positioned.fill(child:LayoutBuilder(builder:(context,c)=>Listener(onPointerDown:(e)=>_down(e,c),onPointerMove:(e)=>_move(e,c),onPointerUp:_up,onPointerCancel:_up,child:CustomPaint(size:Size(c.maxWidth,c.maxHeight),painter:_HockeyPainter(puck,bottom,top))))),
+          Positioned.fill(child:LayoutBuilder(builder:(context,c)=>Listener(onPointerDown:(e)=>_down(e,c),onPointerMove:(e)=>_move(e,c),onPointerUp:_up,onPointerCancel:_up,child:CustomPaint(size:Size(c.maxWidth,c.maxHeight),painter:_HockeyPainter(puck,bottom,top,velocity))))),
           Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
             opacity:goalFlash?1:0,
             duration:const Duration(milliseconds:120),
@@ -254,8 +271,8 @@ class _Score extends StatelessWidget{
 }
 
 class _HockeyPainter extends CustomPainter{
-  const _HockeyPainter(this.puck,this.bottom,this.top);
-  final Offset puck,bottom,top;
+  const _HockeyPainter(this.puck,this.bottom,this.top,this.velocity);
+  final Offset puck,bottom,top,velocity;
   Offset p(Offset x,Size s)=>Offset(x.dx*s.width,x.dy*s.height);
   @override void paint(Canvas c,Size s){
     final rect=Offset.zero&s;
@@ -263,7 +280,18 @@ class _HockeyPainter extends CustomPainter{
     final line=Paint()..color=const Color(0x8838BDF8)..style=PaintingStyle.stroke..strokeWidth=3;
     c.drawLine(Offset(0,s.height/2),Offset(s.width,s.height/2),line);c.drawCircle(Offset(s.width/2,s.height/2),s.width*.14,line);
     _goal(c,s,true,const Color(0xFFF472B6));_goal(c,s,false,const Color(0xFF22D3EE));
-    _disc(c,p(top,s),s.width*.065,const Color(0xFFF472B6));_disc(c,p(bottom,s),s.width*.065,const Color(0xFF22D3EE));_disc(c,p(puck,s),s.width*.035,Colors.white);
+    final puckPx=p(puck,s);
+    final trail=Offset(velocity.dx*s.width,velocity.dy*s.height);
+    for(int i=5;i>=1;i--){
+      final t=i/6;
+      final center=puckPx-trail*(.018*i);
+      c.drawCircle(center,s.width*.035*(1-t*.35),Paint()..color=Colors.white.withAlpha((34*(1-t)).round()+8));
+    }
+    _disc(c,p(top,s),s.width*.065,const Color(0xFFF472B6));
+    _disc(c,p(bottom,s),s.width*.065,const Color(0xFF22D3EE));
+    _disc(c,puckPx,s.width*.035,Colors.white);
+    final sheen=Paint()..shader=const LinearGradient(colors:[Color(0x00FFFFFF),Color(0x18FFFFFF),Color(0x00FFFFFF)],begin:Alignment.topLeft,end:Alignment.bottomRight).createShader(rect);
+    c.drawRRect(RRect.fromRectAndRadius(rect,const Radius.circular(30)),sheen);
   }
   void _goal(Canvas c,Size s,bool topGoal,Color color){
     final y=topGoal?0.0:s.height,inward=topGoal?1.0:-1.0,width=s.width*.38,left=(s.width-width)/2;
