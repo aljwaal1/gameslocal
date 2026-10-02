@@ -55,7 +55,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
     if(isNetworkGame&&!isHost)return;
     var event=0;
     distance++;scoreTick++;
-    if(scoreTick>=12){score++;scoreTick=0;}
+    if(scoreTick>=12){if(alive)score++;if(isNetworkGame&&remoteAlive)remoteScore++;scoreTick=0;}
     if(alive)fuel-=.045;
     if(isNetworkGame&&remoteAlive)remoteFuel-=.045;
     level=1+distance~/1500;
@@ -91,7 +91,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
     final hitObjects=<_Obj>[],hitBullets=<_Bullet>[];
     for(final b in bullets){
       for(final o in objects){
-        if(o.type!=_ObjType.fuel&&(b.x-o.x).abs()<o.size&&(b.y-o.y).abs()<o.size){
+        if(o.type!=_ObjType.fuel&&!hitObjects.contains(o)&&(b.x-o.x).abs()<o.size&&(b.y-o.y).abs()<o.size){
           hitObjects.add(o);hitBullets.add(b);if(b.remote){remoteScore+=75;}else{score+=75;}event=2;break;
         }
       }
