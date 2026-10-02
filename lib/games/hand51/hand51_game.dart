@@ -420,7 +420,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
     width:small?16:46,height:small?24:70,
     decoration:BoxDecoration(
       borderRadius:BorderRadius.circular(small?3:9),
-      border:Border.all(color:Colors.white70,width:small?.7:1.2),
+      border:Border.all(color:Colors.white70,width:small ? .7 : 1.2),
       gradient:const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF7E1024),Color(0xFFC6283B),Color(0xFF6A0B1D)]),
       boxShadow:small?null:const [BoxShadow(color:Color(0x55000000),blurRadius:6,offset:Offset(0,3))]
     ),
