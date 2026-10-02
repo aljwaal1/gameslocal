@@ -271,6 +271,69 @@ class GameFeedback {
             value = transient(t, 0, .045, .35);
             break;
         }
+      } else if (theme == GameAudioTheme.hockey) {
+        switch (sound) {
+          case GameSound.capture:
+          case GameSound.move:
+            value = transient(t, 0, .032, .88) + note(t, 1760, duration) * .34 + note(t, 260, duration) * .18;
+            break;
+          case GameSound.post:
+            value = transient(t, 0, .050, .96) + note(t, 2480, duration) * .62;
+            break;
+          case GameSound.goal:
+          case GameSound.win:
+            final rise = 620 + progress * 820;
+            value = math.sin(2 * math.pi * rise * t) * envelope * .72 + note(t, 1240, duration) * .28;
+            break;
+          case GameSound.lose:
+            value = note(t, 310, duration) * .58 + note(t, 180, duration) * .42;
+            break;
+          default:
+            value = transient(t, 0, .035, .38) + note(t, 1200, duration) * .18;
+            break;
+        }
+      } else if (theme == GameAudioTheme.plane) {
+        switch (sound) {
+          case GameSound.move:
+            final noise = random.nextDouble() * 2 - 1;
+            value = (noise * .58 + math.sin(2 * math.pi * (420 + progress * 250) * t) * .42) * envelope * .72;
+            break;
+          case GameSound.capture:
+            value = transient(t, 0, .045, .90) + note(t, 210, duration) * .42;
+            break;
+          case GameSound.win:
+            value = note(t, 880, duration) * .52 + note(t, 1320, duration) * .38 + transient(t, 0, .035, .28);
+            break;
+          case GameSound.lose:
+            final noise = random.nextDouble() * 2 - 1;
+            value = (noise * .72 + note(t, 94, duration) * .55) * envelope;
+            break;
+          default:
+            value = note(t, 520, duration) * .35;
+            break;
+        }
+      } else if (theme == GameAudioTheme.road) {
+        switch (sound) {
+          case GameSound.capture:
+            value = transient(t, 0, .035, .48) + note(t, 520, duration) * .34;
+            break;
+          case GameSound.tap:
+            value = note(t, 740, duration) * .36 + note(t, 980, duration) * .22;
+            break;
+          case GameSound.win:
+            final segment = duration / 3;
+            final frequencies = <double>[392, 523.25, 659.25];
+            final index = math.min(2, (t / segment).floor());
+            value = note(t - index * segment, frequencies[index], segment) * .74;
+            break;
+          case GameSound.lose:
+            final noise = random.nextDouble() * 2 - 1;
+            value = (noise * .64 + note(t, 82, duration) * .72 + note(t, 128, duration) * .25) * envelope;
+            break;
+          default:
+            value = note(t, 180, duration) * .28 + transient(t, 0, .030, .24);
+            break;
+        }
       } else {
         switch (sound) {
           case GameSound.uiTap:
