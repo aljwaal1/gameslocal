@@ -417,10 +417,10 @@ class GameFeedback {
       final magnitude = sample.abs();
       if (magnitude > peak) peak = magnitude;
     }
-    final gain = math.min(1.0, (32767 * .90) / peak);
-    if (gain < .999) {
+    final gain = math.min(3.2, (32767 * .90) / peak);
+    if ((gain - 1).abs() > .001) {
       for (var i = 0; i < pcm.length; i++) {
-        pcm[i] = (pcm[i] * gain).round();
+        pcm[i] = (pcm[i] * gain).round().clamp(-32767, 32767).toInt();
       }
     }
 
