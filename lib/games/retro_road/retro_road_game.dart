@@ -127,7 +127,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   void dragRoad(double dx,double width){
     if(!running||localCrashed||width<=0)return;
     final target=(dx/width).clamp(.16,.84);
-    final blend=weather==_Weather.snow?.28:weather==_Weather.rain?.38:.52;
+    final blend=weather == _Weather.snow ? .28 : weather == _Weather.rain ? .38 : .52;
     setState(()=>playerX=(playerX+(target-playerX)*blend).clamp(.16,.84));
     _sendRoadControl();
   }
