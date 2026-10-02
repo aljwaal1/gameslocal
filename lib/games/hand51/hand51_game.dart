@@ -34,6 +34,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
     all.add(const _C('★',0,joker:true,copy:2));
     all.shuffle(rnd);
     me=all.take(13).toList(); bot=all.skip(13).take(13).toList(); deck=all.skip(26).toList();
+    _sortHand(bySuit:true);
     discard=[deck.removeLast()]; melds=[]; pendingOpening=[]; selected.clear();
     myOpened=false;botOpened=false;myTurn=true;drew=false;finished=false;
     message='الجولة $round: اسحب من الرزمة أو آخر ورقة';
@@ -42,12 +43,12 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
 
   void drawDeck(){
     if(!myTurn||drew||finished||deck.isEmpty)return;
-    me.add(deck.removeLast());drew=true;GameFeedback.tap(GameAudioTheme.cards);
+    me.add(deck.removeLast());_sortHand(bySuit:true);drew=true;GameFeedback.tap(GameAudioTheme.cards);
     setState(()=>message='اختر مجموعة للنزول أو ورقة للرمي');
   }
   void drawDiscard(){
     if(!myTurn||drew||finished||discard.isEmpty)return;
-    me.add(discard.removeLast());drew=true;GameFeedback.capture(GameAudioTheme.cards);
+    me.add(discard.removeLast());_sortHand(bySuit:true);drew=true;GameFeedback.capture(GameAudioTheme.cards);
     setState(()=>message='أخذت آخر ورقة مرمية');
   }
   void toggle(_C c){
@@ -56,6 +57,23 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
   }
   List<_C> get picks=>me.where((c)=>selected.contains(c.id)).toList();
   int get pendingOpeningPoints=>pendingOpening.expand((x)=>x).fold(0,(s,c)=>s+value(c));
+
+  void _sortHand({required bool bySuit}){
+    const suitOrder={'♠':0,'♥':1,'♦':2,'♣':3,'★':4};
+    me.sort((a,b){
+      if(a.joker!=b.joker)return a.joker?1:-1;
+      if(bySuit){
+        final suit=(suitOrder[a.suit]??9).compareTo(suitOrder[b.suit]??9);
+        if(suit!=0)return suit;
+      }
+      final ar=a.rank==1?14:a.rank;
+      final br=b.rank==1?14:b.rank;
+      final rank=ar.compareTo(br);
+      if(rank!=0)return rank;
+      return (suitOrder[a.suit]??9).compareTo(suitOrder[b.suit]??9);
+    });
+    if(mounted)setState((){});
+  }
 
   bool sameRank(List<_C> x){
     if(x.length<3)return false;
@@ -324,7 +342,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
               Column(children:[
                 Text('الروبوت • '+bot.length.toString()+' ورقة',style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w900,fontSize:12)),
                 const SizedBox(height:3),
-                Row(children:[for(int i=0;i<min(bot.length,8);i++)Container(width:14,height:22,margin:const EdgeInsets.only(left:2),decoration:BoxDecoration(color:const Color(0xFFB11F2E),borderRadius:BorderRadius.circular(3),border:Border.all(color:Colors.white54,width:.6)))])
+                Row(children:[for(int i=0;i<min(bot.length,8);i++)Padding(padding:const EdgeInsets.only(left:2),child:backCard(small:true))])
               ])
             ]),
             const SizedBox(height:8),
@@ -352,6 +370,12 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
           decoration:const BoxDecoration(color:Color(0xFF17181D),border:Border(top:BorderSide(color:Color(0x33FFFFFF)))),
           padding:const EdgeInsets.fromLTRB(8,6,8,10),
           child:Column(children:[
+          Row(children:[
+            const Text('أوراقك',style:TextStyle(color:Colors.white70,fontWeight:FontWeight.w800,fontSize:12)),
+            const Spacer(),
+            IconButton(onPressed:()=>_sortHand(bySuit:true),tooltip:'ترتيب حسب النوع',visualDensity:VisualDensity.compact,icon:const Icon(Icons.filter_alt_rounded,color:Color(0xFFFFD166),size:20)),
+            IconButton(onPressed:()=>_sortHand(bySuit:false),tooltip:'ترتيب حسب الرقم',visualDensity:VisualDensity.compact,icon:const Icon(Icons.sort_rounded,color:Colors.white70,size:20)),
+          ]),
           SizedBox(height:104,child:LayoutBuilder(builder:(context,constraints)=>Stack(
             clipBehavior:Clip.none,
             alignment:Alignment.bottomCenter,
@@ -392,13 +416,49 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
 
   Widget stat(String a,String b)=>Expanded(child:Column(children:[Text(b,style:const TextStyle(color:Colors.white,fontSize:17,fontWeight:FontWeight.w900)),Text(a,style:const TextStyle(color:Colors.white60,fontSize:10))]));
   Widget deckButton(String t,VoidCallback f)=>InkWell(onTap:f,child:Container(width:62,height:82,alignment:Alignment.center,decoration:BoxDecoration(color:const Color(0xFF173D31),borderRadius:BorderRadius.circular(13),border:Border.all(color:Colors.white24)),child:Text(t,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w800))));
+  Widget backCard({bool small=false})=>Container(
+    width:small?16:46,height:small?24:70,
+    decoration:BoxDecoration(
+      borderRadius:BorderRadius.circular(small?3:9),
+      border:Border.all(color:Colors.white70,width:small?.7:1.2),
+      gradient:const LinearGradient(begin:Alignment.topLeft,end:Alignment.bottomRight,colors:[Color(0xFF7E1024),Color(0xFFC6283B),Color(0xFF6A0B1D)]),
+      boxShadow:small?null:const [BoxShadow(color:Color(0x55000000),blurRadius:6,offset:Offset(0,3))]
+    ),
+    child:small?null:Center(child:Container(width:26,height:44,decoration:BoxDecoration(borderRadius:BorderRadius.circular(5),border:Border.all(color:Colors.white54),color:const Color(0x22FFFFFF)),child:const Icon(Icons.auto_awesome,color:Colors.white70,size:16))),
+  );
+
   Widget card(_C c,{bool small=false,bool picked=false,VoidCallback? onTap}){
     final red=c.suit=='♥'||c.suit=='♦';
-    return GestureDetector(onTap:onTap,child:AnimatedContainer(duration:const Duration(milliseconds:140),width:small?38:54,height:small?56:82,
-      transform:picked?(Matrix4.identity()..translate(0.0,-5.0)):Matrix4.identity(),
-      decoration:BoxDecoration(color:c.joker?const Color(0xFFFFF3C4):Colors.white,borderRadius:BorderRadius.circular(9),border:Border.all(color:picked?const Color(0xFFFFD166):Colors.black26,width:picked?2.5:1)),
-      alignment:Alignment.center,child:Text(c.joker?'J\n★':'${c.label}\n${c.suit}',textAlign:TextAlign.center,style:TextStyle(color:red?Colors.red.shade800:const Color(0xFF17212B),fontWeight:FontWeight.w900,fontSize:small?12:18,height:1))));
+    final ink=red?const Color(0xFFC62828):const Color(0xFF15171C);
+    final w=small?38.0:54.0,h=small?56.0:82.0;
+    return GestureDetector(
+      onTap:onTap,
+      child:AnimatedContainer(
+        duration:const Duration(milliseconds:140),
+        curve:Curves.easeOutCubic,
+        width:w,height:h,
+        transform:picked?(Matrix4.identity()..translate(0.0,-7.0)..scale(1.035)):Matrix4.identity(),
+        decoration:BoxDecoration(
+          color:c.joker?const Color(0xFFFFF1C7):const Color(0xFFFDFCF8),
+          borderRadius:BorderRadius.circular(small?7:10),
+          border:Border.all(color:picked?const Color(0xFFFFD166):const Color(0xFFDDD6C7),width:picked?2.4:1),
+          boxShadow:[BoxShadow(color:picked?const Color(0x66FFD166):const Color(0x44000000),blurRadius:picked?10:5,offset:const Offset(0,3))]
+        ),
+        child:Stack(children:[
+          Positioned(top:4,left:5,child:Text(c.joker?'J':c.label,style:TextStyle(color:c.joker?const Color(0xFF7B1E88):ink,fontWeight:FontWeight.w900,fontSize:small?10:13))),
+          if(!c.joker)Positioned(top:14,left:5,child:Text(c.suit,style:TextStyle(color:ink,fontSize:small?10:12,height:1))),
+          Center(child:c.joker
+            ?Column(mainAxisSize:MainAxisSize.min,children:[
+                Icon(Icons.auto_awesome,color:const Color(0xFF7B1E88),size:small?16:25),
+                if(!small)const Text('JOKER',style:TextStyle(color:Color(0xFF7B1E88),fontWeight:FontWeight.w900,fontSize:8,letterSpacing:.6))
+              ])
+            :Text(c.suit,style:TextStyle(color:ink,fontSize:small?20:31,fontWeight:FontWeight.w700))),
+          Positioned(bottom:4,right:5,child:Transform.rotate(angle:pi,child:Text(c.joker?'J':c.label,style:TextStyle(color:c.joker?const Color(0xFF7B1E88):ink,fontWeight:FontWeight.w900,fontSize:small?10:13)))),
+        ]),
+      ),
+    );
   }
+
 }
 
 class _C{
