@@ -184,7 +184,12 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
             (e['lane'] as num).toInt(),(e['factor'] as num).toDouble())));
       });
       if(!wasCrashed&&localCrashed){_showEffect('💥 حادث!');GameFeedback.lose(GameAudioTheme.road);}
-      else if(!wasGameOver&&gameOver){_showEffect(resultText);GameFeedback.lose(GameAudioTheme.road);}
+      else if(!wasGameOver&&gameOver){
+        _showEffect(resultText);
+        if(resultText=='فزت بالسباق'){GameFeedback.win(GameAudioTheme.road);}
+        else if(resultText.startsWith('تعادل')){GameFeedback.tap(GameAudioTheme.road);}
+        else{GameFeedback.lose(GameAudioTheme.road);}
+      }
       else if(day>oldDay){_showEffect('🏁 يوم جديد!');GameFeedback.win(GameAudioTheme.road);}
       else if(weather!=oldWeather){_showEffect('🌦 '+weather.label);GameFeedback.tap(GameAudioTheme.road);}
     }
