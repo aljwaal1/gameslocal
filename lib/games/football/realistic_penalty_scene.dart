@@ -46,7 +46,6 @@ class RealisticPenaltyScene extends StatelessWidget {
         final goalRect = _goalRect(size);
 
         final runT = _phase(0.12, 0.47, Curves.easeInOutCubic);
-        final plantT = _phase(0.43, 0.55, Curves.easeOutCubic);
         final strikeT = _phase(0.52, 0.67, Curves.easeInOutCubic);
         final flightT = _phase(0.60, 0.86, Curves.easeInCubic);
         final keeperDiveT = _phase(0.66, 0.92, Curves.easeOutCubic);
