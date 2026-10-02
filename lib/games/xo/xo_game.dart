@@ -10,7 +10,6 @@ import '../../core/pregame_qr_lobby.dart';
 import '../../core/iphone_game_bridge.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
-import '../../design/app_theme.dart';
 import 'xo_iphone_bridge.dart';
 
 enum XoCell { empty, x, o }
