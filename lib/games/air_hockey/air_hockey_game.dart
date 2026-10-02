@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
+import '../../core/app_settings.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 
@@ -13,6 +14,7 @@ class AirHockeyGameScreen extends StatefulWidget {
 
 class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTickerProviderStateMixin {
   late final AnimationController clock;
+  final settings=AppSettingsController.instance;
   final Stopwatch physicsClock=Stopwatch();
   final Map<int,_PointerSample> pointerSamples={};
   final Map<int,bool> pointerLower={};
@@ -52,11 +54,14 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     var v=velocity*pow(.985,dt*60).toDouble();
 
     if(botMode&&p.dy<.64){
+      final difficulty=settings.botDifficultyFor('air_hockey');
       final attacking=p.dy<.46;
-      final targetX=(p.dx+v.dx*(attacking ? .10 : .18)).clamp(.10,.90).toDouble();
+      final prediction=switch(difficulty){BotDifficulty.easy=>.06,BotDifficulty.normal=>.11,BotDifficulty.hard=>.17};
+      final botSpeed=switch(difficulty){BotDifficulty.easy=>.58,BotDifficulty.normal=>.82,BotDifficulty.hard=>1.12};
+      final targetX=(p.dx+v.dx*(attacking ? prediction*.72 : prediction)).clamp(.10,.90).toDouble();
       final targetY=(attacking?(p.dy+.045).clamp(.10,.39):.16).toDouble();
       final delta=Offset(targetX-top.dx,targetY-top.dy);
-      final maxStep=(attacking?1.15:.72)*dt;
+      final maxStep=botSpeed*(attacking?1.12:.78)*dt;
       final step=delta.distance>maxStep?delta/delta.distance*maxStep:delta;
       final old=top;
       top=Offset((top.dx+step.dx).clamp(.10,.90),(top.dy+step.dy).clamp(.08,.43));
@@ -99,7 +104,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
     final approach=relative.dx*n.dx+relative.dy*n.dy;
     if(approach>=0&&paddleSpeed.distance<.08)return(position:p,velocity:current,contact:true);
     var result=relative-n*(1.96*approach)+paddleSpeed*1.42;
-    final minimum=upper && botMode ? .48 : .25;
+    final minimum=upper && botMode ? switch(settings.botDifficultyFor('air_hockey')){BotDifficulty.easy=>.31,BotDifficulty.normal=>.42,BotDifficulty.hard=>.52} : .25;
     if(result.distance<minimum)result=n*minimum+paddleSpeed*.72;
     result=_limit(result,2.65);GameFeedback.capture(GameAudioTheme.hockey);
     return(position:paddle+n*.109,velocity:result,contact:true);
