@@ -123,9 +123,13 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
             : (!alive&&!remoteAlive?'تعادل':(!alive?'فاز اللاعب الآخر':'فزت بالمواجهة'));
       }
       _showEffect('💥 انتهت الجولة');
-      GameFeedback.lose(GameAudioTheme.plane);
+      if (isNetworkGame && networkMode == 0 && alive && !remoteAlive) {
+        GameFeedback.win(GameAudioTheme.plane);
+      } else {
+        GameFeedback.lose(GameAudioTheme.plane);
+      }
     }else if(event==2){_showEffect('💥 إصابة!');GameFeedback.capture(GameAudioTheme.plane);}
-    else if(event==3){_showEffect('⛽ + وقود');GameFeedback.win(GameAudioTheme.plane);}
+    else if(event==3){_showEffect('⛽ + وقود');GameFeedback.tap(GameAudioTheme.plane);}
     else if(event==1&&distance%90==0){GameFeedback.move(GameAudioTheme.plane);}
 
     if(isNetworkGame&&isHost&&++syncTick%2==0)_sendState('plane_state');
@@ -197,8 +201,12 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
             (e['x'] as num).toDouble(),(e['y'] as num).toDouble(),remote:e['remote']!=true)));
       });
       if(wasAlive&&!alive){_showEffect('💥 طائرتك تحطمت');GameFeedback.lose(GameAudioTheme.plane);}
-      else if(!wasGameOver&&gameOver){_showEffect('🏁 انتهت الجولة');GameFeedback.lose(GameAudioTheme.plane);}
-      else if(fuel>oldFuel+5){_showEffect('⛽ + وقود');GameFeedback.win(GameAudioTheme.plane);}
+      else if(!wasGameOver&&gameOver){
+        _showEffect(resultText.isEmpty?'🏁 انتهت الجولة':resultText);
+        if(resultText=='فزت بالمواجهة'){GameFeedback.win(GameAudioTheme.plane);}
+        else{GameFeedback.lose(GameAudioTheme.plane);}
+      }
+      else if(fuel>oldFuel+5){_showEffect('⛽ + وقود');GameFeedback.tap(GameAudioTheme.plane);}
       else if(score>=oldScore+75){_showEffect('💥 إصابة!');GameFeedback.capture(GameAudioTheme.plane);}
     }
   }
