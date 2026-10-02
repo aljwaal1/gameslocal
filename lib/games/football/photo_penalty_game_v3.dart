@@ -67,10 +67,8 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
   late final AnimationController _ambient;
 
   _PenaltyPhase _phase = _PenaltyPhase.aiming;
-  _PenaltyOutcome _outcome = _PenaltyOutcome.goal;
   Offset _target = const Offset(.5, .30);
   Offset _keeper = const Offset(.5, .56);
-  double _power = .72;
   int _playerGoals = 0;
   int _robotGoals = 0;
   int _playerShots = 0;
@@ -81,8 +79,6 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
   Offset? _dragStart;
   Offset? _dragNow;
 
-  FootballTeam get _playerTeam => footballTeams.first;
-  FootballTeam get _robotTeam => footballTeams[1];
   bool get _suddenDeath => _playerShots >= 5 && _robotShots >= 5;
   bool get _playerIsShooting => _playerShots == _robotShots;
 
