@@ -11,7 +11,9 @@ import '../../core/network/network_message.dart';
 import 'iphone_web_bridge.dart';
 
 class NameAnimalObjectGameScreen extends StatefulWidget {
-  const NameAnimalObjectGameScreen({super.key});
+  const NameAnimalObjectGameScreen({super.key, this.networkCore});
+
+  final LocalNetworkCore? networkCore;
   @override
   State<NameAnimalObjectGameScreen> createState() =>
       _NameAnimalObjectGameScreenState();
@@ -105,7 +107,7 @@ class _NameAnimalObjectGameScreenState
     for (final c in _categories) {
       _answers[c] = TextEditingController();
     }
-    _network = LocalNetworkCore.activeFor(_gameId);
+    _network = widget.networkCore ?? LocalNetworkCore.activeFor(_gameId);
     final network = _network;
     if (network != null) {
       for (final p in network.state.players) {
@@ -169,7 +171,7 @@ class _NameAnimalObjectGameScreenState
     _playerNames[_myId] = name;
     _scores.putIfAbsent(_myId, () => 0);
     _network?.updateLocalPlayerName(name);
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.word);
     setState(() => _stage = _Stage.waiting);
   }
 
@@ -200,7 +202,7 @@ class _NameAnimalObjectGameScreenState
       'letter': payload['letter'],
       'seconds': _roundSeconds,
     });
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.word);
   }
 
   void _handleNetworkMessage(NetworkMessage message) {
@@ -272,7 +274,7 @@ class _NameAnimalObjectGameScreenState
       _finishing = false;
       _stage = _Stage.playing;
     });
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.word);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_secondsLeft <= 1) {
@@ -288,7 +290,7 @@ class _NameAnimalObjectGameScreenState
     if (_submitted || _stage != _Stage.playing) return;
     final values = {for (final c in _categories) c: _answers[c]!.text.trim()};
     setState(() => _submitted = true);
-    GameFeedback.tap();
+    GameFeedback.tap(GameAudioTheme.word);
     _network?.sendMove({
       'action': 'categories_submit',
       'round': _round,
@@ -424,7 +426,18 @@ class _NameAnimalObjectGameScreenState
       _finishing = false;
       _stage = _Stage.results;
     });
-    GameFeedback.win();
+    final List<int> totals = scores.values.toList(growable: false);
+    final int myTotal = scores[_myId] ?? 0;
+    final int bestTotal =
+        totals.isEmpty ? 0 : totals.reduce((int a, int b) => a > b ? a : b);
+    final bool allTied = totals.isEmpty || totals.every((score) => score == bestTotal);
+    if (allTied) {
+      GameFeedback.tap(GameAudioTheme.word);
+    } else if (myTotal == bestTotal) {
+      GameFeedback.win(GameAudioTheme.word);
+    } else {
+      GameFeedback.lose(GameAudioTheme.word);
+    }
   }
 
   Future<void> _proposeScoreEdit(String playerId) async {
@@ -578,10 +591,14 @@ class _NameAnimalObjectGameScreenState
       return PregameQrLobby(
         title: 'اسم حيوان جماد • دعوة لاعبين',
         url: _webUrl,
-        connectedPlayers: _webPlayers.length,
+        connectedPlayers: (_network?.state.players
+                    .where((player) => !player.isHost)
+                    .length ??
+                0) +
+            _webPlayers.length,
         accent: const Color(0xFF8B5CF6),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(GameAudioTheme.word);
           setState(() => _showNetworkQrLobby = false);
         },
       );
@@ -683,7 +700,10 @@ class _NameAnimalObjectGameScreenState
                     ),
                   )
                 else
-                  const Text('بانتظار المضيف...', textAlign: TextAlign.center),
+                  Text(
+                    'بانتظار ${_network?.hostPlayerName ?? 'الداعي'}...',
+                    textAlign: TextAlign.center,
+                  ),
               ],
             ),
           );
@@ -728,7 +748,7 @@ class _NameAnimalObjectGameScreenState
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _submitted ? null : () {
-                      GameFeedback.win();
+                      GameFeedback.tap(GameAudioTheme.word);
                       _submitAnswers(endAll: true);
                     },
                     icon: const Icon(Icons.flag),
@@ -905,8 +925,8 @@ class _NameAnimalObjectGameScreenState
             label: const Text('حرف جديد'),
           )
         else
-          const Text(
-            'بانتظار المضيف للحرف التالي',
+          Text(
+            'بانتظار ${_network?.hostPlayerName ?? 'الداعي'} للحرف التالي',
             textAlign: TextAlign.center,
           ),
       ],

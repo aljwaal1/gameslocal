@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/pregame_qr_lobby.dart';
 import '../../core/network/local_network_core.dart';
@@ -164,7 +165,7 @@ class _LineWebBridge {
   }
 
   static String _html(LineGameKind kind) {
-    final title = kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
+    final title = kind == LineGameKind.sheikhBeard ? 'لعبة اللحية' : 'المربعات';
     final gameName = kind.name;
     return '''<!doctype html>
 <html lang="ar" dir="rtl">
@@ -189,7 +190,7 @@ canvas{width:100%;aspect-ratio:1;background:#fff;border-radius:18px;touch-action
 </section>
 <section id="game" class="hidden">
 <div class="card">
-<div id="status">بانتظار المضيف...</div>
+<div id="status">بانتظار بدء اللعبة...</div>
 <div id="scores" class="scores"></div>
 </div>
 <canvas id="board" width="700" height="700"></canvas>
@@ -317,6 +318,8 @@ function draw(){
 }
 
 class _LineGameScreenState extends State<LineGameScreen> {
+  final AppSettingsController settings = AppSettingsController.instance;
+  final math.Random _random = math.Random();
   static const List<Color> _colors = <Color>[
     Color(0xFFE63946),
     Color(0xFF277DA1),
@@ -342,13 +345,31 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
   String _webUrl = '';
   bool _showNetworkQrLobby = true;
+  bool _resultSoundPlayed = false;
+  bool _botThinking = false;
   int _turnIndex = 0;
 
-  bool get _isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  bool get _isOffline => widget.networkCore == null;
+  bool get _isHost =>
+      _isOffline || widget.networkCore?.state.mode == LocalNetworkMode.host;
+
+  GameAudioTheme get _audioTheme => widget.kind == LineGameKind.sheikhBeard
+      ? GameAudioTheme.beard
+      : GameAudioTheme.dots;
 
   String get _myId => widget.networkCore?.localPlayerId ?? 'local';
 
+  String get _gameId => widget.kind == LineGameKind.sheikhBeard
+      ? 'sheikh_beard'
+      : 'dots_boxes';
+
   List<Map<String, String>> get _players {
+    if (_isOffline) {
+      return const <Map<String, String>>[
+        <String, String>{'id': 'local', 'name': 'أنت'},
+        <String, String>{'id': 'bot', 'name': 'الروبوت'},
+      ];
+    }
     final result = <Map<String, String>>[];
     for (final player
         in widget.networkCore?.state.players ?? const <LocalPlayer>[]) {
@@ -376,9 +397,14 @@ class _LineGameScreenState extends State<LineGameScreen> {
   void initState() {
     super.initState();
     _buildBoard();
+    if (_isOffline) {
+      _scores
+        ..['local'] = 0
+        ..['bot'] = 0;
+    }
     _networkSubscription =
         widget.networkCore?.messages.listen(_handleNetworkMessage);
-    if (_isHost) {
+    if (!_isOffline && _isHost) {
       _startWebBridge();
     }
   }
@@ -403,7 +429,9 @@ class _LineGameScreenState extends State<LineGameScreen> {
       // number of shaded points in that line. Keep all three board axes:
       // horizontal and both diagonal/cross directions.
       void addFullLine(List<int> line) {
-        if (line.length >= 3) _sheikhLines.add(line);
+        // Edge diagonals can be complete, valid straight lines with only two
+        // points. They still score their full shaded length.
+        if (line.length >= 2) _sheikhLines.add(line);
       }
 
       for (var row = 0; row < rows; row++) {
@@ -557,14 +585,103 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
     if (gained > 0) {
       _scores[playerId] = (_scores[playerId] ?? 0) + gained;
-      GameFeedback.win();
     } else {
       _turnIndex = (_turnIndex + 1) % players.length;
-      GameFeedback.move();
+    }
+
+    if (_isBoardFull) {
+      _playResultSound();
+    } else if (gained > 0) {
+      GameFeedback.capture(_audioTheme);
+    } else {
+      GameFeedback.move(_audioTheme);
     }
 
     setState(() {});
     _broadcastState();
+    if (_isOffline && !_isBoardFull && _turnId == 'bot') {
+      _scheduleBotMove();
+    }
+  }
+
+  void _scheduleBotMove() {
+    if (_botThinking || _turnId != 'bot' || _isBoardFull) return;
+    _botThinking = true;
+    Future<void>.delayed(const Duration(milliseconds: 520), () {
+      if (!mounted || _turnId != 'bot' || _isBoardFull) {
+        _botThinking = false;
+        return;
+      }
+      final index = _chooseBotMove();
+      _botThinking = false;
+      if (index >= 0) _processMove('bot', index);
+    });
+  }
+
+  int _chooseBotMove() {
+    final available = widget.kind == LineGameKind.sheikhBeard
+        ? <int>[
+            for (var i = 0; i < _pointOwners.length; i++)
+              if (_pointOwners[i] < 0) i,
+          ]
+        : <int>[
+            for (var i = 0; i < _edgeOwners.length; i++)
+              if (_edgeOwners[i] == null) i,
+          ];
+    if (available.isEmpty) return -1;
+    final difficulty = settings.botDifficultyFor(_gameId);
+    if (difficulty == BotDifficulty.easy) {
+      return available[_random.nextInt(available.length)];
+    }
+
+    final scored = <(int, int)>[
+      for (final index in available) (index, _scoreCandidate(index)),
+    ]..sort((a, b) => b.$2.compareTo(a.$2));
+    if (difficulty == BotDifficulty.normal) {
+      final scoring = scored.where((entry) => entry.$2 > 0).toList();
+      return scoring.isEmpty
+          ? available[_random.nextInt(available.length)]
+          : scoring[_random.nextInt(scoring.length)].$1;
+    }
+    return scored.first.$1;
+  }
+
+  int _scoreCandidate(int index) {
+    if (widget.kind == LineGameKind.sheikhBeard) {
+      var score = 0;
+      for (final line in _sheikhLines) {
+        if (_claimedSheikhLines.containsKey(line.join('-')) ||
+            !line.contains(index)) {
+          continue;
+        }
+        if (line.every(
+          (point) => point == index || _pointOwners[point] >= 0,
+        )) {
+          score += line.length * 10;
+        }
+      }
+      return score;
+    }
+
+    var completed = 0;
+    var givesAway = 0;
+    for (var boxIndex = 0; boxIndex < _boxes.length; boxIndex++) {
+      if (_boxOwners[boxIndex] != null) continue;
+      final box = _boxes[boxIndex];
+      final edges = <int>[
+        _edgeIndex(box[0], box[1]),
+        _edgeIndex(box[2], box[3]),
+        _edgeIndex(box[0], box[2]),
+        _edgeIndex(box[1], box[3]),
+      ];
+      if (!edges.contains(index)) continue;
+      final occupied = edges
+          .where((edge) => edge == index || _edgeOwners[edge] != null)
+          .length;
+      if (occupied == 4) completed++;
+      if (occupied == 3) givesAway++;
+    }
+    return completed * 100 - givesAway * 12;
   }
 
   int _claimCompletedSheikhLines(int ownerIndex, String playerId) {
@@ -608,6 +725,33 @@ class _LineGameScreenState extends State<LineGameScreen> {
       }
     }
     return gained;
+  }
+
+  bool get _isBoardFull => widget.kind == LineGameKind.sheikhBeard
+      ? _pointOwners.every((owner) => owner >= 0)
+      : _edgeOwners.every((owner) => owner != null);
+
+  Set<String> get _winnerIds {
+    if (_scores.isEmpty) return const <String>{};
+    final int best =
+        _scores.values.reduce((int a, int b) => a > b ? a : b);
+    return _scores.entries
+        .where((entry) => entry.value == best)
+        .map((entry) => entry.key)
+        .toSet();
+  }
+
+  void _playResultSound() {
+    if (_resultSoundPlayed) return;
+    _resultSoundPlayed = true;
+    final winners = _winnerIds;
+    if (winners.length > 1) {
+      GameFeedback.tap(_audioTheme);
+    } else if (winners.contains(_myId)) {
+      GameFeedback.win(_audioTheme);
+    } else {
+      GameFeedback.lose(_audioTheme);
+    }
   }
 
   int _edgeIndex(int first, int second) {
@@ -673,6 +817,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
       'kind': widget.kind.name,
       'turnId': _turnId,
       'turnIndex': _turnIndex,
+      'finished': _isBoardFull,
       'message': players.length < 2 ? 'بانتظار لاعب آخر' : 'الدور: $turnName',
       'players': serializedPlayers,
       'scores': _scores,
@@ -719,6 +864,8 @@ class _LineGameScreenState extends State<LineGameScreen> {
   }
 
   void _applyState(Map<String, dynamic> state) {
+    final int previousTotal =
+        _scores.values.fold(0, (int sum, int score) => sum + score);
     final rawPlayers = state['players'] as List<dynamic>? ?? const [];
     final playerIds = <String>[];
     final parsedScores = <String, int>{};
@@ -783,6 +930,17 @@ class _LineGameScreenState extends State<LineGameScreen> {
         ..clear()
         ..addAll(parsedScores);
     });
+    if (state['finished'] == true) {
+      _playResultSound();
+    } else {
+      final int nextTotal =
+          parsedScores.values.fold(0, (int sum, int score) => sum + score);
+      if (nextTotal > previousTotal) {
+        GameFeedback.capture(_audioTheme);
+      } else {
+        GameFeedback.move(_audioTheme);
+      }
+    }
   }
 
   void _handleTap(TapDownDetails details, BoxConstraints constraints) {
@@ -845,11 +1003,18 @@ class _LineGameScreenState extends State<LineGameScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('اللعب عبر QR'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _webUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
+            QrImageView(
+              data: _webUrl,
+              size: (MediaQuery.sizeOf(dialogContext).shortestSide * .58)
+                  .clamp(120.0, 320.0)
+                  .toDouble(),
+              backgroundColor: Colors.white,
+            ),
             const SizedBox(height: 8),
             SelectableText(_webUrl, textAlign: TextAlign.center),
             const SizedBox(height: 4),
@@ -866,19 +1031,23 @@ class _LineGameScreenState extends State<LineGameScreen> {
   @override
   Widget build(BuildContext context) {
     final title =
-        widget.kind == LineGameKind.sheikhBeard ? 'لحية الشيخ' : 'المربعات';
+        widget.kind == LineGameKind.sheikhBeard ? 'لعبة اللحية' : 'المربعات';
     final players = _players;
 
-    if (_isHost && _showNetworkQrLobby) {
+    if (!_isOffline && _isHost && _showNetworkQrLobby) {
       return PregameQrLobby(
         title: '$title • دعوة لاعب',
         url: _webUrl,
-        connectedPlayers: _webPlayers.length,
+        connectedPlayers: (widget.networkCore?.state.players
+                    .where((player) => !player.isHost)
+                    .length ??
+                0) +
+            _webPlayers.length,
         accent: widget.kind == LineGameKind.sheikhBeard
             ? const Color(0xFF2563EB)
             : const Color(0xFF14B8A6),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(_audioTheme);
           setState(() => _showNetworkQrLobby = false);
           _broadcastState();
         },
@@ -902,6 +1071,13 @@ class _LineGameScreenState extends State<LineGameScreen> {
               runSpacing: 6,
               alignment: WrapAlignment.center,
               children: <Widget>[
+                if (_isOffline)
+                  Chip(
+                    avatar: const Icon(Icons.smart_toy_rounded, size: 18),
+                    label: Text(
+                      'المستوى: ${settings.botDifficultyTextFor(_gameId)}',
+                    ),
+                  ),
                 for (var index = 0; index < players.length; index++)
                   Chip(
                     avatar: CircleAvatar(

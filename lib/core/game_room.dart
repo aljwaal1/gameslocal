@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../design/app_theme.dart';
+import 'app_settings.dart';
 import 'game_definition.dart';
 import 'network/local_network_core.dart';
 import 'network/local_room_discovery.dart';
@@ -23,13 +24,35 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   StreamSubscription<NetworkMessage>? _subscription;
   StreamSubscription<LocalNetworkState>? _stateSubscription;
   final TextEditingController _hostController = TextEditingController();
+  final TextEditingController _internetRoomController = TextEditingController();
+  final TextEditingController _playerNameController = TextEditingController();
   bool _isHost = true;
+  NetworkConnectionKind _connectionKind = NetworkConnectionKind.local;
   bool _opened = false;
   bool _searching = false;
   bool _joining = false;
   List<DiscoveredRoom> _rooms = const <DiscoveredRoom>[];
 
   bool get _isNameGame => widget.game.id == 'name_animal_object';
+
+  bool get _supportsRobot =>
+      AppSettingsController.robotGameIds.contains(widget.game.id);
+
+  String get _offlineModeText {
+    switch (widget.game.id) {
+      case 'xo':
+      case 'checkers':
+      case 'chess':
+        return 'ابدأ ضد الروبوت، ويمكنك التحويل إلى لاعبين على الجهاز من داخل اللعبة.';
+      case 'domino':
+        return 'ابدأ ضد الروبوت، أو اختر وضع أربعة لاعبين من داخل الدومينو.';
+      case 'sheikh_beard':
+      case 'dots_boxes':
+        return 'مواجهة مباشرة ضد الروبوت بالمستوى الذي تختاره.';
+      default:
+        return 'مواجهة مباشرة ضد الروبوت بدون إعداد غرفة أو اتصال.';
+    }
+  }
 
   bool get _supportsBrowserQr => const <String>{
         'name_animal_object',
@@ -66,6 +89,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   @override
   void initState() {
     super.initState();
+    _playerNameController.text = AppSettingsController.instance.playerName;
     networkCore = LocalNetworkCore(gameId: widget.game.id);
     _subscription = networkCore.messages.listen((NetworkMessage message) {
       if (message.type == NetworkMessageType.startGame && !_opened) {
@@ -75,6 +99,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     _stateSubscription =
         networkCore.stateStream.listen((LocalNetworkState state) {
       if (state.mode == LocalNetworkMode.host &&
+          state.connectionKind == NetworkConnectionKind.local &&
           (state.status == LocalNetworkStatus.ready ||
               state.status == LocalNetworkStatus.connected) &&
           state.hostAddress.isNotEmpty) {
@@ -86,13 +111,19 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   }
 
   Future<void> _startAdvertisingSafely(LocalNetworkState state) async {
+    final List<String> inviterNames = state.players
+        .where((LocalPlayer player) => player.isHost)
+        .map((LocalPlayer player) => player.name)
+        .toList(growable: false);
+    final String inviterName =
+        inviterNames.isEmpty ? 'لاعب' : inviterNames.first;
     try {
       await _discovery.startAdvertising(
         gameId: widget.game.id,
         host: state.hostAddress,
         port: state.port,
         roomCode: state.roomCode,
-        name: '${widget.game.name} • ${state.roomCode}',
+        name: '${widget.game.name} • $inviterName • ${state.roomCode}',
       );
     } catch (_) {}
   }
@@ -102,6 +133,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     _subscription?.cancel();
     _stateSubscription?.cancel();
     _hostController.dispose();
+    _internetRoomController.dispose();
+    _playerNameController.dispose();
     unawaited(_discovery.dispose());
     networkCore.dispose();
     super.dispose();
@@ -137,12 +170,27 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   Future<void> _changeMode(bool host) async {
     if (_isHost == host) return;
     if (networkCore.state.mode != LocalNetworkMode.idle) {
-      networkCore.disconnect();
+      await networkCore.reset(connectionKind: _connectionKind);
     }
     await _discovery.stopAdvertising();
     if (!mounted) return;
     setState(() {
       _isHost = host;
+      _rooms = const <DiscoveredRoom>[];
+      _searching = false;
+      _joining = false;
+    });
+  }
+
+  Future<void> _changeConnectionKind(NetworkConnectionKind kind) async {
+    if (_connectionKind == kind) return;
+    if (networkCore.state.mode != LocalNetworkMode.idle) {
+      await networkCore.reset(connectionKind: kind);
+    }
+    await _discovery.stopAdvertising();
+    if (!mounted) return;
+    setState(() {
+      _connectionKind = kind;
       _rooms = const <DiscoveredRoom>[];
       _searching = false;
       _joining = false;
@@ -185,6 +233,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
 
   Future<void> _joinDiscoveredRoom(DiscoveredRoom room) async {
     if (_joining) return;
+    if (!_savePlayerName()) return;
     setState(() => _joining = true);
     try {
       if (networkCore.state.mode == LocalNetworkMode.host) {
@@ -194,9 +243,53 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
       }
       await networkCore.joinRoom(
         hostAddress: room.host,
+        playerName: _playerNameController.text,
         port: room.port,
         roomCode: room.roomCode,
       );
+    } finally {
+      if (mounted) setState(() => _joining = false);
+    }
+  }
+
+  bool _savePlayerName() {
+    final String name = _playerNameController.text.trim();
+    if (name.isNotEmpty) {
+      AppSettingsController.instance.setPlayerName(name);
+      return true;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('اكتب اسمك أولًا ليظهر للاعبين.')),
+    );
+    return false;
+  }
+
+  Future<void> _createRoom() async {
+    if (!_savePlayerName()) return;
+    if (_connectionKind == NetworkConnectionKind.internet) {
+      await networkCore.createInternetRoom(
+        playerName: _playerNameController.text,
+      );
+    } else {
+      await networkCore.createRoom(playerName: _playerNameController.text);
+    }
+  }
+
+  Future<void> _retryConnection(LocalNetworkState state) async {
+    if (_joining || !_savePlayerName()) return;
+    setState(() => _joining = true);
+    try {
+      if (state.mode == LocalNetworkMode.host) {
+        if (state.connectionKind == NetworkConnectionKind.internet) {
+          await networkCore.createInternetRoom(
+            playerName: _playerNameController.text,
+          );
+        } else {
+          await networkCore.createRoom(playerName: _playerNameController.text);
+        }
+      } else {
+        await networkCore.reconnect();
+      }
     } finally {
       if (mounted) setState(() => _joining = false);
     }
@@ -271,8 +364,123 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     );
   }
 
+  Widget _offlineLaunchCard() {
+    final settings = AppSettingsController.instance;
+    final selected = settings.botDifficultyFor(widget.game.id);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: <Color>[
+            _accent.withOpacity(.15),
+            const Color(0xFFF8FAFC),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _accent.withOpacity(.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: _accent,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: const Icon(Icons.smart_toy_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      'ضد الروبوت / على الجهاز',
+                      style: TextStyle(
+                        color: AppColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _offlineModeText,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (_supportsRobot) ...<Widget>[
+            const SizedBox(height: 14),
+            const Text(
+              'مستوى الروبوت لهذه اللعبة',
+              style: TextStyle(
+                color: AppColors.inkSoft,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 7),
+            SegmentedButton<BotDifficulty>(
+              showSelectedIcon: false,
+              segments: const <ButtonSegment<BotDifficulty>>[
+                ButtonSegment<BotDifficulty>(
+                  value: BotDifficulty.easy,
+                  label: Text('سهل'),
+                ),
+                ButtonSegment<BotDifficulty>(
+                  value: BotDifficulty.normal,
+                  label: Text('متوسط'),
+                ),
+                ButtonSegment<BotDifficulty>(
+                  value: BotDifficulty.hard,
+                  label: Text('صعب'),
+                ),
+              ],
+              selected: <BotDifficulty>{selected},
+              onSelectionChanged: (values) {
+                settings.setBotDifficultyFor(widget.game.id, values.first);
+                setState(() {});
+              },
+            ),
+          ],
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              backgroundColor: _accent,
+            ),
+            onPressed: () => _openGame(useNetwork: false),
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: Text(
+              _supportsRobot
+                  ? 'ابدأ الآن • ${settings.botDifficultyTextFor(widget.game.id)}'
+                  : 'ابدأ الآن',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _roomStatusCard(LocalNetworkState state, bool hostReady) {
-    final bool active = state.mode != LocalNetworkMode.idle;
+    final bool active = state.status == LocalNetworkStatus.ready ||
+        state.status == LocalNetworkStatus.connected;
+    final bool interrupted = state.status == LocalNetworkStatus.disconnected ||
+        state.status == LocalNetworkStatus.error;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -315,7 +523,11 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
-                      active ? 'الغرفة جاهزة' : 'لم يتم إنشاء غرفة بعد',
+                      active
+                          ? 'الغرفة جاهزة'
+                          : interrupted
+                              ? 'الاتصال متوقف'
+                              : 'لم يتم إنشاء غرفة بعد',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 19,
@@ -350,7 +562,11 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   ),
                 ),
                 child: Text(
-                  active ? 'متصل' : 'غير متصل',
+                  active
+                      ? 'متصل'
+                      : interrupted
+                          ? 'يحتاج إعادة اتصال'
+                          : 'غير متصل',
                   style: TextStyle(
                     color: active ? const Color(0xFF99F6E4) : Colors.white60,
                     fontSize: 11,
@@ -393,9 +609,11 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _supportsBrowserQr
-                        ? 'افتح QR الكبير وشاركه قبل ظهور لوحة اللعب'
-                        : 'شارك الرمز مع اللاعب الموجود على نفس الشبكة',
+                    state.connectionKind == NetworkConnectionKind.internet
+                        ? 'شارك هذا الرمز؛ يمكن الانضمام من أي شبكة'
+                        : _supportsBrowserQr
+                            ? 'افتح QR الكبير وشاركه قبل ظهور لوحة اللعب'
+                            : 'شارك الرمز مع اللاعب الموجود على نفس الشبكة',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white60,
@@ -620,7 +838,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                 controller: _hostController,
                 keyboardType: TextInputType.url,
                 decoration: const InputDecoration(
-                  labelText: 'IP جهاز المضيف',
+                  labelText: 'IP جهاز الداعي',
                   hintText: '192.168.1.8',
                 ),
               ),
@@ -631,10 +849,12 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   onPressed: _joining
                       ? null
                       : () async {
+                          if (!_savePlayerName()) return;
                           setState(() => _joining = true);
                           try {
                             await networkCore.joinRoom(
                               hostAddress: _hostController.text,
+                              playerName: _playerNameController.text,
                               port: LocalWifiTransport.defaultPort,
                             );
                           } finally {
@@ -652,6 +872,58 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     );
   }
 
+  Widget _internetJoinPanel() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        TextField(
+          controller: _internetRoomController,
+          textCapitalization: TextCapitalization.characters,
+          textInputAction: TextInputAction.done,
+          maxLength: 6,
+          decoration: const InputDecoration(
+            labelText: 'رمز غرفة الإنترنت',
+            hintText: 'مثال: K7P4WX',
+            prefixIcon: Icon(Icons.vpn_key_rounded),
+            counterText: '',
+          ),
+          onSubmitted: (_) => unawaited(_joinInternetRoom()),
+        ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          onPressed: _joining ? null : _joinInternetRoom,
+          icon: _joining
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.public_rounded),
+          label: Text(_joining ? 'جاري الدخول...' : 'دخول غرفة الإنترنت'),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'يمكن للداعي واللاعبين استخدام شبكات Wi-Fi أو بيانات هاتف مختلفة.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.muted, fontSize: 11),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _joinInternetRoom() async {
+    if (_joining || !_savePlayerName()) return;
+    setState(() => _joining = true);
+    try {
+      await networkCore.joinInternetRoom(
+        roomCode: _internetRoomController.text,
+        playerName: _playerNameController.text,
+      );
+    } finally {
+      if (mounted) setState(() => _joining = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -667,11 +939,14 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               (state.status == LocalNetworkStatus.ready ||
                   state.status == LocalNetworkStatus.connected);
           final bool canStart = hostReady &&
-              (_supportsBrowserQr
+              (_supportsBrowserQr &&
+                      state.connectionKind == NetworkConnectionKind.local
                   ? state.players.isNotEmpty
                   : state.players.length >= 2);
           final bool operationPending =
               state.status == LocalNetworkStatus.preparing || _joining;
+          final bool canRetry = state.status == LocalNetworkStatus.disconnected ||
+              state.status == LocalNetworkStatus.error;
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(14, 8, 14, 22),
@@ -716,7 +991,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'اللعب الجماعي',
+                      'اختر طريقة اللعب',
                       style: TextStyle(
                         color: _accent,
                         fontSize: 11,
@@ -734,9 +1009,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _supportsBrowserQr
-                          ? 'أنشئ غرفة ثم ابدأ اللعبة؛ يمكن للاعب الآخر الانضمام من التطبيق أو المتصفح عبر QR.'
-                          : 'اجعل الجهازين على نفس شبكة Wi-Fi، ثم أنشئ غرفة أو ابحث عن غرفة قريبة.',
+                      'العب على الجهاز، عبر LAN، أو عبر الإنترنت مع أصدقائك من أي شبكة.',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: AppColors.muted,
@@ -747,6 +1020,109 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   ],
                 ),
               ),
+              if (!_isNameGame) ...<Widget>[
+                const SizedBox(height: 12),
+                _offlineLaunchCard(),
+                const SizedBox(height: 18),
+                Row(
+                  children: <Widget>[
+                    Expanded(child: Divider(color: _accent.withOpacity(.22))),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text(
+                        'أو العب مع أجهزة أخرى',
+                        style: TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: _accent.withOpacity(.22))),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 12),
+              SegmentedButton<NetworkConnectionKind>(
+                showSelectedIcon: false,
+                segments: const <ButtonSegment<NetworkConnectionKind>>[
+                  ButtonSegment<NetworkConnectionKind>(
+                    value: NetworkConnectionKind.local,
+                    icon: Icon(Icons.wifi_rounded),
+                    label: Text('نفس الشبكة'),
+                  ),
+                  ButtonSegment<NetworkConnectionKind>(
+                    value: NetworkConnectionKind.internet,
+                    icon: Icon(Icons.public_rounded),
+                    label: Text('عبر الإنترنت'),
+                  ),
+                ],
+                selected: <NetworkConnectionKind>{_connectionKind},
+                onSelectionChanged: operationPending
+                    ? null
+                    : (Set<NetworkConnectionKind> values) => unawaited(
+                          _changeConnectionKind(values.first),
+                        ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _connectionKind == NetworkConnectionKind.internet
+                    ? 'لا يشترط أن تكونوا على نفس الشبكة • الدخول برمز من 6 خانات'
+                    : 'اتصال مباشر عبر Wi-Fi / Hotspot بدون إنترنت',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (canRetry) ...<Widget>[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFFDBA74)),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      const Icon(Icons.wifi_off_rounded, color: Color(0xFFC2410C)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          state.message,
+                          style: const TextStyle(
+                            color: Color(0xFF9A3412),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton.icon(
+                        onPressed: _joining
+                            ? null
+                            : () => unawaited(_retryConnection(state)),
+                        icon: const Icon(Icons.refresh_rounded, size: 18),
+                        label: const Text('إعادة الاتصال'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              TextField(
+                controller: _playerNameController,
+                enabled: state.mode == LocalNetworkMode.idle,
+                textInputAction: TextInputAction.done,
+                maxLength: 24,
+                decoration: const InputDecoration(
+                  labelText: 'اسمك داخل الغرفة',
+                  hintText: 'مثال: أحمد',
+                  prefixIcon: Icon(Icons.badge_outlined),
+                  counterText: '',
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 children: <Widget>[
@@ -754,7 +1130,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     selected: _isHost,
                     icon: Icons.add_circle_outline_rounded,
                     title: 'إنشاء غرفة',
-                    subtitle: 'أنا المضيف',
+                    subtitle: 'اسمي يظهر للاعبين',
                     onTap: operationPending
                         ? null
                         : () => unawaited(_changeMode(true)),
@@ -764,7 +1140,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     selected: !_isHost,
                     icon: Icons.travel_explore_rounded,
                     title: 'انضمام',
-                    subtitle: 'ابحث عن المضيف',
+                    subtitle: _connectionKind == NetworkConnectionKind.internet
+                        ? 'أدخل رمز الدعوة'
+                        : 'ابحث عن الداعي',
                     onTap: operationPending
                         ? null
                         : () => unawaited(_changeMode(false)),
@@ -778,18 +1156,24 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     backgroundColor: _accent,
                   ),
-                  onPressed: operationPending ? null : networkCore.createRoom,
+                  onPressed: operationPending ? null : _createRoom,
                   icon: operationPending
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.wifi_tethering_rounded),
-                  label: const Text('إنشاء الغرفة الآن'),
+                      : Icon(_connectionKind == NetworkConnectionKind.internet
+                          ? Icons.public_rounded
+                          : Icons.wifi_tethering_rounded),
+                  label: Text(_connectionKind == NetworkConnectionKind.internet
+                      ? 'إنشاء غرفة عبر الإنترنت'
+                      : 'إنشاء غرفة على نفس الشبكة'),
                 )
               else if (!_isHost)
-                _joinPanel(),
+                _connectionKind == NetworkConnectionKind.internet
+                    ? _internetJoinPanel()
+                    : _joinPanel(),
               if (_isHost || state.mode != LocalNetworkMode.idle) ...<Widget>[
                 if (!(_isHost && state.mode == LocalNetworkMode.idle))
                   _roomStatusCard(state, hostReady),
@@ -826,7 +1210,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                             icon: const Icon(Icons.play_arrow_rounded),
                             label: Text(
                               canStart
-                                  ? (_supportsBrowserQr
+                                  ? (_supportsBrowserQr &&
+                                          state.connectionKind ==
+                                              NetworkConnectionKind.local
                                       ? 'فتح QR الكبير قبل اللعبة'
                                       : 'بدء اللعبة على الجميع')
                                   : 'بانتظار لاعب للبدء',
@@ -834,33 +1220,6 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                           ),
                         ],
                       ],
-                    ),
-                  ),
-                ),
-              ],
-              if (!_isNameGame) ...<Widget>[
-                const SizedBox(height: 10),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: <Color>[Color(0xFF0F766E), Color(0xFF6D28D9)],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: const <BoxShadow>[
-                      BoxShadow(color: Color(0x260F172A), blurRadius: 14, offset: Offset(0, 6)),
-                    ],
-                  ),
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    onPressed: () => _openGame(useNetwork: false),
-                    icon: const Icon(Icons.smart_toy_rounded),
-                    label: const Text(
-                      'اللعب مع الروبوت / محليًا',
-                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
                 ),

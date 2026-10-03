@@ -41,6 +41,8 @@ jobs:
       - name: Build and capture diagnostics
         id: compile
         shell: bash
+        env:
+          INTERNET_RELAY_URL: ${{ vars.INTERNET_RELAY_URL }}
         run: |
           set +e
           mkdir -p build-status release apk/modern /tmp/gameslocal-output
@@ -80,14 +82,26 @@ jobs:
           flutter pub get 2>&1 | tee -a build-status/latest.log
           PUB=${PIPESTATUS[0]}
 
+          echo "=== TEST ===" | tee -a build-status/latest.log
+          flutter test 2>&1 | tee -a build-status/latest.log
+          TEST=${PIPESTATUS[0]}
+
           echo "=== ANALYZE ===" | tee -a build-status/latest.log
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log
           ANALYZE=${PIPESTATUS[0]}
 
           BUILD=1
-          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
+          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$TEST" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
             echo "=== BUILD APK ===" | tee -a build-status/latest.log
-            flutter build apk --release 2>&1 | tee -a build-status/latest.log
+            if [ -n "$INTERNET_RELAY_URL" ]; then
+              echo "Using INTERNET_RELAY_URL from repository variable." | tee -a build-status/latest.log
+              flutter build apk --release \
+                --dart-define=INTERNET_RELAY_URL="$INTERNET_RELAY_URL" \
+                2>&1 | tee -a build-status/latest.log
+            else
+              echo "Using production relay URL compiled into the app." | tee -a build-status/latest.log
+              flutter build apk --release 2>&1 | tee -a build-status/latest.log
+            fi
             BUILD=${PIPESTATUS[0]}
           else
             echo "APK build skipped because a required check failed." | tee -a build-status/latest.log
@@ -96,6 +110,7 @@ jobs:
           echo "CREATE_CODE=$CREATE" | tee -a build-status/latest.log
           echo "MANIFEST_CODE=$MANIFEST" | tee -a build-status/latest.log
           echo "PUB_CODE=$PUB" | tee -a build-status/latest.log
+          echo "TEST_CODE=$TEST" | tee -a build-status/latest.log
           echo "ANALYZE_CODE=$ANALYZE" | tee -a build-status/latest.log
           echo "BUILD_CODE=$BUILD" | tee -a build-status/latest.log
 

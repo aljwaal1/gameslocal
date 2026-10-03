@@ -10,7 +10,6 @@ import '../../core/pregame_qr_lobby.dart';
 import '../../core/iphone_game_bridge.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
-import '../../design/app_theme.dart';
 import 'xo_iphone_bridge.dart';
 
 enum XoCell { empty, x, o }
@@ -24,9 +23,10 @@ class XoGameScreen extends StatefulWidget {
   State<XoGameScreen> createState() => _XoGameScreenState();
 }
 
-class _XoGameScreenState extends State<XoGameScreen> {
+class _XoGameScreenState extends State<XoGameScreen> with SingleTickerProviderStateMixin {
   final AppSettingsController settings = AppSettingsController.instance;
   final Random random = Random();
+  late final AnimationController lineController = AnimationController(vsync: this, duration: const Duration(milliseconds: 350));
 
   List<XoCell> cells = List<XoCell>.filled(9, XoCell.empty);
   bool xTurn = true;
@@ -118,6 +118,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
     _iphonePlayersSub?.cancel();
     _iphoneEventsSub?.cancel();
     unawaited(_iphoneBridge?.dispose());
+    lineController.dispose();
     super.dispose();
   }
 
@@ -176,6 +177,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
       xTurn = true;
       botThinking = false;
       winLine = <int>[];
+      lineController.reset();
       roundCounted = false;
       if (!isNetworkGame) connectionLost = false;
       message = isNetworkGame
@@ -226,7 +228,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
     if (isHost && isNetworkGame && senderId != _turnId) return;
 
     setState(() => cells[index] = mark);
-    GameFeedback.move();
+    GameFeedback.tap(GameAudioTheme.xo);
     if (notify && isNetworkGame) {
       widget.networkCore?.sendMove(
         <String, dynamic>{'action': 'place', 'index': index, 'mark': mark.name},
@@ -244,7 +246,16 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = winner == XoCell.x ? 'فاز X' : 'فاز O');
-      GameFeedback.win();
+      final bool localWon = isNetworkGame
+          ? winner == localMark
+          : (!playVsBot || winner == XoCell.x);
+      if (localWon) {
+        GameFeedback.win(GameAudioTheme.xo);
+        lineController.forward(from: 0);
+      } else {
+        GameFeedback.lose(GameAudioTheme.xo);
+        lineController.forward(from: 0);
+      }
       _syncState();
       return;
     }
@@ -254,7 +265,7 @@ class _XoGameScreenState extends State<XoGameScreen> {
         roundCounted = true;
       }
       setState(() => message = 'تعادل');
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.xo);
       _syncState();
       return;
     }
@@ -316,19 +327,31 @@ class _XoGameScreenState extends State<XoGameScreen> {
   }
 
   int chooseBotMove() {
-    final win = findBestMoveFor(XoCell.o);
-    if (win >= 0) return win;
-    final block = findBestMoveFor(XoCell.x);
-    if (block >= 0) return block;
-    if (settings.botDifficulty == BotDifficulty.hard &&
-        cells[4] == XoCell.empty) {
-      return 4;
-    }
     final empty = <int>[
       for (var i = 0; i < cells.length; i++)
         if (cells[i] == XoCell.empty) i,
     ];
-    return empty.isEmpty ? -1 : empty[random.nextInt(empty.length)];
+    if (empty.isEmpty) return -1;
+
+    final difficulty = settings.botDifficultyFor('xo');
+    if (difficulty == BotDifficulty.easy) {
+      return empty[random.nextInt(empty.length)];
+    }
+
+    final win = findBestMoveFor(XoCell.o);
+    if (win >= 0) return win;
+    final block = findBestMoveFor(XoCell.x);
+    if (block >= 0) return block;
+
+    if (difficulty == BotDifficulty.hard) {
+      if (cells[4] == XoCell.empty) return 4;
+      final corners = <int>[0, 2, 6, 8]
+          .where((index) => cells[index] == XoCell.empty)
+          .toList();
+      if (corners.isNotEmpty) return corners[random.nextInt(corners.length)];
+    }
+
+    return empty[random.nextInt(empty.length)];
   }
 
   int findBestMoveFor(XoCell player) {
@@ -388,11 +411,18 @@ class _XoGameScreenState extends State<XoGameScreen> {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        scrollable: true,
         title: const Text('اللعب عبر QR'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _iphoneUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
+            QrImageView(
+              data: _iphoneUrl,
+              size: (MediaQuery.sizeOf(dialogContext).shortestSide * .58)
+                  .clamp(120.0, 320.0)
+                  .toDouble(),
+              backgroundColor: Colors.white,
+            ),
             const SizedBox(height: 10),
             SelectableText(_iphoneUrl, textAlign: TextAlign.center),
             const SizedBox(height: 6),
@@ -421,152 +451,131 @@ class _XoGameScreenState extends State<XoGameScreen> {
         connectedPlayers: _iphonePlayers.length,
         accent: const Color(0xFF7C3AED),
         onStart: () {
-          GameFeedback.tap();
+          GameFeedback.tap(GameAudioTheme.xo);
           setState(() => _showNetworkQrLobby = false);
           _broadcastWebState();
         },
       );
     }
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F6FB),
       appBar: AppBar(
-        title: const Text('إكس أو'),
+        elevation: 0,
+        backgroundColor: const Color(0xFFF8F6FB),
+        foregroundColor: const Color(0xFF4B4453),
+        centerTitle: true,
+        title: const Text('إكس أو', style: TextStyle(fontWeight: FontWeight.w800)),
         actions: <Widget>[
           if (isHost && isNetworkGame && _iphoneUrl.startsWith('http'))
-            IconButton(
-              tooltip: 'QR للمتصفح',
-              onPressed: _showBrowserQr,
-              icon: const Icon(Icons.qr_code_2_rounded),
-            ),
-          IconButton(onPressed: reset, icon: const Icon(Icons.refresh)),
-          IconButton(onPressed: resetScore, icon: const Icon(Icons.restart_alt)),
+            IconButton(tooltip: 'QR للمتصفح', onPressed: _showBrowserQr, icon: const Icon(Icons.qr_code_2_rounded)),
+          IconButton(tooltip: 'جولة جديدة', onPressed: reset, icon: const Icon(Icons.refresh_rounded)),
         ],
       ),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxHeight < 620 || constraints.maxWidth < 350;
-            final pad = compact ? 8.0 : 14.0;
+            final padding = compact ? 10.0 : 14.0;
             return Padding(
-              padding: EdgeInsets.all(pad),
+              padding: EdgeInsets.fromLTRB(padding, 4, padding, padding),
               child: Column(
                 children: <Widget>[
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: compact ? 8 : 11),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: <Color>[Color(0xFF0F766E), Color(0xFF6D28D9)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: const <BoxShadow>[
-                        BoxShadow(color: Color(0x330F172A), blurRadius: 14, offset: Offset(0, 6)),
-                      ],
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: compact ? 10 : 14),
+                    decoration: BoxDecoration(color: const Color(0xFFF8F6FB), borderRadius: BorderRadius.circular(24)),
                     child: Column(
                       children: <Widget>[
-                        Text(
-                          message,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: compact ? 16 : 19,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        if (!isNetworkGame) ...<Widget>[
-                          const SizedBox(height: 7),
-                          SegmentedButton<bool>(
-                            segments: const <ButtonSegment<bool>>[
-                              ButtonSegment<bool>(value: false, label: Text('لاعبان'), icon: Icon(Icons.people)),
-                              ButtonSegment<bool>(value: true, label: Text('روبوت'), icon: Icon(Icons.smart_toy)),
+                        Text(message,textAlign: TextAlign.center,style: TextStyle(color: const Color(0xFF6D28D9),fontSize: compact ? 19 : 23,fontWeight: FontWeight.w900)),
+                        const SizedBox(height: 10),
+                        if (!isNetworkGame)
+                          Row(
+                            children: <Widget>[
+                              Expanded(child: ChoiceChip(label: const Text('ضد صديق'),selected: !playVsBot,onSelected: (_) {GameFeedback.uiTap();setState(() => playVsBot = false);reset();})),
+                              const SizedBox(width: 8),
+                              Expanded(child: ChoiceChip(label: Text('ضد الكمبيوتر • ${settings.botDifficultyTextFor('xo')}'),selected: playVsBot,onSelected: (_) {GameFeedback.uiTap();setState(() => playVsBot = true);reset();})),
                             ],
-                            selected: <bool>{playVsBot},
-                            onSelectionChanged: (value) {
-                              playVsBot = value.first;
-                              reset();
-                            },
-                            style: ButtonStyle(
-                              visualDensity: compact ? VisualDensity.compact : VisualDensity.standard,
-                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                            decoration: BoxDecoration(color: const Color(0xFFEDE9FE),borderRadius: BorderRadius.circular(16)),
+                            child: Text(isHost ? 'أنت X • اللعب عبر الشبكة' : 'أنت O • اللعب عبر الشبكة',style: const TextStyle(color: Color(0xFF6D28D9), fontWeight: FontWeight.w800)),
                           ),
-                        ],
                       ],
                     ),
                   ),
-                  SizedBox(height: compact ? 6 : 10),
+                  SizedBox(height: compact ? 6 : 8),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: <Widget>[
-                      Expanded(child: _ScoreTile(label: 'X', value: xWins, color: const Color(0xFFE11D48))),
-                      const SizedBox(width: 7),
-                      Expanded(child: _ScoreTile(label: 'تعادل', value: draws, color: const Color(0xFF64748B))),
-                      const SizedBox(width: 7),
-                      Expanded(child: _ScoreTile(label: 'O', value: oWins, color: const Color(0xFF0EA5E9))),
+                      _ScorePill(label: 'X', value: xWins, color: const Color(0xFF6D28D9)),
+                      _ScorePill(label: playVsBot && !isNetworkGame ? '🤖' : 'O', value: oWins, color: const Color(0xFFF97316)),
+                      _ScorePill(label: 'تعادل', value: draws, color: const Color(0xFF64748B)),
                     ],
                   ),
-                  SizedBox(height: compact ? 7 : 12),
+                  SizedBox(height: compact ? 8 : 12),
                   Expanded(
                     child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: constraints.maxWidth,
-                          maxHeight: constraints.maxHeight,
-                        ),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: GridView.builder(
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3,
-                              mainAxisSpacing: compact ? 6 : 10,
-                              crossAxisSpacing: compact ? 6 : 10,
-                            ),
-                            itemCount: 9,
-                            itemBuilder: (context, index) {
-                              final cell = cells[index];
-                              final winning = winLine.contains(index);
-                              final value = cell == XoCell.empty ? '' : cell.name.toUpperCase();
-                              return InkWell(
-                                borderRadius: BorderRadius.circular(compact ? 18 : 24),
-                                onTap: () => tapCell(index),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 180),
-                                  decoration: BoxDecoration(
-                                    gradient: winning
-                                        ? const LinearGradient(colors: <Color>[Color(0xFFFFD166), Color(0xFFFFB703)])
-                                        : const LinearGradient(colors: <Color>[Colors.white, Color(0xFFF0F7FF)]),
-                                    borderRadius: BorderRadius.circular(compact ? 18 : 24),
-                                    border: Border.all(
-                                      color: value == 'X'
-                                          ? const Color(0x55E11D48)
-                                          : value == 'O'
-                                              ? const Color(0x550EA5E9)
-                                              : const Color(0x160F172A),
-                                      width: 2,
-                                    ),
-                                    boxShadow: const <BoxShadow>[
-                                      BoxShadow(color: Color(0x220F172A), blurRadius: 10, offset: Offset(0, 4)),
-                                    ],
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: LayoutBuilder(
+                          builder: (context, boardConstraints) {
+                            final size = boardConstraints.maxWidth;
+                            return Stack(
+                              children: <Widget>[
+                                GridView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: 9,
+                                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: compact ? 7 : 10,
+                                    mainAxisSpacing: compact ? 7 : 10,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      value,
-                                      style: TextStyle(
-                                        fontSize: compact ? 48 : 64,
-                                        fontWeight: FontWeight.w900,
-                                        color: value == 'X' ? const Color(0xFFE11D48) : const Color(0xFF0284C7),
+                                  itemBuilder: (context, index) {
+                                    final cell = cells[index];
+                                    final value = cell == XoCell.empty ? '' : cell.name.toUpperCase();
+                                    final winning = winLine.contains(index);
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(compact ? 18 : 24),
+                                      onTap: () => tapCell(index),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 180),
+                                        curve: Curves.easeOutCubic,
+                                        decoration: BoxDecoration(
+                                          color: value == 'X' ? const Color(0xFFEDE9FE) : value == 'O' ? const Color(0xFFFFEDD5) : Colors.white,
+                                          borderRadius: BorderRadius.circular(compact ? 18 : 24),
+                                          border: Border.all(color: winning ? const Color(0xFF10B981) : const Color(0xFFE9D5FF),width: winning ? 4 : 2),
+                                          boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x14000000), blurRadius: 12, offset: Offset(0, 5))],
+                                        ),
+                                        child: Center(
+                                          child: AnimatedScale(
+                                            duration: const Duration(milliseconds: 220),
+                                            curve: Curves.elasticOut,
+                                            scale: value.isEmpty ? 0 : 1,
+                                            child: Text(value,style: TextStyle(fontSize: compact ? 48 : 58,fontWeight: FontWeight.w900,color: value == 'X' ? const Color(0xFF6D28D9) : const Color(0xFFF97316))),
+                                          ),
+                                        ),
                                       ),
+                                    );
+                                  },
+                                ),
+                                if (winLine.isNotEmpty)
+                                  IgnorePointer(
+                                    child: AnimatedBuilder(
+                                      animation: lineController,
+                                      builder: (context, _) => CustomPaint(size: Size.square(size),painter: _XoWinLinePainter(winLine, lineController.value)),
                                     ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                              ],
+                            );
+                          },
                         ),
                       ),
                     ),
                   ),
+                  if (connectionLost)
+                    const Padding(padding: EdgeInsets.only(top: 8),child: Text('انقطع اتصال اللاعب الآخر', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w800))),
                 ],
               ),
             );
@@ -577,31 +586,40 @@ class _XoGameScreenState extends State<XoGameScreen> {
   }
 }
 
-class _ScoreTile extends StatelessWidget {
-  const _ScoreTile(
-      {required this.label, required this.value, required this.color});
-
+class _ScorePill extends StatelessWidget {
+  const _ScorePill({required this.label, required this.value, required this.color});
   final String label;
   final int value;
   final Color color;
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.10),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: <Widget>[
-          Text(label,
-              style: TextStyle(color: color, fontWeight: FontWeight.w900)),
-          Text('$value',
-              style: TextStyle(
-                  color: color, fontSize: 24, fontWeight: FontWeight.w900)),
-        ],
-      ),
-    );
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(14)),
+        child: Column(children: <Widget>[
+          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          Text('\$value', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 15)),
+        ]),
+      );
+}
+
+class _XoWinLinePainter extends CustomPainter {
+  const _XoWinLinePainter(this.line, this.progress);
+  final List<int> line;
+  final double progress;
+  Offset _center(int index, Size size) {
+    final row = index ~/ 3, col = index % 3;
+    final gap = size.width * .026;
+    final cell = (size.width - gap * 2) / 3;
+    return Offset(col * (cell + gap) + cell / 2, row * (cell + gap) + cell / 2);
   }
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (line.length != 3) return;
+    final start = _center(line.first, size), end = _center(line.last, size);
+    final current = Offset.lerp(start, end, Curves.easeOutCubic.transform(progress))!;
+    canvas.drawLine(start, current, Paint()..color = const Color(0xFF10B981)..strokeWidth = 8..strokeCap = StrokeCap.round);
+  }
+  @override
+  bool shouldRepaint(covariant _XoWinLinePainter oldDelegate) => oldDelegate.progress != progress || oldDelegate.line != line;
 }

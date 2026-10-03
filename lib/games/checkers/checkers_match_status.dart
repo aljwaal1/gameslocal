@@ -121,7 +121,7 @@ class CheckersMatchEvaluator {
   const CheckersMatchEvaluator._();
 
   static int _normalizePieces(int pieces) =>
-      pieces.clamp(0, CheckersMatchStatus.startingPiecesPerSide) as int;
+      pieces.clamp(0, CheckersMatchStatus.startingPiecesPerSide);
 
   static CheckersMatchStatus evaluate({
     required int redPieces,

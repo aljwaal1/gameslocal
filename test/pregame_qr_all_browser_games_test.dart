@@ -29,12 +29,14 @@ void main() {
     expect(source, contains("title: '\$title • دعوة لاعب'"));
     expect(source, contains('LineGameKind.sheikhBeard'));
     expect(source, contains('_showNetworkQrLobby'));
+    expect(source, contains('.where((player) => !player.isHost)'));
   });
 
   test('name animal object uses pregame QR lobby', () {
     final source = File('lib/games/name_animal_object/name_animal_object_game.dart').readAsStringSync();
     expect(source, contains("title: 'اسم حيوان جماد • دعوة لاعبين'"));
     expect(source, contains('_showNetworkQrLobby'));
+    expect(source, contains('.where((player) => !player.isHost)'));
   });
 
   test('game room labels browser QR as a pregame action', () {
