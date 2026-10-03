@@ -77,7 +77,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
         x:.12+rnd.nextDouble()*.76,
         y:-.08,
         type:type,
-        size:type==_ObjType.fuel?.052:.066,
+        size:type == _ObjType.fuel ? .052 : .066,
       ));
     }
 
