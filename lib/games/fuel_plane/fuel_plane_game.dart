@@ -19,7 +19,7 @@ class _Bullet{_Bullet(this.x,this.y,{this.remote=false});double x,y;final bool r
 class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
   final Random rnd=Random();
   Timer? timer;
-  double planeX=.42,remoteX=.58,fuel=100,remoteFuel=100,speed=.0065;
+  double planeX=.5,remoteX=.5,fuel=100,remoteFuel=100,speed=.0065;
   int score=0,remoteScore=0,distance=0,level=1,best=0,fireCooldown=0,remoteFireCooldown=0,scoreTick=0;
   bool running=false,gameOver=false,alive=true,remoteAlive=true;
   bool lowFuelPulse=false;
@@ -43,7 +43,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
     if(isNetworkGame&&!isHost){widget.networkCore?.sendMove(<String,dynamic>{'action':'plane_start_request'},senderId:localPlayerId);return;}
     timer?.cancel();
     setState((){
-      planeX=.42;remoteX=.58;fuel=100;remoteFuel=100;speed=.0065;score=0;remoteScore=0;distance=0;level=1;fireCooldown=0;remoteFireCooldown=0;scoreTick=0;
+      planeX=.5;remoteX=.5;fuel=100;remoteFuel=100;speed=.0065;score=0;remoteScore=0;distance=0;level=1;fireCooldown=0;remoteFireCooldown=0;scoreTick=0;
       running=true;gameOver=false;alive=true;remoteAlive=true;resultText='';objects.clear();bullets.clear();
     });
     timer=Timer.periodic(const Duration(milliseconds:30),(_)=>tick());
@@ -68,19 +68,17 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
       if(remoteFireCooldown<=0){bullets.add(_Bullet(remoteX,.745,remote:true));remoteFireCooldown=max(7,14-min(5,level~/2));}else{remoteFireCooldown--;}
     }
 
+    // Exact spawn logic from the tested carsgame Fuel Plane.
     final spawn=.018+min(.018,level*.002);
     if(rnd.nextDouble()<spawn){
-      final fuelBias=fuel < 28 ? .48 : fuel < 45 ? .34 : .25;
       final roll=rnd.nextDouble();
-      final type=roll<fuelBias?_ObjType.fuel:(roll<.78?_ObjType.rock:_ObjType.enemy);
-      for(int attempt=0;attempt<5;attempt++){
-        final x=.12+rnd.nextDouble()*.76;
-        final crowded=objects.any((o)=>o.y<.18&&(o.x-x).abs()<.14);
-        if(!crowded){
-          objects.add(_Obj(x:x,y:-.08,type:type,size:type == _ObjType.fuel ? .052 : .066));
-          break;
-        }
-      }
+      final type=roll<.25?_ObjType.fuel:(roll<.78?_ObjType.rock:_ObjType.enemy);
+      objects.add(_Obj(
+        x:.12+rnd.nextDouble()*.76,
+        y:-.08,
+        type:type,
+        size:type==_ObjType.fuel?.052:.066,
+      ));
     }
 
     for(final o in objects){o.y+=speed;}
@@ -356,7 +354,7 @@ class _PlanePainter extends CustomPainter{
       if(o.type==_ObjType.fuel){
         RetroPixels.draw(canvas,p,px,const['..GG..','..YY..','.YYYY.','.YRR.','.YRR.','.YYYY.','..GG..'],{'G':const Color(0xff22c55e),'Y':const Color(0xffffd166),'R':const Color(0xffef4444)},shadow:3);
       }else if(o.type==_ObjType.enemy){
-        RetroPixels.draw(canvas,p,px,const['...R...','..RRR..','.RBRBR.','RRBBB.R','..BBB..','.B...B.'],{'R':const Color(0xffef4444),'B':const Color(0xff374151)},shadow:3);
+        RetroPixels.draw(canvas,p,px,const['...R...','..RRR..','.RBRBR.','RRBBB R','..BBB..','.B...B.'],{'R':const Color(0xffef4444),'B':const Color(0xff374151)},shadow:3);
       }else{
         RetroPixels.draw(canvas,p,px,const['..SS..','.SSSS.','SSSSSS','SDSDSS','.SSSS.','..SS..'],{'S':const Color(0xff94a3b8),'D':const Color(0xff334155)},shadow:3);
       }
@@ -382,9 +380,9 @@ class _PlanePainter extends CustomPainter{
       '....YYY....',
       'B..YYYYY..B',
       'BBYYYYYYYBB',
-      '..RYYYR....',
-      '...Y.Y.....',
-      '..B...B....',
+      '..RYYYR..',
+      '...Y.Y...',
+      '..B...B..',
     ],{'C':const Color(0xffe0f2fe),'Y':bodyColor,'B':const Color(0xff2563eb),'R':const Color(0xffef4444)},shadow:4);
   }
 
