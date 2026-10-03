@@ -63,18 +63,17 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
     updateWeather();
     if(weather!=lastWeather){event=2;lastWeather=weather;}
 
+    // Exact traffic generation from the tested carsgame Retro Road.
     final spawn=.018+min(.014,day*.0022);
     if(rnd.nextDouble()<spawn){
       const lanes=[.28,.40,.52,.64,.76];
-      final available=<int>[];
-      for(int i=0;i<lanes.length;i++){
-        final blocked=cars.any((car)=>car.y<.24&&(car.lane-i).abs()<=0);
-        if(!blocked)available.add(i);
-      }
-      if(available.isNotEmpty){
-        final lane=available[rnd.nextInt(available.length)];
-        cars.add(_Traffic(lanes[lane]+(rnd.nextDouble()-.5)*.016,-.10,lane,.72+rnd.nextDouble()*.34));
-      }
+      final lane=rnd.nextInt(lanes.length);
+      cars.add(_Traffic(
+        lanes[lane]+(rnd.nextDouble()-.5)*.020,
+        -.10,
+        lane,
+        .70+rnd.nextDouble()*.42,
+      ));
     }
 
     for(final car in cars){car.y+=speed*car.factor;}
@@ -126,9 +125,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
 
   void dragRoad(double dx,double width){
     if(!running||localCrashed||width<=0)return;
-    final target=(dx/width).clamp(.16,.84);
-    final blend=weather == _Weather.snow ? .28 : weather == _Weather.rain ? .38 : .52;
-    setState(()=>playerX=(playerX+(target-playerX)*blend).clamp(.16,.84));
+    setState(()=>playerX=(dx/width).clamp(.16,.84).toDouble());
     _sendRoadControl();
   }
 
