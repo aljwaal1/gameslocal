@@ -5,6 +5,7 @@ import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import '../../core/graphics/retro_pixels.dart';
+import '../arcade/arcade_timing.dart';
 
 class FuelPlaneGameScreen extends StatefulWidget {
   const FuelPlaneGameScreen({super.key, this.networkCore});
@@ -29,6 +30,9 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
   bool effectVisible=false;
   StreamSubscription<NetworkMessage>? networkSub;
   int syncTick=0;
+  final Stopwatch simulationClock=Stopwatch();
+  int lastSimulationMicros=0;
+  double tickCarry=0;
 
   bool get isNetworkGame=>widget.networkCore!=null;
   bool get isHost=>widget.networkCore?.state.mode==LocalNetworkMode.host;
@@ -37,11 +41,16 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
   final List<_Bullet> bullets=[];
 
   @override void initState(){super.initState();if(isNetworkGame)networkSub=widget.networkCore!.messages.listen(_onNetworkMessage);}
-  @override void dispose(){networkSub?.cancel();timer?.cancel();super.dispose();}
+  @override void dispose(){networkSub?.cancel();timer?.cancel();simulationClock.stop();super.dispose();}
 
   void start(){
     if(isNetworkGame&&!isHost){widget.networkCore?.sendMove(<String,dynamic>{'action':'plane_start_request'},senderId:localPlayerId);return;}
     timer?.cancel();
+    simulationClock
+      ..reset()
+      ..start();
+    lastSimulationMicros=0;
+    tickCarry=0;
     setState((){
       planeX=.5;remoteX=.5;fuel=100;remoteFuel=100;speed=.0065;score=0;remoteScore=0;distance=0;level=1;fireCooldown=0;remoteFireCooldown=0;scoreTick=0;
       running=true;gameOver=false;alive=true;remoteAlive=true;resultText='';objects.clear();bullets.clear();
@@ -53,24 +62,31 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
   void tick(){
     if(!running)return;
     if(isNetworkGame&&!isHost)return;
+    final now=simulationClock.elapsedMicroseconds;
+    final elapsed=lastSimulationMicros==0?.03:(now-lastSimulationMicros)/1000000;
+    lastSimulationMicros=now;
+    final step=ArcadeTiming.tickScale(elapsed);
+    tickCarry+=step;
+    final wholeTicks=tickCarry.floor();
+    tickCarry-=wholeTicks;
     var event=0;
-    distance++;scoreTick++;
-    if(scoreTick>=12){if(alive)score++;if(isNetworkGame&&remoteAlive)remoteScore++;scoreTick=0;}
-    if(alive)fuel-=.045;
-    if(isNetworkGame&&remoteAlive)remoteFuel-=.045;
+    distance+=wholeTicks;scoreTick+=wholeTicks;
+    while(scoreTick>=12){if(alive)score++;if(isNetworkGame&&remoteAlive)remoteScore++;scoreTick-=12;}
+    if(alive)fuel-=.045*step;
+    if(isNetworkGame&&remoteAlive)remoteFuel-=.045*step;
     level=1+distance~/1500;
     speed=min(.018,.0065+level*.0009);
 
     if(alive){
-      if(fireCooldown<=0){bullets.add(_Bullet(planeX,.745));fireCooldown=max(7,14-min(5,level~/2));event=1;}else{fireCooldown--;}
+      if(fireCooldown<=0){bullets.add(_Bullet(planeX,.745));fireCooldown=max(7,14-min(5,level~/2));event=1;}else{fireCooldown-=wholeTicks;}
     }
     if(isNetworkGame&&remoteAlive){
-      if(remoteFireCooldown<=0){bullets.add(_Bullet(remoteX,.745,remote:true));remoteFireCooldown=max(7,14-min(5,level~/2));}else{remoteFireCooldown--;}
+      if(remoteFireCooldown<=0){bullets.add(_Bullet(remoteX,.745,remote:true));remoteFireCooldown=max(7,14-min(5,level~/2));}else{remoteFireCooldown-=wholeTicks;}
     }
 
     // Exact spawn logic from the tested carsgame Fuel Plane.
     final spawn=.018+min(.018,level*.002);
-    if(rnd.nextDouble()<spawn){
+    if(rnd.nextDouble()<ArcadeTiming.scaledProbability(spawn,step)){
       final roll=rnd.nextDouble();
       final type=roll<.25?_ObjType.fuel:(roll<.78?_ObjType.rock:_ObjType.enemy);
       objects.add(_Obj(
@@ -81,8 +97,8 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
       ));
     }
 
-    for(final o in objects){o.y+=speed;}
-    for(final b in bullets){b.y-=.040;}
+    for(final o in objects){o.y+=speed*step;}
+    for(final b in bullets){b.y-=.040*step;}
     objects.removeWhere((o)=>o.y>1.12);
     bullets.removeWhere((b)=>b.y<-.08);
 
@@ -114,7 +130,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>{
         ? (networkMode==0?(!alive||!remoteAlive):(!alive&&!remoteAlive))
         : !alive;
     if(shouldEnd){
-      running=false;gameOver=true;timer?.cancel();best=max(best,score);
+      running=false;gameOver=true;timer?.cancel();simulationClock.stop();best=max(best,score);
       if(isNetworkGame){
         resultText=networkMode==1
             ? 'انتهت المهمة التعاونية • مجموع النقاط '+(score+remoteScore).toString()

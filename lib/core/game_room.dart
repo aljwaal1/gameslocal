@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../design/app_theme.dart';
 import 'app_settings.dart';
 import 'game_definition.dart';
+import 'game_help.dart';
 import 'network/local_network_core.dart';
 import 'network/local_room_discovery.dart';
 import 'network/local_wifi_transport.dart';
@@ -35,32 +36,36 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
 
   bool get _isNameGame => widget.game.id == 'name_animal_object';
 
-  bool get _supportsRobot =>
-      AppSettingsController.robotGameIds.contains(widget.game.id);
+  bool get _supportsRobot => widget.game.capabilities.robot;
 
-  String get _offlineModeText {
-    switch (widget.game.id) {
-      case 'xo':
-      case 'checkers':
-      case 'chess':
-        return 'ابدأ ضد الروبوت، ويمكنك التحويل إلى لاعبين على الجهاز من داخل اللعبة.';
-      case 'domino':
-        return 'ابدأ ضد الروبوت، أو اختر وضع أربعة لاعبين من داخل الدومينو.';
-      case 'sheikh_beard':
-      case 'dots_boxes':
-        return 'مواجهة مباشرة ضد الروبوت بالمستوى الذي تختاره.';
-      default:
-        return 'مواجهة مباشرة ضد الروبوت بدون إعداد غرفة أو اتصال.';
-    }
+  String get _availableModesText {
+    final capabilities = widget.game.capabilities;
+    final modes = <String>[
+      if (capabilities.robot) 'ضد الروبوت',
+      if (capabilities.sameDevice) 'على هذا الجهاز',
+      if (capabilities.lan) 'عبر الشبكة المحلية',
+      if (capabilities.internet) 'عبر الإنترنت',
+    ];
+    return modes.isEmpty
+        ? 'راجع تعليمات اللعبة قبل البدء.'
+        : 'متاح: ${modes.join('، ')}.';
   }
 
-  bool get _supportsBrowserQr => const <String>{
-        'name_animal_object',
-        'sheikh_beard',
-        'dots_boxes',
-        'xo',
-        'checkers',
-      }.contains(widget.game.id);
+  String get _offlineModeText {
+    if (widget.game.capabilities.robot &&
+        widget.game.capabilities.sameDevice) {
+      return 'اختر اللعب ضد الروبوت أو مشاركة الجهاز مع صديق.';
+    }
+    if (widget.game.capabilities.robot) {
+      return 'ابدأ مواجهة مباشرة ضد الروبوت بالمستوى الذي تختاره.';
+    }
+    if (widget.game.capabilities.sameDevice) {
+      return 'ابدأ اللعب مباشرة على هذا الجهاز دون إنشاء غرفة.';
+    }
+    return 'ابدأ اللعب مباشرة دون إنشاء غرفة أو اتصال.';
+  }
+
+  bool get _supportsBrowserQr => widget.game.capabilities.browser;
 
   Color get _accent {
     switch (widget.game.id) {
@@ -89,6 +94,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   @override
   void initState() {
     super.initState();
+    if (!widget.game.capabilities.lan && widget.game.capabilities.internet) {
+      _connectionKind = NetworkConnectionKind.internet;
+    }
     _playerNameController.text = AppSettingsController.instance.playerName;
     networkCore = LocalNetworkCore(gameId: widget.game.id);
     _subscription = networkCore.messages.listen((NetworkMessage message) {
@@ -96,8 +104,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         _openGame(useNetwork: true);
       }
     });
-    _stateSubscription =
-        networkCore.stateStream.listen((LocalNetworkState state) {
+    _stateSubscription = networkCore.stateStream.listen((
+      LocalNetworkState state,
+    ) {
       if (state.mode == LocalNetworkMode.host &&
           state.connectionKind == NetworkConnectionKind.local &&
           (state.status == LocalNetworkStatus.ready ||
@@ -115,8 +124,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         .where((LocalPlayer player) => player.isHost)
         .map((LocalPlayer player) => player.name)
         .toList(growable: false);
-    final String inviterName =
-        inviterNames.isEmpty ? 'لاعب' : inviterNames.first;
+    final String inviterName = inviterNames.isEmpty
+        ? 'لاعب'
+        : inviterNames.first;
     try {
       await _discovery.startAdvertising(
         gameId: widget.game.id,
@@ -146,10 +156,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (BuildContext context) => widget.game.builder(
-          context,
-          useNetwork ? networkCore : null,
-        ),
+        builder: (BuildContext context) =>
+            widget.game.builder(context, useNetwork ? networkCore : null),
       ),
     ).then((_) {
       _opened = false;
@@ -373,10 +381,7 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: <Color>[
-            _accent.withOpacity(.15),
-            const Color(0xFFF8FAFC),
-          ],
+          colors: <Color>[_accent.withOpacity(.15), const Color(0xFFF8FAFC)],
         ),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: _accent.withOpacity(.22)),
@@ -477,9 +482,11 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   }
 
   Widget _roomStatusCard(LocalNetworkState state, bool hostReady) {
-    final bool active = state.status == LocalNetworkStatus.ready ||
+    final bool active =
+        state.status == LocalNetworkStatus.ready ||
         state.status == LocalNetworkStatus.connected;
-    final bool interrupted = state.status == LocalNetworkStatus.disconnected ||
+    final bool interrupted =
+        state.status == LocalNetworkStatus.disconnected ||
         state.status == LocalNetworkStatus.error;
     return Container(
       padding: const EdgeInsets.all(18),
@@ -513,7 +520,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Icon(
-                  active ? Icons.wifi_tethering_rounded : Icons.link_off_rounded,
+                  active
+                      ? Icons.wifi_tethering_rounded
+                      : Icons.link_off_rounded,
                   color: active ? const Color(0xFF5EEAD4) : Colors.white54,
                 ),
               ),
@@ -526,8 +535,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                       active
                           ? 'الغرفة جاهزة'
                           : interrupted
-                              ? 'الاتصال متوقف'
-                              : 'لم يتم إنشاء غرفة بعد',
+                          ? 'الاتصال متوقف'
+                          : 'لم يتم إنشاء غرفة بعد',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 19,
@@ -565,8 +574,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                   active
                       ? 'متصل'
                       : interrupted
-                          ? 'يحتاج إعادة اتصال'
-                          : 'غير متصل',
+                      ? 'يحتاج إعادة اتصال'
+                      : 'غير متصل',
                   style: TextStyle(
                     color: active ? const Color(0xFF99F6E4) : Colors.white60,
                     fontSize: 11,
@@ -612,13 +621,10 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     state.connectionKind == NetworkConnectionKind.internet
                         ? 'شارك هذا الرمز؛ يمكن الانضمام من أي شبكة'
                         : _supportsBrowserQr
-                            ? 'افتح QR الكبير وشاركه قبل ظهور لوحة اللعب'
-                            : 'شارك الرمز مع اللاعب الموجود على نفس الشبكة',
+                        ? 'افتح QR الكبير وشاركه قبل ظهور لوحة اللعب'
+                        : 'شارك الرمز مع اللاعب الموجود على نفس الشبكة',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white60,
-                      fontSize: 10,
-                    ),
+                    style: const TextStyle(color: Colors.white60, fontSize: 10),
                   ),
                 ],
               ),
@@ -637,7 +643,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: _roomMetric(
-                  hostReady ? Icons.check_circle_rounded : Icons.hourglass_top_rounded,
+                  hostReady
+                      ? Icons.check_circle_rounded
+                      : Icons.hourglass_top_rounded,
                   hostReady ? 'جاهز' : 'انتظار',
                   'الحالة',
                 ),
@@ -732,7 +740,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
               children: <Widget>[
                 CircleAvatar(
                   radius: 11,
-                  backgroundColor: player.isHost ? _accent : const Color(0xFFE2E8F0),
+                  backgroundColor: player.isHost
+                      ? _accent
+                      : const Color(0xFFE2E8F0),
                   child: Icon(
                     player.isHost ? Icons.star_rounded : Icons.person_rounded,
                     size: 13,
@@ -768,8 +778,8 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
             _joining
                 ? 'جاري الدخول...'
                 : _searching
-                    ? 'جاري البحث على الشبكة...'
-                    : 'البحث عن الغرف القريبة',
+                ? 'جاري البحث على الشبكة...'
+                : 'البحث عن الغرف القريبة',
           ),
         ),
         if (_rooms.isNotEmpty) ...<Widget>[
@@ -816,7 +826,9 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
                     ),
                   ),
                   FilledButton(
-                    onPressed: _joining ? null : () => _joinDiscoveredRoom(room),
+                    onPressed: _joining
+                        ? null
+                        : () => _joinDiscoveredRoom(room),
                     child: const Text('دخول'),
                   ),
                 ],
@@ -927,306 +939,339 @@ class _GameRoomScreenState extends State<GameRoomScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.game.name)),
+      appBar: AppBar(
+        title: Text(widget.game.name),
+        actions: <Widget>[
+          IconButton(
+            tooltip: 'طريقة اللعب',
+            onPressed: () => showGameHelp(context, widget.game),
+            icon: const Icon(Icons.help_outline_rounded),
+          ),
+        ],
+      ),
       body: StreamBuilder<LocalNetworkState>(
         stream: networkCore.stateStream,
         initialData: networkCore.state,
         builder:
             (BuildContext context, AsyncSnapshot<LocalNetworkState> snapshot) {
-          final LocalNetworkState state =
-              snapshot.data ?? LocalNetworkState.idle();
-          final bool hostReady = state.mode == LocalNetworkMode.host &&
-              (state.status == LocalNetworkStatus.ready ||
-                  state.status == LocalNetworkStatus.connected);
-          final bool canStart = hostReady &&
-              (_supportsBrowserQr &&
-                      state.connectionKind == NetworkConnectionKind.local
-                  ? state.players.isNotEmpty
-                  : state.players.length >= 2);
-          final bool operationPending =
-              state.status == LocalNetworkStatus.preparing || _joining;
-          final bool canRetry = state.status == LocalNetworkStatus.disconnected ||
-              state.status == LocalNetworkStatus.error;
+              final LocalNetworkState state =
+                  snapshot.data ?? LocalNetworkState.idle();
+              final bool hostReady =
+                  state.mode == LocalNetworkMode.host &&
+                  (state.status == LocalNetworkStatus.ready ||
+                      state.status == LocalNetworkStatus.connected);
+              final bool canStart =
+                  hostReady &&
+                  (_supportsBrowserQr &&
+                          state.connectionKind == NetworkConnectionKind.local
+                      ? state.players.isNotEmpty
+                      : state.players.length >= 2);
+              final bool operationPending =
+                  state.status == LocalNetworkStatus.preparing || _joining;
+              final bool canRetry =
+                  state.status == LocalNetworkStatus.disconnected ||
+                  state.status == LocalNetworkStatus.error;
 
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 22),
-            children: <Widget>[
-              Container(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                    colors: <Color>[
-                      _accent.withOpacity(.15),
-                      Colors.white,
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(color: _accent.withOpacity(.16)),
-                ),
-                child: Column(
-                  children: <Widget>[
-                    Container(
-                      width: 58,
-                      height: 58,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: <Color>[_accent, _accent.withOpacity(.72)],
-                        ),
-                        borderRadius: BorderRadius.circular(19),
-                        boxShadow: <BoxShadow>[
-                          BoxShadow(
-                            color: _accent.withOpacity(.24),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.groups_2_rounded,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'اختر طريقة اللعب',
-                      style: TextStyle(
-                        color: _accent,
-                        fontSize: 11,
-                        letterSpacing: 1.4,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      widget.game.name,
-                      style: const TextStyle(
-                        color: AppColors.ink,
-                        fontSize: 25,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'العب على الجهاز، عبر LAN، أو عبر الإنترنت مع أصدقائك من أي شبكة.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.muted,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (!_isNameGame) ...<Widget>[
-                const SizedBox(height: 12),
-                _offlineLaunchCard(),
-                const SizedBox(height: 18),
-                Row(
-                  children: <Widget>[
-                    Expanded(child: Divider(color: _accent.withOpacity(.22))),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text(
-                        'أو العب مع أجهزة أخرى',
-                        style: TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    Expanded(child: Divider(color: _accent.withOpacity(.22))),
-                  ],
-                ),
-              ],
-              const SizedBox(height: 12),
-              SegmentedButton<NetworkConnectionKind>(
-                showSelectedIcon: false,
-                segments: const <ButtonSegment<NetworkConnectionKind>>[
-                  ButtonSegment<NetworkConnectionKind>(
-                    value: NetworkConnectionKind.local,
-                    icon: Icon(Icons.wifi_rounded),
-                    label: Text('نفس الشبكة'),
-                  ),
-                  ButtonSegment<NetworkConnectionKind>(
-                    value: NetworkConnectionKind.internet,
-                    icon: Icon(Icons.public_rounded),
-                    label: Text('عبر الإنترنت'),
-                  ),
-                ],
-                selected: <NetworkConnectionKind>{_connectionKind},
-                onSelectionChanged: operationPending
-                    ? null
-                    : (Set<NetworkConnectionKind> values) => unawaited(
-                          _changeConnectionKind(values.first),
-                        ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _connectionKind == NetworkConnectionKind.internet
-                    ? 'لا يشترط أن تكونوا على نفس الشبكة • الدخول برمز من 6 خانات'
-                    : 'اتصال مباشر عبر Wi-Fi / Hotspot بدون إنترنت',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.muted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (canRetry) ...<Widget>[
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFFDBA74)),
-                  ),
-                  child: Row(
-                    children: <Widget>[
-                      const Icon(Icons.wifi_off_rounded, color: Color(0xFFC2410C)),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          state.message,
-                          style: const TextStyle(
-                            color: Color(0xFF9A3412),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton.icon(
-                        onPressed: _joining
-                            ? null
-                            : () => unawaited(_retryConnection(state)),
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const Text('إعادة الاتصال'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              TextField(
-                controller: _playerNameController,
-                enabled: state.mode == LocalNetworkMode.idle,
-                textInputAction: TextInputAction.done,
-                maxLength: 24,
-                decoration: const InputDecoration(
-                  labelText: 'اسمك داخل الغرفة',
-                  hintText: 'مثال: أحمد',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                  counterText: '',
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 22),
                 children: <Widget>[
-                  _modeButton(
-                    selected: _isHost,
-                    icon: Icons.add_circle_outline_rounded,
-                    title: 'إنشاء غرفة',
-                    subtitle: 'اسمي يظهر للاعبين',
-                    onTap: operationPending
-                        ? null
-                        : () => unawaited(_changeMode(true)),
-                  ),
-                  const SizedBox(width: 10),
-                  _modeButton(
-                    selected: !_isHost,
-                    icon: Icons.travel_explore_rounded,
-                    title: 'انضمام',
-                    subtitle: _connectionKind == NetworkConnectionKind.internet
-                        ? 'أدخل رمز الدعوة'
-                        : 'ابحث عن الداعي',
-                    onTap: operationPending
-                        ? null
-                        : () => unawaited(_changeMode(false)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (_isHost && state.mode == LocalNetworkMode.idle)
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    backgroundColor: _accent,
-                  ),
-                  onPressed: operationPending ? null : _createRoom,
-                  icon: operationPending
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Icon(_connectionKind == NetworkConnectionKind.internet
-                          ? Icons.public_rounded
-                          : Icons.wifi_tethering_rounded),
-                  label: Text(_connectionKind == NetworkConnectionKind.internet
-                      ? 'إنشاء غرفة عبر الإنترنت'
-                      : 'إنشاء غرفة على نفس الشبكة'),
-                )
-              else if (!_isHost)
-                _connectionKind == NetworkConnectionKind.internet
-                    ? _internetJoinPanel()
-                    : _joinPanel(),
-              if (_isHost || state.mode != LocalNetworkMode.idle) ...<Widget>[
-                if (!(_isHost && state.mode == LocalNetworkMode.idle))
-                  _roomStatusCard(state, hostReady),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                        colors: <Color>[_accent.withOpacity(.15), Colors.white],
+                      ),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(color: _accent.withOpacity(.16)),
+                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: <Widget>[
-                        Row(
-                          children: <Widget>[
-                            Icon(Icons.people_alt_rounded, color: _accent),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'اللاعبون في الغرفة',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                              ),
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: <Color>[
+                                _accent,
+                                _accent.withOpacity(.72),
+                              ],
                             ),
-                          ],
+                            borderRadius: BorderRadius.circular(19),
+                            boxShadow: <BoxShadow>[
+                              BoxShadow(
+                                color: _accent.withOpacity(.24),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.groups_2_rounded,
+                            color: Colors.white,
+                            size: 30,
+                          ),
                         ),
                         const SizedBox(height: 10),
-                        _playerStrip(state),
-                        if (_isHost) ...<Widget>[
-                          const SizedBox(height: 14),
-                          FilledButton.icon(
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 15),
-                              backgroundColor: canStart ? _accent : null,
-                            ),
-                            onPressed: canStart ? _start : null,
-                            icon: const Icon(Icons.play_arrow_rounded),
-                            label: Text(
-                              canStart
-                                  ? (_supportsBrowserQr &&
-                                          state.connectionKind ==
-                                              NetworkConnectionKind.local
-                                      ? 'فتح QR الكبير قبل اللعبة'
-                                      : 'بدء اللعبة على الجميع')
-                                  : 'بانتظار لاعب للبدء',
-                            ),
+                        Text(
+                          'اختر طريقة اللعب',
+                          style: TextStyle(
+                            color: _accent,
+                            fontSize: 11,
+                            letterSpacing: 1.4,
+                            fontWeight: FontWeight.w900,
                           ),
-                        ],
+                        ),
+                        Text(
+                          widget.game.name,
+                          style: const TextStyle(
+                            color: AppColors.ink,
+                            fontSize: 25,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _availableModesText,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                            height: 1.4,
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ],
-          );
-        },
+                  if (!_isNameGame &&
+                      widget.game.capabilities.hasOfflineMode) ...<Widget>[
+                    const SizedBox(height: 12),
+                    _offlineLaunchCard(),
+                    const SizedBox(height: 18),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Divider(color: _accent.withOpacity(.22)),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 10),
+                          child: Text(
+                            'أو العب مع أجهزة أخرى',
+                            style: TextStyle(
+                              color: AppColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(color: _accent.withOpacity(.22)),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (widget.game.capabilities.hasNetworkMode) ...<Widget>[
+                    const SizedBox(height: 12),
+                    SegmentedButton<NetworkConnectionKind>(
+                      showSelectedIcon: false,
+                      segments: <ButtonSegment<NetworkConnectionKind>>[
+                        if (widget.game.capabilities.lan)
+                          const ButtonSegment<NetworkConnectionKind>(
+                            value: NetworkConnectionKind.local,
+                            icon: Icon(Icons.wifi_rounded),
+                            label: Text('نفس الشبكة'),
+                          ),
+                        if (widget.game.capabilities.internet)
+                          const ButtonSegment<NetworkConnectionKind>(
+                            value: NetworkConnectionKind.internet,
+                            icon: Icon(Icons.public_rounded),
+                            label: Text('عبر الإنترنت'),
+                          ),
+                      ],
+                      selected: <NetworkConnectionKind>{_connectionKind},
+                      onSelectionChanged: operationPending
+                          ? null
+                          : (Set<NetworkConnectionKind> values) =>
+                                unawaited(_changeConnectionKind(values.first)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _connectionKind == NetworkConnectionKind.internet
+                          ? 'لا يشترط أن تكونوا على نفس الشبكة • الدخول برمز من 6 خانات'
+                          : 'اتصال مباشر عبر Wi-Fi / Hotspot بدون إنترنت',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (widget.game.capabilities.hasNetworkMode) ...<Widget>[
+                  if (canRetry) ...<Widget>[
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF7ED),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFFDBA74)),
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          const Icon(
+                            Icons.wifi_off_rounded,
+                            color: Color(0xFFC2410C),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              state.message,
+                              style: const TextStyle(
+                                color: Color(0xFF9A3412),
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.icon(
+                            onPressed: _joining
+                                ? null
+                                : () => unawaited(_retryConnection(state)),
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('إعادة الاتصال'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  TextField(
+                    controller: _playerNameController,
+                    enabled: state.mode == LocalNetworkMode.idle,
+                    textInputAction: TextInputAction.done,
+                    maxLength: 24,
+                    decoration: const InputDecoration(
+                      labelText: 'اسمك داخل الغرفة',
+                      hintText: 'مثال: أحمد',
+                      prefixIcon: Icon(Icons.badge_outlined),
+                      counterText: '',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: <Widget>[
+                      _modeButton(
+                        selected: _isHost,
+                        icon: Icons.add_circle_outline_rounded,
+                        title: 'إنشاء غرفة',
+                        subtitle: 'اسمي يظهر للاعبين',
+                        onTap: operationPending
+                            ? null
+                            : () => unawaited(_changeMode(true)),
+                      ),
+                      const SizedBox(width: 10),
+                      _modeButton(
+                        selected: !_isHost,
+                        icon: Icons.travel_explore_rounded,
+                        title: 'انضمام',
+                        subtitle:
+                            _connectionKind == NetworkConnectionKind.internet
+                            ? 'أدخل رمز الدعوة'
+                            : 'ابحث عن الداعي',
+                        onTap: operationPending
+                            ? null
+                            : () => unawaited(_changeMode(false)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (_isHost && state.mode == LocalNetworkMode.idle)
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        backgroundColor: _accent,
+                      ),
+                      onPressed: operationPending ? null : _createRoom,
+                      icon: operationPending
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              _connectionKind == NetworkConnectionKind.internet
+                                  ? Icons.public_rounded
+                                  : Icons.wifi_tethering_rounded,
+                            ),
+                      label: Text(
+                        _connectionKind == NetworkConnectionKind.internet
+                            ? 'إنشاء غرفة عبر الإنترنت'
+                            : 'إنشاء غرفة على نفس الشبكة',
+                      ),
+                    )
+                  else if (!_isHost)
+                    _connectionKind == NetworkConnectionKind.internet
+                        ? _internetJoinPanel()
+                        : _joinPanel(),
+                  if (_isHost ||
+                      state.mode != LocalNetworkMode.idle) ...<Widget>[
+                    if (!(_isHost && state.mode == LocalNetworkMode.idle))
+                      _roomStatusCard(state, hostReady),
+                    const SizedBox(height: 12),
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Row(
+                              children: <Widget>[
+                                Icon(Icons.people_alt_rounded, color: _accent),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'اللاعبون في الغرفة',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            _playerStrip(state),
+                            if (_isHost) ...<Widget>[
+                              const SizedBox(height: 14),
+                              FilledButton.icon(
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 15,
+                                  ),
+                                  backgroundColor: canStart ? _accent : null,
+                                ),
+                                onPressed: canStart ? _start : null,
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: Text(
+                                  canStart
+                                      ? (_supportsBrowserQr &&
+                                                state.connectionKind ==
+                                                    NetworkConnectionKind.local
+                                            ? 'فتح QR الكبير قبل اللعبة'
+                                            : 'بدء اللعبة على الجميع')
+                                      : 'بانتظار لاعب للبدء',
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                  ],
+                ],
+              );
+            },
       ),
     );
   }

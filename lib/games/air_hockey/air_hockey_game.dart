@@ -5,6 +5,7 @@ import '../../core/audio_feedback.dart';
 import '../../core/app_settings.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
+import 'hockey_physics.dart';
 
 class AirHockeyGameScreen extends StatefulWidget {
   const AirHockeyGameScreen({super.key, this.networkCore});
@@ -29,6 +30,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
   String goalEffect='';
   StreamSubscription<NetworkMessage>? networkSub;
   int syncTick=0;
+  Size fieldSize=const Size(360,720);
 
   bool get isNetworkGame=>widget.networkCore!=null;
   bool get isHost=>widget.networkCore?.state.mode==LocalNetworkMode.host;
@@ -96,31 +98,37 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
   }
 
   ({Offset position,Offset velocity,bool contact}) _collide(Offset paddle,Offset p,Offset paddleSpeed,bool wasTouching,Offset current,bool upper){
-    final d=p-paddle, distance=d.distance;
-    if(distance>=.108||distance==0)return(position:p,velocity:current,contact:false);
+    final d=HockeyGeometry.pixelDelta(p,paddle,fieldSize), distance=d.distance;
+    final combined=fieldSize.width*.108;
+    if(distance>=combined||distance==0)return(position:p,velocity:current,contact:false);
     final n=d/distance;
     if(wasTouching)return(position:p,velocity:current,contact:true);
-    final relative=current-paddleSpeed;
+    final currentPx=HockeyGeometry.velocityToPixels(current,fieldSize);
+    final paddlePx=HockeyGeometry.velocityToPixels(paddleSpeed,fieldSize);
+    final relative=currentPx-paddlePx;
     final approach=relative.dx*n.dx+relative.dy*n.dy;
-    if(approach>=0&&paddleSpeed.distance<.08)return(position:p,velocity:current,contact:true);
-    var result=relative-n*(1.96*approach)+paddleSpeed*1.42;
-    final minimum=upper && botMode ? switch(settings.botDifficultyFor('air_hockey')){BotDifficulty.easy=>.31,BotDifficulty.normal=>.42,BotDifficulty.hard=>.52} : .25;
-    if(result.distance<minimum)result=n*minimum+paddleSpeed*.72;
+    if(approach>=0&&paddlePx.distance<fieldSize.width*.08)return(position:p,velocity:current,contact:true);
+    var resultPx=relative-n*(1.96*approach)+paddlePx*1.42;
+    final minimum=(upper && botMode ? switch(settings.botDifficultyFor('air_hockey')){BotDifficulty.easy=>.31,BotDifficulty.normal=>.42,BotDifficulty.hard=>.52} : .25)*fieldSize.width;
+    if(resultPx.distance<minimum)resultPx=n*minimum+paddlePx*.72;
+    var result=HockeyGeometry.velocityToNormalized(resultPx,fieldSize);
     result=_limit(result,2.65);GameFeedback.capture(GameAudioTheme.hockey);
-    return(position:paddle+n*.109,velocity:result,contact:true);
+    return(position:paddle+HockeyGeometry.normalizedOffset(n*(combined+1),fieldSize),velocity:result,contact:true);
   }
 
   ({Offset position,Offset velocity}) _collidePost(Offset post,Offset p,Offset current){
-    final d=p-post;
+    final d=HockeyGeometry.pixelDelta(p,post,fieldSize);
     final distance=d.distance;
-    const combined=.064;
+    final combined=fieldSize.width*.064;
     if(distance>=combined||distance==0)return(position:p,velocity:current);
     final n=d/distance;
-    final approach=current.dx*n.dx+current.dy*n.dy;
-    if(approach>=0)return(position:post+n*combined,velocity:current);
-    final bounced=current-n*(1.92*approach);
+    final currentPx=HockeyGeometry.velocityToPixels(current,fieldSize);
+    final approach=currentPx.dx*n.dx+currentPx.dy*n.dy;
+    final safePosition=post+HockeyGeometry.normalizedOffset(n*(combined+1),fieldSize);
+    if(approach>=0)return(position:safePosition,velocity:current);
+    final bounced=currentPx-n*(1.92*approach);
     GameFeedback.post(GameAudioTheme.hockey);
-    return(position:post+n*combined,velocity:_limit(bounced,2.65));
+    return(position:safePosition,velocity:_limit(HockeyGeometry.velocityToNormalized(bounced,fieldSize),2.65));
   }
 
   void _sendState(){
@@ -163,9 +171,9 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
       final scored=nextBottom!=bottomScore||nextTop!=topScore;
       final localScored=nextBottom>bottomScore;
       setState((){
-        puck=Offset(px,1-py);
-        bottom=Offset(tx,1-ty);
-        top=Offset(bx,1-by);
+        puck=Offset.lerp(puck,Offset(px,1-py),.58)!;
+        bottom=Offset.lerp(bottom,Offset(tx,1-ty),.72)!;
+        top=Offset.lerp(top,Offset(bx,1-by),.72)!;
         bottomScore=nextBottom;
         topScore=nextTop;
         playing=m.payload['playing']!=false;
@@ -251,7 +259,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen> with SingleTi
         ]),
         const SizedBox(height:8),
         Expanded(child:Stack(children:[
-          Positioned.fill(child:LayoutBuilder(builder:(context,c)=>Listener(onPointerDown:(e)=>_down(e,c),onPointerMove:(e)=>_move(e,c),onPointerUp:_up,onPointerCancel:_up,child:CustomPaint(size:Size(c.maxWidth,c.maxHeight),painter:_HockeyPainter(puck,bottom,top,velocity))))),
+          Positioned.fill(child:LayoutBuilder(builder:(context,c){fieldSize=Size(c.maxWidth,c.maxHeight);return Listener(onPointerDown:(e)=>_down(e,c),onPointerMove:(e)=>_move(e,c),onPointerUp:_up,onPointerCancel:_up,child:CustomPaint(size:fieldSize,painter:_HockeyPainter(puck,bottom,top,velocity)));})),
           Positioned.fill(child:IgnorePointer(child:AnimatedOpacity(
             opacity:goalFlash?1:0,
             duration:const Duration(milliseconds:120),

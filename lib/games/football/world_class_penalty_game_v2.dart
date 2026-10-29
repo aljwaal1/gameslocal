@@ -9,6 +9,7 @@ import '../../core/app_settings.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import 'elite_penalty_game_v2.dart' as legacy;
+import 'penalty_rules.dart';
 
 class ChampionsPenaltyGameScreen extends StatelessWidget {
   const ChampionsPenaltyGameScreen({super.key, this.networkCore});
@@ -116,7 +117,7 @@ class _PenaltyShellState extends State<_PenaltyShell> {
               widget.subtitle,
               style: const TextStyle(
                 color: Color(0xFF6DD5FA),
-                fontSize: 9,
+                fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2.8,
               ),
@@ -280,7 +281,7 @@ class _ScoreBar extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFF77D7FF),
                 fontWeight: FontWeight.w900,
-                fontSize: 9,
+                fontSize: 10,
                 letterSpacing: 1.5,
               ),
             ),
@@ -512,7 +513,6 @@ class CinematicPenaltyGame extends FlameGame {
     flight = 0;
     phase = PenaltyPhase.flying;
     GameFeedback.kick(GameAudioTheme.football);
-    HapticFeedback.lightImpact();
     _syncHud(message: power > .94 ? 'قذيفة قوية...' : 'تسديدة...');
   }
 
@@ -554,7 +554,6 @@ class CinematicPenaltyGame extends FlameGame {
     flight = 0;
     phase = PenaltyPhase.flying;
     GameFeedback.kick(GameAudioTheme.football);
-    HapticFeedback.mediumImpact();
     _syncHud(message: 'المنافس يسدد...');
   }
 
@@ -591,19 +590,15 @@ class CinematicPenaltyGame extends FlameGame {
     switch (outcome) {
       case PenaltyOutcome.goal:
         GameFeedback.goal(GameAudioTheme.football);
-        HapticFeedback.heavyImpact();
         _syncHud(message: championsMode ? 'هــــدف عالمي!' : 'هــــدف!');
       case PenaltyOutcome.save:
         GameFeedback.save(GameAudioTheme.football);
-        HapticFeedback.mediumImpact();
         _syncHud(message: 'تصـــدٍ مذهل!');
       case PenaltyOutcome.post:
         GameFeedback.post(GameAudioTheme.football);
-        HapticFeedback.heavyImpact();
         _syncHud(message: 'في القائم!');
       case PenaltyOutcome.miss:
         GameFeedback.error(GameAudioTheme.football);
-        HapticFeedback.mediumImpact();
         _syncHud(message: 'خارج المرمى!');
     }
   }
@@ -637,9 +632,12 @@ class CinematicPenaltyGame extends FlameGame {
   }
 
   bool _isFinished() {
-    if (playerShots < 5 || robotShots < 5) return false;
-    if (playerShots != robotShots) return false;
-    return playerGoals != robotGoals;
+    return PenaltyRules.isFinished(
+      playerGoals: playerGoals,
+      robotGoals: robotGoals,
+      playerShots: playerShots,
+      robotShots: robotShots,
+    );
   }
 
   void _syncHud({String? message}) {

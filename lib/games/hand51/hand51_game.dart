@@ -483,7 +483,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
   Widget stat(String a,String b)=>Expanded(child:Column(children:[Text(b,style:const TextStyle(color:Colors.white,fontSize:17,fontWeight:FontWeight.w900)),Text(a,style:const TextStyle(color:Colors.white60,fontSize:10))]));
   Widget deckButton(String t,VoidCallback f)=>InkWell(onTap:f,child:Container(width:62,height:82,alignment:Alignment.center,decoration:BoxDecoration(color:const Color(0xFF173D31),borderRadius:BorderRadius.circular(13),border:Border.all(color:Colors.white24)),child:Text(t,textAlign:TextAlign.center,style:const TextStyle(color:Colors.white,fontWeight:FontWeight.w800))));
   Widget backCard({bool small=false})=>Container(
-    width:small?16:46,height:small?24:70,
+    width:small?20:46,height:small?30:70,
     decoration:BoxDecoration(
       borderRadius:BorderRadius.circular(small?3:9),
       border:Border.all(color:Colors.white70,width:small ? .7 : 1.2),

@@ -5,6 +5,7 @@ import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import '../../core/graphics/retro_pixels.dart';
+import '../arcade/arcade_timing.dart';
 
 class RetroRoadGameScreen extends StatefulWidget{
   const RetroRoadGameScreen({super.key,this.networkCore});
@@ -32,6 +33,9 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   bool effectVisible=false;
   StreamSubscription<NetworkMessage>? networkSub;
   int syncTick=0;
+  final Stopwatch simulationClock=Stopwatch();
+  int lastSimulationMicros=0;
+  double tickCarry=0;
 
   bool get isNetworkGame=>widget.networkCore!=null;
   bool get isHost=>widget.networkCore?.state.mode==LocalNetworkMode.host;
@@ -40,11 +44,16 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   final List<_Traffic> cars=[];
 
   @override void initState(){super.initState();if(isNetworkGame)networkSub=widget.networkCore!.messages.listen(_onNetworkMessage);}
-  @override void dispose(){networkSub?.cancel();timer?.cancel();super.dispose();}
+  @override void dispose(){networkSub?.cancel();timer?.cancel();simulationClock.stop();super.dispose();}
 
   void start(){
     if(isNetworkGame&&!isHost){widget.networkCore?.sendMove(<String,dynamic>{'action':'road_start_request'},senderId:localPlayerId);return;}
     timer?.cancel();
+    simulationClock
+      ..reset()
+      ..start();
+    lastSimulationMicros=0;
+    tickCarry=0;
     setState((){
       playerX=.5;remoteX=.5;speed=.0068;score=0;distance=0;day=1;passed=0;scoreTick=0;running=true;gameOver=false;localCrashed=false;remoteCrashed=false;resultText='';
       weather=_Weather.day;lastWeather=_Weather.day;cars.clear();
@@ -56,16 +65,23 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
   void tick(){
     if(!running)return;
     if(isNetworkGame&&!isHost)return;
+    final now=simulationClock.elapsedMicroseconds;
+    final elapsed=lastSimulationMicros==0?.03:(now-lastSimulationMicros)/1000000;
+    lastSimulationMicros=now;
+    final step=ArcadeTiming.tickScale(elapsed);
+    tickCarry+=step;
+    final wholeTicks=tickCarry.floor();
+    tickCarry-=wholeTicks;
     var event=0;
-    distance++;scoreTick++;
-    if(scoreTick>=10){score++;scoreTick=0;}
+    distance+=wholeTicks;scoreTick+=wholeTicks;
+    while(scoreTick>=10){score++;scoreTick-=10;}
     speed=min(.020,.0068+day*.0008+distance/220000);
     updateWeather();
     if(weather!=lastWeather){event=2;lastWeather=weather;}
 
     // Exact traffic generation from the tested carsgame Retro Road.
     final spawn=.018+min(.014,day*.0022);
-    if(rnd.nextDouble()<spawn){
+    if(rnd.nextDouble()<ArcadeTiming.scaledProbability(spawn,step)){
       const lanes=[.28,.40,.52,.64,.76];
       final lane=rnd.nextInt(lanes.length);
       cars.add(_Traffic(
@@ -76,7 +92,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
       ));
     }
 
-    for(final car in cars){car.y+=speed*car.factor;}
+    for(final car in cars){car.y+=speed*car.factor*step;}
     final before=cars.length;
     cars.removeWhere((c)=>c.y>1.15);
     final removed=before-cars.length;
@@ -90,11 +106,11 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
       if(!localCrashed&&hasCrashAt(playerX)){localCrashed=true;event=4;}
       if(!remoteCrashed&&hasCrashAt(remoteX)){remoteCrashed=true;event=4;}
       if(localCrashed||remoteCrashed){
-        running=false;gameOver=true;timer?.cancel();
+        running=false;gameOver=true;timer?.cancel();simulationClock.stop();
         resultText=localCrashed&&remoteCrashed?'تعادل — اصطدمتما معًا':(localCrashed?'فاز اللاعب الآخر':'فزت بالسباق');
       }
     }else if(hasCrashAt(playerX)){
-      running=false;gameOver=true;best=max(best,score);timer?.cancel();event=4;
+      running=false;gameOver=true;best=max(best,score);timer?.cancel();simulationClock.stop();event=4;
     }
 
     if(event==4){_showEffect('💥 حادث!');GameFeedback.lose(GameAudioTheme.road);}

@@ -3,10 +3,28 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('all nine games are exposed through the LAN room flow', () {
+  test('all games are listed and the legacy LAN hub retains its rooms', () {
     final home = File('lib/main.dart').readAsStringSync();
     final lan = File('lib/lan/screens/lan_home_screen.dart').readAsStringSync();
-    const ids = <String>[
+    const allIds = <String>[
+      'football_penalties',
+      'xo',
+      'checkers',
+      'domino',
+      'chess',
+      'cards',
+      'hand51',
+      'air_hockey',
+      'fuel_plane',
+      'retro_road',
+      'name_animal_object',
+      'sheikh_beard',
+      'dots_boxes',
+    ];
+    for (final id in allIds) {
+      expect(home, contains("'$id'"), reason: '$id missing from home');
+    }
+    const legacyLanIds = <String>[
       'football_penalties',
       'xo',
       'checkers',
@@ -17,8 +35,7 @@ void main() {
       'sheikh_beard',
       'dots_boxes',
     ];
-    for (final id in ids) {
-      expect(home, contains("'$id'"), reason: '$id missing from home');
+    for (final id in legacyLanIds) {
       expect(lan, contains("id: '$id'"), reason: '$id missing from LAN');
     }
     expect(home, contains("'chess',"));

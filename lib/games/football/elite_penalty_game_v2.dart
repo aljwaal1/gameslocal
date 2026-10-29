@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
+import 'penalty_rules.dart';
 
 class ChampionsPenaltyGameScreen extends StatelessWidget {
   const ChampionsPenaltyGameScreen({super.key, this.networkCore});
@@ -87,11 +88,12 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
   bool get _localTurn => !_network || (_turn.isEven == _isHost);
   bool get _leftTurn => _turn.isEven;
 
-  bool get _finished {
-    if (_leftShots < 5 || _rightShots < 5) return false;
-    if (_leftShots != _rightShots) return false;
-    return _leftGoals != _rightGoals;
-  }
+  bool get _finished => PenaltyRules.isFinished(
+        playerGoals: _leftGoals,
+        robotGoals: _rightGoals,
+        playerShots: _leftShots,
+        robotShots: _rightShots,
+      );
 
   String get _localId {
     final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];

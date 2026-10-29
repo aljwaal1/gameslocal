@@ -36,11 +36,6 @@ class GamesLocalApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'ألعاب محلية',
       theme: AppThemeFactory.light(),
-      builder: (context, child) => Listener(
-        behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) => GameFeedback.uiTap(),
-        child: child ?? const SizedBox.shrink(),
-      ),
       home: Directionality(
         textDirection: TextDirection.rtl,
         child: HomeScreen(),
@@ -58,6 +53,17 @@ class HomeScreen extends StatelessWidget {
       name: 'ركلات الترجيح',
       playersText: 'روبوت أو لاعبان محليًا/عبر الإنترنت',
       status: 'Penalty Arena Pro بمنظور وحركة دقيقة',
+      capabilities: const GameCapabilities(
+        robot: true,
+        sameDevice: true,
+        lan: true,
+        internet: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'سجّل ركلات أكثر من منافسك وتصدَّ لتسديداته.',
+        controls: 'اسحب من الكرة نحو الهدف للتسديد، واضغط جهة المرمى عندما تصبح الحارس.',
+        keyRule: 'القوة تتغير بطول السحب، وتنتقل الأدوار بين التسديد والتصدي.',
+      ),
       builder: (_, networkCore) =>
           ProPenaltyShootoutGameScreen(networkCore: networkCore),
     ),
@@ -66,6 +72,17 @@ class HomeScreen extends StatelessWidget {
       name: 'إكس أو',
       playersText: 'لاعبان',
       status: 'ضد لاعب أو ضد الكمبيوتر',
+      capabilities: const GameCapabilities(
+        robot: true,
+        sameDevice: true,
+        lan: true,
+        internet: true,
+        browser: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'كوّن ثلاثة رموز متتالية أفقيًا أو عموديًا أو قطريًا.',
+        controls: 'اضغط مربعًا فارغًا لوضع رمزك.',
+      ),
       builder: (_, networkCore) => XoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -73,6 +90,18 @@ class HomeScreen extends StatelessWidget {
       name: 'الضامة',
       playersText: 'لاعبان',
       status: 'ضد لاعب أو ضد الكمبيوتر',
+      capabilities: const GameCapabilities(
+        robot: true,
+        sameDevice: true,
+        lan: true,
+        internet: true,
+        browser: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'التقط قطع الخصم أو امنعه من أي حركة قانونية.',
+        controls: 'اختر قطعتك ثم اضغط الخانة المضيئة.',
+        keyRule: 'الأسر إجباري، وعليك إكمال سلسلة الأسر عند توفرها.',
+      ),
       builder: (_, networkCore) => CheckersGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -80,6 +109,17 @@ class HomeScreen extends StatelessWidget {
       name: 'الدومينو',
       playersText: '2 عبر الشبكة / 4 محليًا',
       status: 'ضد الكمبيوتر أو لاعب عبر الشبكة أو 4 لاعبين محليًا',
+      capabilities: const GameCapabilities(
+        robot: true,
+        sameDevice: true,
+        lan: true,
+        internet: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'تخلّص من قطعك واجمع أكبر عدد من النقاط.',
+        controls:
+            'اختر قطعة توافق أحد طرفي السلسلة، أو اسحب عندما لا تملك حركة.',
+      ),
       builder: (_, networkCore) => DominoGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -87,6 +127,16 @@ class HomeScreen extends StatelessWidget {
       name: 'الشطرنج',
       playersText: 'لاعبان',
       status: 'ضد الروبوت بثلاثة مستويات أو لاعب عبر الشبكة',
+      capabilities: const GameCapabilities(
+        robot: true,
+        sameDevice: true,
+        lan: true,
+        internet: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'حقق كش مات لملك الخصم.',
+        controls: 'اختر قطعة ثم اختر إحدى الخانات القانونية المضيئة.',
+      ),
       builder: (_, networkCore) => ChessGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -94,6 +144,17 @@ class HomeScreen extends StatelessWidget {
       name: 'الشدة / السراقة',
       playersText: 'لاعبان',
       status: 'السراقة ضد الروبوت أو لاعب عبر الشبكة',
+      capabilities: const GameCapabilities(
+        robot: true,
+        sameDevice: false,
+        lan: true,
+        internet: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'اجمع الأوراق المتشابهة وحقق نقاطًا أكثر.',
+        controls: 'اضغط ورقة من يدك للعبها أو التقاط المتشابه من الأرض.',
+        keyRule: 'تنظيف الأرض يحقق بسرا، والأوراق المتبقية تذهب لآخر جامع.',
+      ),
       builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -101,6 +162,12 @@ class HomeScreen extends StatelessWidget {
       name: 'Hand 51',
       playersText: 'ضد الروبوت',
       status: '13 ورقة • فتح 51 • جوكران • 3 جولات على الأقل • الشبكة قيد الاستكمال',
+      capabilities: const GameCapabilities(robot: true),
+      instructions: GameInstructions(
+        objective: 'كوّن مجموعات وتسلسلات وتخلّص من أوراقك بأقل عقوبة.',
+        controls: 'اسحب ورقة، حدّد أوراق المجموعة أو التسلسل، ثم انزلها أو ارمِ ورقة.',
+        keyRule: 'يجب أن تبلغ مجموعات فتحك 51 نقطة قبل التركيب على المجموعات.',
+      ),
       builder: (_, networkCore) => Hand51GameScreen(networkCore: networkCore),
     ),
     GameDefinition(
@@ -108,27 +175,69 @@ class HomeScreen extends StatelessWidget {
       name: 'الهوكي الهوائي',
       playersText: 'روبوت / لاعبان محليًا / LAN / Internet',
       status: 'هوكي سريع بفيزياء وتصادمات ولعب مباشر بين جهازين',
-      builder: (_, networkCore) => AirHockeyGameScreen(networkCore: networkCore),
+      capabilities: const GameCapabilities(
+        robot: true,
+        sameDevice: true,
+        lan: true,
+        internet: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'كن أول من يسجل خمسة أهداف.',
+        controls: 'اسحب مضربك داخل نصف ملعبك لضرب القرص.',
+        keyRule: 'لا يستطيع المضرب تجاوز خط المنتصف.',
+      ),
+      builder: (_, networkCore) =>
+          AirHockeyGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'fuel_plane',
       name: 'طائرة الوقود',
       playersText: 'فردي أو لاعبان LAN / Internet',
       status: 'فردي، مواجهة أو تعاون بطائرتين عبر جهازين',
-      builder: (_, networkCore) => FuelPlaneGameScreen(networkCore: networkCore),
+      capabilities: const GameCapabilities(
+        sameDevice: true,
+        lan: true,
+        internet: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'حافظ على الوقود وتجنب العوائق وحقق أعلى نتيجة.',
+        controls: 'اسحب إصبعك يمينًا ويسارًا لتحريك الطائرة.',
+      ),
+      builder: (_, networkCore) =>
+          FuelPlaneGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'retro_road',
       name: 'طريق التحمل',
       playersText: 'فردي / لاعبان LAN / Internet',
       status: 'سباق مباشر ومراوغة مع مزامنة بين جهازين',
-      builder: (_, networkCore) => RetroRoadGameScreen(networkCore: networkCore),
+      capabilities: const GameCapabilities(
+        sameDevice: true,
+        lan: true,
+        internet: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'تجنب السيارات وتجاوز أربعين سيارة للانتقال إلى يوم جديد.',
+        controls: 'اسحب السيارة يمينًا ويسارًا أو استخدم زري الاتجاه.',
+      ),
+      builder: (_, networkCore) =>
+          RetroRoadGameScreen(networkCore: networkCore),
     ),
     GameDefinition(
       id: 'name_animal_object',
       name: 'اسم حيوان جماد',
       playersText: 'عدة لاعبين محليًا أو عبر الإنترنت',
       status: 'كل لاعب على هاتفه؛ نفس الشبكة أو شبكات مختلفة',
+      capabilities: const GameCapabilities(
+        lan: true,
+        internet: true,
+        browser: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'اكتب إجابة صحيحة لكل فئة تبدأ بالحرف المحدد.',
+        controls: 'املأ الحقول قبل انتهاء الوقت ثم سلّم إجاباتك.',
+        keyRule: 'الإجابة المنفردة 10 نقاط والمكررة 5 نقاط.',
+      ),
       builder: (_, networkCore) =>
           NameAnimalObjectGameScreen(networkCore: networkCore),
     ),
@@ -137,6 +246,17 @@ class HomeScreen extends StatelessWidget {
       name: 'لعبة اللحية',
       playersText: 'لاعبان أو أكثر محليًا أو عبر الإنترنت',
       status: 'اختيار نقاط وتكوين خطوط مع أدوار متزامنة',
+      capabilities: const GameCapabilities(
+        robot: true,
+        lan: true,
+        internet: true,
+        browser: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'أكمل أكبر عدد من الخطوط المستقيمة واجمع نقاطها.',
+        controls: 'اضغط نقطة فارغة في دورك.',
+        keyRule: 'أي خط مستقيم مكتمل يُحتسب، وقيمته عدد نقاطه.',
+      ),
       builder: (_, networkCore) => LineGameScreen(
         kind: LineGameKind.sheikhBeard,
         networkCore: networkCore,
@@ -147,6 +267,17 @@ class HomeScreen extends StatelessWidget {
       name: 'المربعات',
       playersText: 'لاعبان أو أكثر محليًا أو عبر الإنترنت',
       status: 'أكمل المربع لتحصل على نقطة ودور إضافي',
+      capabilities: const GameCapabilities(
+        robot: true,
+        lan: true,
+        internet: true,
+        browser: true,
+      ),
+      instructions: GameInstructions(
+        objective: 'أكمل مربعات أكثر من منافسيك.',
+        controls: 'اضغط قرب ضلع فارغ لرسمه.',
+        keyRule: 'عندما تكمل مربعًا تحصل على نقطة ودور إضافي.',
+      ),
       builder: (_, networkCore) => LineGameScreen(
         kind: LineGameKind.dotsBoxes,
         networkCore: networkCore,
@@ -172,7 +303,8 @@ class HomeScreen extends StatelessWidget {
                 child: _SectionHeader(
                   eyebrow: 'طرق اللعب',
                   title: 'ابدأ بالطريقة التي تناسبكم',
-                  subtitle: 'على نفس الجهاز، ضد الروبوت، أو عبر الشبكة المحلية.',
+                  subtitle:
+                      'على نفس الجهاز، ضد الروبوت، أو عبر الشبكة المحلية.',
                 ),
               ),
             ),
@@ -465,10 +597,7 @@ class _SectionHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 3),
         Text(
           subtitle,
@@ -674,29 +803,29 @@ class _GameCard extends StatelessWidget {
   final GameDefinition game;
 
   bool get usesGameRoom => const <String>{
-        'football_penalties',
-        'xo',
-        'checkers',
-        'domino',
-        'chess',
-        'cards',
-        'name_animal_object',
-        'sheikh_beard',
-        'dots_boxes',
-        'air_hockey',
-        'fuel_plane',
-        'retro_road',
-      }.contains(game.id);
+    'football_penalties',
+    'xo',
+    'checkers',
+    'domino',
+    'chess',
+    'cards',
+    'name_animal_object',
+    'sheikh_beard',
+    'dots_boxes',
+    'air_hockey',
+    'fuel_plane',
+    'retro_road',
+  }.contains(game.id);
 
   bool get experimental => !const <String>{
-        'xo',
-        'checkers',
-        'domino',
-        'football_penalties',
-        'name_animal_object',
-        'sheikh_beard',
-        'dots_boxes',
-      }.contains(game.id);
+    'xo',
+    'checkers',
+    'domino',
+    'football_penalties',
+    'name_animal_object',
+    'sheikh_beard',
+    'dots_boxes',
+  }.contains(game.id);
 
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
 
@@ -848,7 +977,9 @@ class _GameCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: releaseColor.withOpacity(.10),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: releaseColor.withOpacity(.22)),
+                        border: Border.all(
+                          color: releaseColor.withOpacity(.22),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -866,7 +997,7 @@ class _GameCard extends StatelessWidget {
                             releaseLabel,
                             style: TextStyle(
                               color: releaseColor,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -910,7 +1041,7 @@ class _GameCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.inkSoft,
-                          fontSize: 10.5,
+                          fontSize: 11.5,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -929,7 +1060,7 @@ class _GameCard extends StatelessWidget {
                         connectionLabel,
                         style: TextStyle(
                           color: color,
-                          fontSize: 9.5,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
