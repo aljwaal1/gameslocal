@@ -66,7 +66,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>{
     if(!running)return;
     if(isNetworkGame&&!isHost)return;
     final now=simulationClock.elapsedMicroseconds;
-    final elapsed=lastSimulationMicros==0?.03:(now-lastSimulationMicros)/1000000;
+    final elapsed=lastSimulationMicros==0?0.03:(now-lastSimulationMicros)/1000000;
     lastSimulationMicros=now;
     final step=ArcadeTiming.tickScale(elapsed);
     tickCarry+=step;
