@@ -3,8 +3,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'network_message.dart';
+import 'network_transport.dart';
 
-class LocalWifiTransport {
+class LocalWifiTransport implements NetworkTransport {
   LocalWifiTransport({required this.gameId});
 
   static const int defaultPort = 40444;
@@ -24,7 +25,9 @@ class LocalWifiTransport {
   final Map<Socket, String> _socketPlayerIds = <Socket, String>{};
   bool _disposed = false;
 
+  @override
   Stream<NetworkMessage> get messages => _messagesController.stream;
+  @override
   Stream<String> get status => _statusController.stream;
   bool get isConnected => _clientSocket != null || _hostClients.isNotEmpty;
   bool get isHost => _server != null;
@@ -39,7 +42,7 @@ class LocalWifiTransport {
       shared: true,
     );
     final String address = await _localAddress();
-    _emitStatus('تم تشغيل Host على $address:$port');
+    _emitStatus('تم تشغيل الغرفة على $address:$port');
 
     _serverSubscription = _server!.listen(
       (Socket client) {
@@ -49,7 +52,7 @@ class LocalWifiTransport {
         );
       },
       onError: (Object error) {
-        _emitStatus('خطأ في Host: $error');
+        _emitStatus('خطأ في تشغيل الغرفة: $error');
       },
       cancelOnError: false,
     );
@@ -75,6 +78,7 @@ class LocalWifiTransport {
     _emitStatus('تم الاتصال بـ $host:$port');
   }
 
+  @override
   void send(NetworkMessage message) {
     if (_disposed) return;
     final String line = jsonEncode(message.toJson());
@@ -166,7 +170,7 @@ class LocalWifiTransport {
         unawaited(subscription.cancel());
       }
       socket.destroy();
-      _emitStatus('تم قطع الاتصال بالمضيف.');
+      _emitStatus('تم قطع الاتصال بصاحب الغرفة.');
       _emitMessage(NetworkMessage(
         type: NetworkMessageType.disconnect,
         gameId: gameId,
@@ -280,6 +284,7 @@ class LocalWifiTransport {
     return second != null && second >= 16 && second <= 31;
   }
 
+  @override
   Future<void> close() async {
     final StreamSubscription<String>? clientSubscription = _clientSubscription;
     final Socket? clientSocket = _clientSocket;
@@ -319,6 +324,7 @@ class LocalWifiTransport {
     if (_disposed) throw StateError('LocalWifiTransport is disposed.');
   }
 
+  @override
   Future<void> dispose() async {
     if (_disposed) return;
     await close();
