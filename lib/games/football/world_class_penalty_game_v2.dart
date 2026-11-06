@@ -10,6 +10,8 @@ import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import 'elite_penalty_game_v2.dart' as legacy;
 import 'penalty_rules.dart';
+import 'penalty_motion_timeline.dart';
+import 'penalty_actor_painter.dart';
 
 class ChampionsPenaltyGameScreen extends StatelessWidget {
   const ChampionsPenaltyGameScreen({super.key, this.networkCore});
@@ -64,6 +66,8 @@ class _PenaltyShellState extends State<_PenaltyShell> {
   late CinematicPenaltyGame _game;
   Offset? _dragStart;
   Offset? _dragNow;
+  int? _dragEpoch;
+  final _arenaKey = GlobalKey<GameWidgetState<CinematicPenaltyGame>>();
 
   @override
   void initState() {
@@ -73,12 +77,14 @@ class _PenaltyShellState extends State<_PenaltyShell> {
 
   @override
   void dispose() {
+    _game.onRemove();
     _game.hud.dispose();
     super.dispose();
   }
 
   void _restart() {
     setState(() {
+      _game.onRemove();
       _game.hud.dispose();
       _game = CinematicPenaltyGame(championsMode: widget.championsMode);
       _dragStart = null;
@@ -130,95 +136,111 @@ class _PenaltyShellState extends State<_PenaltyShell> {
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            ValueListenableBuilder<PenaltyHud>(
-              valueListenable: _game.hud,
-              builder: (context, hud, _) => _ScoreBar(
-                hud: hud,
-                botLevel: AppSettingsController.instance
-                    .botDifficultyTextFor('football_penalties'),
-              ),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final score = ValueListenableBuilder<PenaltyHud>(
+            valueListenable: _game.hud,
+            builder: (context, hud, _) => _ScoreBar(
+              hud: hud,
+              botLevel: AppSettingsController.instance
+                  .botDifficultyTextFor('football_penalties'),
             ),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = constraints.biggest;
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onPanStart: (details) {
-                          if (!_game.canShoot) return;
-                          _dragStart = details.localPosition;
-                          _dragNow = details.localPosition;
-                          _game.preview(
-                              _aimFromPoint(details.localPosition, size),
-                              .55,
-                              0);
-                        },
-                        onPanUpdate: (details) {
-                          if (_dragStart == null || !_game.canShoot) return;
-                          _dragNow = details.localPosition;
-                          final delta = _dragNow! - _dragStart!;
-                          final power =
-                              (.52 + delta.distance / (size.height * .38))
-                                  .clamp(.52, 1.0)
-                                  .toDouble();
-                          final curve = (delta.dx / size.width * 1.65)
-                              .clamp(-.45, .45)
-                              .toDouble();
-                          _game.preview(
-                              _aimFromPoint(_dragNow!, size), power, curve);
-                        },
-                        onPanEnd: (_) {
-                          if (_dragStart == null ||
-                              _dragNow == null ||
-                              !_game.canShoot) {
-                            _dragStart = null;
-                            _dragNow = null;
-                            return;
-                          }
-                          final delta = _dragNow! - _dragStart!;
-                          final power =
-                              (.52 + delta.distance / (size.height * .38))
-                                  .clamp(.52, 1.0)
-                                  .toDouble();
-                          final curve = (delta.dx / size.width * 1.65)
-                              .clamp(-.45, .45)
-                              .toDouble();
-                          _game.shoot(
-                            aim: _aimFromPoint(_dragNow!, size),
-                            power: power,
-                            curve: curve,
-                          );
+          );
+          final hint = Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: ValueListenableBuilder<PenaltyHud>(
+              valueListenable: _game.hud,
+              builder: (context, hud, _) => _HintCard(hud: hud),
+            ),
+          );
+          final arena = Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final size = constraints.biggest;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: (details) {
+                        if (!_game.canShoot) {
+                          return;
+                        }
+                        _dragEpoch = _game._inputEpoch;
+                        _dragStart = details.localPosition;
+                        _dragNow = details.localPosition;
+                        _game.preview(
+                            _aimFromPoint(details.localPosition, size), .55, 0);
+                      },
+                      onPanUpdate: (details) {
+                        if (_dragStart == null ||
+                            _dragEpoch != _game._inputEpoch ||
+                            !_game.canShoot) {
+                          return;
+                        }
+                        _dragNow = details.localPosition;
+                        final delta = _dragNow! - _dragStart!;
+                        final power =
+                            (.52 + delta.distance / (size.height * .38))
+                                .clamp(.52, 1.0)
+                                .toDouble();
+                        final curve = (delta.dx / size.width * 1.65)
+                            .clamp(-.45, .45)
+                            .toDouble();
+                        _game.preview(
+                            _aimFromPoint(_dragNow!, size), power, curve);
+                      },
+                      onPanEnd: (_) {
+                        if (_dragStart == null ||
+                            _dragNow == null ||
+                            _dragEpoch != _game._inputEpoch ||
+                            !_game.canShoot) {
                           _dragStart = null;
                           _dragNow = null;
-                        },
-                        onTapDown: (details) {
-                          if (!_game.canDive) return;
-                          _game.chooseDive(
-                              _aimFromPoint(details.localPosition, size));
-                        },
-                        child: GameWidget<CinematicPenaltyGame>(game: _game),
-                      ),
-                      Positioned(
-                        left: 16,
-                        right: 16,
-                        bottom: 14,
-                        child: ValueListenableBuilder<PenaltyHud>(
-                          valueListenable: _game.hud,
-                          builder: (context, hud, _) => _HintCard(hud: hud),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
+                          return;
+                        }
+                        final delta = _dragNow! - _dragStart!;
+                        final power =
+                            (.52 + delta.distance / (size.height * .38))
+                                .clamp(.52, 1.0)
+                                .toDouble();
+                        final curve = (delta.dx / size.width * 1.65)
+                            .clamp(-.45, .45)
+                            .toDouble();
+                        _game.shoot(
+                          aim: _aimFromPoint(_dragNow!, size),
+                          power: power,
+                          curve: curve,
+                        );
+                        _dragStart = null;
+                        _dragNow = null;
+                      },
+                      onTapDown: (details) {
+                        if (!_game.canDive) {
+                          return;
+                        }
+                        _game.chooseDive(
+                            _aimFromPoint(details.localPosition, size));
+                      },
+                      child: GameWidget<CinematicPenaltyGame>(
+                          key: _arenaKey, game: _game),
+                    ),
+                  ],
+                );
+              },
             ),
-          ],
-        ),
+          );
+          if (constraints.maxWidth > constraints.maxHeight * 1.3) {
+            return Row(children: [
+              arena,
+              SizedBox(
+                  width: math.min(280, constraints.maxWidth * .44),
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [score, hint])),
+            ]);
+          }
+          return Column(children: [score, arena, hint]);
+        }),
       ),
     );
   }
@@ -273,7 +295,7 @@ class _ScoreBar extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 12),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
       decoration: const BoxDecoration(
         color: Color(0xFF050D16),
         border: Border(bottom: BorderSide(color: Color(0x1838BDF8))),
@@ -283,19 +305,19 @@ class _ScoreBar extends StatelessWidget {
           side('أنت', hud.playerGoals, hud.playerResults,
               CrossAxisAlignment.start),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
               border: Border.all(color: const Color(0x3556C8FF)),
               color: const Color(0xFF0B1723),
             ),
             child: Text(
-              hud.suddenDeath ? 'SUDDEN DEATH' : 'روبوت • $botLevel',
+              hud.suddenDeath ? 'الحسم' : botLevel,
               style: const TextStyle(
                 color: Color(0xFF77D7FF),
                 fontWeight: FontWeight.w900,
                 fontSize: 10,
-                letterSpacing: 1.5,
+                letterSpacing: .4,
               ),
             ),
           ),
@@ -443,8 +465,50 @@ class CinematicPenaltyGame extends FlameGame {
   final List<PenaltyOutcome> playerResults = <PenaltyOutcome>[];
   final List<PenaltyOutcome> robotResults = <PenaltyOutcome>[];
 
-  bool get canShoot => phase == PenaltyPhase.aiming;
-  bool get canDive => phase == PenaltyPhase.saving;
+  GameFeedbackCancellation? _shotFeedback;
+  bool _contactEmitted = false;
+  bool _arrivalEmitted = false;
+  bool _removed = false;
+  int _inputEpoch = 0;
+  PenaltyMotionFrame get motion => const PenaltyMotionTimeline().frame(
+      phase == PenaltyPhase.flying || phase == PenaltyPhase.result
+          ? flight
+          : 0);
+
+  void _beginShot() {
+    _shotFeedback?.cancel();
+    _shotFeedback = GameFeedbackCancellation();
+    _contactEmitted = false;
+    _arrivalEmitted = false;
+    flight = 0;
+    phase = PenaltyPhase.flying;
+  }
+
+  @override
+  void pauseEngine() {
+    _inputEpoch++;
+    _shotFeedback?.cancel();
+    if (!_removed && phase == PenaltyPhase.flying) {
+      phase =
+          robotShots < playerShots ? PenaltyPhase.saving : PenaltyPhase.aiming;
+      flight = 0;
+      _syncHud(
+          message: phase == PenaltyPhase.saving
+              ? 'أنت الحارس — اختر جهة القفز'
+              : 'اسحب من الكرة نحو زاوية المرمى');
+    }
+    super.pauseEngine();
+  }
+
+  @override
+  void onRemove() {
+    _removed = true;
+    _shotFeedback?.cancel();
+    super.onRemove();
+  }
+
+  bool get canShoot => !_removed && !paused && phase == PenaltyPhase.aiming;
+  bool get canDive => !_removed && !paused && phase == PenaltyPhase.saving;
   bool get suddenDeath => playerShots >= 5 && robotShots >= 5;
 
   @override
@@ -473,7 +537,9 @@ class CinematicPenaltyGame extends FlameGame {
   }
 
   void preview(Offset target, double newPower, double newCurve) {
-    if (!canShoot) return;
+    if (!canShoot) {
+      return;
+    }
     aim = target;
     power = newPower;
     curve = newCurve;
@@ -482,7 +548,9 @@ class CinematicPenaltyGame extends FlameGame {
 
   void shoot(
       {required Offset aim, required double power, required double curve}) {
-    if (!canShoot) return;
+    if (!canShoot) {
+      return;
+    }
     this.aim = aim;
     this.power = power;
     this.curve = curve;
@@ -535,14 +603,14 @@ class CinematicPenaltyGame extends FlameGame {
     }
 
     shotDuration = (1.06 - power * .25).clamp(.76, .94).toDouble();
-    flight = 0;
-    phase = PenaltyPhase.flying;
-    GameFeedback.kick(GameAudioTheme.football);
+    _beginShot();
     _syncHud(message: power > .94 ? 'قذيفة قوية...' : 'تسديدة...');
   }
 
   void chooseDive(Offset dive) {
-    if (!canDive) return;
+    if (!canDive) {
+      return;
+    }
     chosenDive = dive;
     keeperTarget = dive;
 
@@ -578,25 +646,38 @@ class CinematicPenaltyGame extends FlameGame {
     }
 
     shotDuration = (1.04 - robotPower * .22).clamp(.78, .94).toDouble();
-    flight = 0;
-    phase = PenaltyPhase.flying;
-    GameFeedback.kick(GameAudioTheme.football);
+    _beginShot();
     _syncHud(message: 'المنافس يسدد...');
   }
 
   @override
   void update(double dt) {
+    if (_removed || paused || !dt.isFinite || dt < 0) {
+      return;
+    }
     super.update(dt);
+    if (dt == 0) {
+      return;
+    }
     ambient += dt;
-    if (phase == PenaltyPhase.flying) {
-      flight += dt / shotDuration;
-      if (flight >= 1) {
-        flight = 1;
-        _finishFlight();
+    if (phase == PenaltyPhase.flying || phase == PenaltyPhase.result) {
+      flight = (flight + dt / shotDuration).clamp(0.0, 1.0).toDouble();
+      if (phase == PenaltyPhase.flying &&
+          !(_shotFeedback?.isCancelled ?? true)) {
+        if (!_contactEmitted && flight >= PenaltyMotionTimeline.contactStart) {
+          _contactEmitted = true;
+          GameFeedback.kick(GameAudioTheme.football, _shotFeedback);
+        }
+        if (!_arrivalEmitted && flight >= PenaltyMotionTimeline.ballArrival) {
+          _arrivalEmitted = true;
+          _finishFlight();
+          return;
+        }
       }
-    } else if (phase == PenaltyPhase.result) {
-      resultClock += dt;
-      if (resultClock >= 1.15) _advanceTurn();
+      if (phase == PenaltyPhase.result) {
+        resultClock += dt;
+        if (resultClock >= 1.15) _advanceTurn();
+      }
     }
   }
 
@@ -616,16 +697,16 @@ class CinematicPenaltyGame extends FlameGame {
     phase = PenaltyPhase.result;
     switch (outcome) {
       case PenaltyOutcome.goal:
-        GameFeedback.goal(GameAudioTheme.football);
+        GameFeedback.goal(GameAudioTheme.football, _shotFeedback);
         _syncHud(message: championsMode ? 'هــــدف عالمي!' : 'هــــدف!');
       case PenaltyOutcome.save:
-        GameFeedback.save(GameAudioTheme.football);
+        GameFeedback.save(GameAudioTheme.football, _shotFeedback);
         _syncHud(message: 'تصـــدٍ مذهل!');
       case PenaltyOutcome.post:
-        GameFeedback.post(GameAudioTheme.football);
+        GameFeedback.post(GameAudioTheme.football, _shotFeedback);
         _syncHud(message: 'في القائم!');
       case PenaltyOutcome.miss:
-        GameFeedback.error(GameAudioTheme.football);
+        GameFeedback.error(GameAudioTheme.football, _shotFeedback);
         _syncHud(message: 'خارج المرمى!');
     }
   }
@@ -634,10 +715,10 @@ class CinematicPenaltyGame extends FlameGame {
     if (_isFinished()) {
       phase = PenaltyPhase.finished;
       if (playerGoals > robotGoals) {
-        GameFeedback.win(GameAudioTheme.football);
+        GameFeedback.win(GameAudioTheme.football, _shotFeedback);
         _syncHud(message: '🏆 أنت البطل');
       } else {
-        GameFeedback.lose(GameAudioTheme.football);
+        GameFeedback.lose(GameAudioTheme.football, _shotFeedback);
         _syncHud(message: 'انتهت المباراة — الروبوت يفوز');
       }
       return;
@@ -671,6 +752,9 @@ class CinematicPenaltyGame extends FlameGame {
   }
 
   void _syncHud({String? message}) {
+    if (_removed) {
+      return;
+    }
     final current = hud.value;
     hud.value = PenaltyHud(
       phase: phase,
@@ -691,7 +775,9 @@ class CinematicPenaltyGame extends FlameGame {
   void render(Canvas canvas) {
     final w = size.x;
     final h = size.y;
-    if (w <= 0 || h <= 0) return;
+    if (w <= 0 || h <= 0) {
+      return;
+    }
 
     final impact =
         phase == PenaltyPhase.result ? (1 - resultClock.clamp(0.0, 1.0)) : 0.0;
@@ -867,172 +953,40 @@ class CinematicPenaltyGame extends FlameGame {
     canvas.drawPath(frame, posts);
   }
 
-  void _drawKeeper(Canvas canvas, double w, double h) {
-    final readyImage = _keeperReadyImage;
-    final diveImage = _keeperDiveImage;
-    if (readyImage == null || diveImage == null) return;
-
-    final goal = _goalRect(w, h);
-    final reaction = phase == PenaltyPhase.flying
-        ? ((flight - .16) / .58).clamp(0.0, 1.0).toDouble()
-        : (phase == PenaltyPhase.result ? 1.0 : 0.0);
-    final t = Curves.easeOutCubic.transform(reaction);
-    final start = Offset(goal.center.dx, goal.top + goal.height * .67);
-    final target = Offset(
-      goal.left + keeperTarget.dx * goal.width,
-      goal.top + keeperTarget.dy * goal.height,
-    );
-    final jump = math.sin(t * math.pi) * goal.height * .065;
-    final pos = Offset.lerp(start, target, t)! - Offset(0, jump);
-    final dir = keeperTarget.dx - .5;
-    final reach = dir.abs();
-    final lateralDive = (reach / .12).clamp(0.0, 1.0).toDouble();
-    final diveBlend = Curves.easeInOut.transform(
-          ((reaction - .12) / .42).clamp(0.0, 1.0).toDouble(),
-        ) *
-        lateralDive;
-    final readyHeight = goal.height * .54;
-    final readyWidth = readyHeight * .67;
-    final diveWidth = goal.height * (1.02 + reach * .16);
-    final diveHeight = diveWidth / 1.50;
-
-    canvas.save();
-    canvas.translate(pos.dx, pos.dy);
-    canvas.rotate(dir * .07 * t);
-
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(0, goal.height * .29),
-        width: readyWidth * (1.18 + reach * t * 1.7),
-        height: readyHeight * .10,
-      ),
-      Paint()
-        ..color = Colors.black.withAlpha(100)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-    );
-
-    final readySource = Rect.fromLTWH(
-      0,
-      0,
-      readyImage.width.toDouble(),
-      readyImage.height.toDouble(),
-    );
-    final readyDestination = Rect.fromCenter(
-      center: Offset(0, -readyHeight * .10),
-      width: readyWidth,
-      height: readyHeight,
-    );
-    canvas.drawImageRect(
-      readyImage,
-      readySource,
-      readyDestination,
-      Paint()
-        ..isAntiAlias = true
-        ..filterQuality = FilterQuality.high
-        ..color = Colors.white.withAlpha(((1 - diveBlend) * 255).round()),
-    );
-
-    canvas.save();
-    if (dir < 0) canvas.scale(-1, 1);
-    final diveSource = Rect.fromLTWH(
-      0,
-      0,
-      diveImage.width.toDouble(),
-      diveImage.height.toDouble(),
-    );
-    final diveDestination = Rect.fromCenter(
-      center: Offset(0, -diveHeight * .05),
-      width: diveWidth,
-      height: diveHeight,
-    );
-    canvas.drawImageRect(
-      diveImage,
-      diveSource,
-      diveDestination,
-      Paint()
-        ..isAntiAlias = true
-        ..filterQuality = FilterQuality.high
-        ..color = Colors.white.withAlpha((diveBlend * 255).round()),
-    );
-    canvas.restore();
-    canvas.restore();
-  }
-
-  void _drawPlayer(Canvas canvas, double w, double h) {
-    final readyImage = _playerReadyImage;
-    final runImage = _playerRunImage;
-    final kickImage = _playerKickImage;
-    if (readyImage == null || runImage == null || kickImage == null) return;
-
-    final active = phase == PenaltyPhase.flying || phase == PenaltyPhase.result;
-    final approach = active
-        ? Curves.easeOutCubic.transform((flight / .43).clamp(0.0, 1.0))
-        : 0.0;
-    final runBlend =
-        active ? math.sin((flight / .48).clamp(0.0, 1.0) * math.pi) : 0.0;
-    final kickBlend = active
-        ? Curves.easeOutCubic.transform(
-            ((flight - .27) / .28).clamp(0.0, 1.0).toDouble(),
-          )
-        : 0.0;
-    final x = w * (.355 + approach * .105);
-    final feetY = h * (.86 - approach * .043);
-    final playerHeight = h * (.205 - approach * .018);
-    final playerWidth = playerHeight * (2 / 3);
-
-    canvas.save();
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(x + playerWidth * .03, feetY + playerHeight * .018),
-        width: playerWidth * .82,
-        height: playerHeight * .075,
-      ),
-      Paint()
-        ..color = Colors.black.withAlpha(105)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
-
-    void drawPose(ui.Image image, double opacity) {
-      if (opacity <= 0) return;
-      final destination = Rect.fromCenter(
-        center: Offset(x, feetY - playerHeight * .5),
-        width: playerWidth,
-        height: playerHeight,
-      );
-      canvas.drawImageRect(
-        image,
-        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
-        destination,
-        Paint()
-          ..isAntiAlias = true
-          ..filterQuality = FilterQuality.high
-          ..color = Colors.white.withAlpha((opacity * 255).round()),
-      );
+  PenaltyActorPainter? get _actors {
+    if (_keeperReadyImage == null ||
+        _keeperDiveImage == null ||
+        _playerReadyImage == null ||
+        _playerRunImage == null ||
+        _playerKickImage == null) {
+      return null;
     }
-
-    drawPose(
-      readyImage,
-      (1 - math.max(runBlend, kickBlend)).clamp(0.0, 1.0).toDouble(),
-    );
-    drawPose(
-      runImage,
-      (runBlend * (1 - kickBlend)).clamp(0.0, 1.0).toDouble(),
-    );
-    drawPose(kickImage, kickBlend);
-    canvas.restore();
+    return PenaltyActorPainter(
+        keeperReady: _keeperReadyImage!,
+        keeperDive: _keeperDiveImage!,
+        playerReady: _playerReadyImage!,
+        playerRun: _playerRunImage!,
+        playerKick: _playerKickImage!);
   }
+
+  PenaltyActorLayout _actorLayout(double w, double h) => PenaltyActorLayout(
+      size: Size(w, h),
+      goal: _goalRect(w, h),
+      keeperTarget: keeperTarget,
+      frame: motion);
+
+  void _drawKeeper(Canvas canvas, double w, double h) =>
+      _actors?.paintKeeper(canvas, _actorLayout(w, h));
+
+  void _drawPlayer(Canvas canvas, double w, double h) =>
+      _actors?.paintPlayer(canvas, _actorLayout(w, h));
 
   void _drawBall(Canvas canvas, double w, double h) {
     final start = Offset(w * .5, h * .805);
     final goal = _goalRect(w, h);
     final target = Offset(goal.left + actualAim.dx * goal.width,
         goal.top + actualAim.dy * goal.height);
-    var t = 0.0;
-    if (phase == PenaltyPhase.flying) {
-      t = Curves.easeInCubic.transform(flight.clamp(0.0, 1.0));
-    } else if (phase == PenaltyPhase.result) {
-      t = 1.0;
-    }
+    final t = motion.ballFlight;
 
     Offset ballPosition(double travel) {
       final bend = math.sin(travel * math.pi);
@@ -1044,7 +998,7 @@ class CinematicPenaltyGame extends FlameGame {
     }
 
     final pos = ballPosition(t);
-    final radius = w * (.041 - t * .025);
+    final radius = math.min(w * (.041 - t * .025), h * .045);
 
     if (t > .03) {
       for (var i = 1; i <= 5; i++) {
@@ -1082,7 +1036,7 @@ class CinematicPenaltyGame extends FlameGame {
 
     canvas.save();
     canvas.translate(pos.dx, pos.dy);
-    canvas.rotate(ambient * 4.6 + t * 13.5);
+    canvas.rotate(t * 18.1);
     final patch = Paint()..color = const Color(0xFF17212B);
     canvas.drawCircle(Offset(0, -radius * .15), radius * .24, patch);
     for (var i = 0; i < 5; i++) {

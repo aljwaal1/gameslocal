@@ -31,6 +31,25 @@ Widget friend mode controls both paddles and resets bot; fifth goal ends match a
 
 Limitations: no device or Android build by worker; root owns full multi-game visual QA, independent review, CI and final APK. No other games, ArcadeTiming, network implementation or audio engine edited.
 
+## Independent review fix round1 — actual landscape field
+
+Finding: the mounted640×320/textScale1.3 screen left a616px-wide field with too little height, so width-based paddle radius40.04px protruded past the top/bottom. Controller-only landscape stress coverage did not prove the actual mounted field geometry.
+
+RED: new test/hockey_field_layout_test.dart mounted actual320×640,390×844,640×320 at1.3 and measured painted paddle center/radius.640×320 initial upper paddle edge was-24.68px; /tmp/hockey-landscape-red.log. A first contact fixture using normalized .09 distance was corrected to a pixel-radius offset on the tall field, because the original tall fixture was outside collision reach rather than exposing a production defect.
+
+Fix: extracted the unchanged HUD controls/score/replay and field widget. Landscape uses a side HUD whose content alone may scroll, keeping the field at full available height. The actual centered field width is capped at1.05×height, preserving existing normalized paddle limits, puck/goal geometry, all physics radii and network coordinates.640×320 now gets a256.2×244 field instead of616×96; the field and pointer geometry use exactly those same real constraints. Portrait retains the top HUD and centered field. Replay lives in the landscape HUD so ending the match cannot shrink the field into a shallow strip.
+
+Behavioral validation: new tests assert full rendered paddle bodies inside the actual field initially, at four real touch movement extrema, after a real paddle contact/bounce, and in the completed-match layout. Actual field size is compared with state.fieldSize, and landscape width/height must each remain>=200px.320×640,390×844,640×320 are all tested with textScale1.3; no overflow.
+
+Current results after fix:
+- Focused31 PASS, /tmp/hockey-focused.log.
+- Full125 PASS, /tmp/hockey-full-tests.log.
+- Analyzeexit0/noerrors185nonfatal, /tmp/hockey-analyze.log.
+- Ownedformat9files0changed, /tmp/hockey-format.log.
+- Optional real-font visual captures passed3cases, /tmp/hockey-visual.log; screenshots /tmp/hockey-320x640.png, /tmp/hockey-390x844.png, /tmp/hockey-640x320.png. These were visually inspected; complete paddle bodies, full field, visible scores/control panel confirmed. Capture harness is scratch-only /tmp/hockey_visual_test.dart and not part of delivered source/tests.
+
+No commits/pushes/spawns by worker. Ready for scoped independent re-review.
+
 
 ## Independent review
 # Independent Hockey review

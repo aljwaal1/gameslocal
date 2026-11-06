@@ -38,11 +38,11 @@ void main() {
     expect(gameSource, contains('GameWidget<CinematicPenaltyGame>'));
     expect(
       gameSource,
-      contains('GameFeedback.kick(GameAudioTheme.football)'),
+      contains('GameFeedback.kick(GameAudioTheme.football, _shotFeedback)'),
     );
     expect(
       gameSource,
-      contains('GameFeedback.goal(GameAudioTheme.football)'),
+      contains('GameFeedback.goal(GameAudioTheme.football, _shotFeedback)'),
     );
     expect(gameSource, contains('_drawSkyAndStadium'));
     expect(gameSource, contains('_drawPitch'));
@@ -68,7 +68,10 @@ void main() {
       gameSource,
       contains("_loadAssetImage('assets/football/player_kick_pro_v2.png')"),
     );
-    expect(gameSource, contains('canvas.drawImageRect'));
+    expect(
+        File('lib/games/football/penalty_actor_painter.dart')
+            .readAsStringSync(),
+        contains('canvas.drawImageRect'));
     expect(File('assets/football/keeper_pro_v2.png').existsSync(), isTrue);
     expect(
       File('assets/football/keeper_dive_pro_v2.png').existsSync(),

@@ -5,6 +5,9 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
 
 import 'app_settings.dart';
+import 'game_feedback_cancellation.dart';
+
+export 'game_feedback_cancellation.dart' show GameFeedbackCancellation;
 
 enum GameSound {
   uiTap,
@@ -43,9 +46,22 @@ class GameFeedback {
     8,
     (_) => AudioPlayer(),
   );
+  static final List<GameFeedbackAudioChannel> _channels = _players
+      .map((player) => GameFeedbackAudioChannel(
+            stop: player.stop,
+            setVolume: player.setVolume,
+            setSourceBytes: player.setSourceBytes,
+            resume: player.resume,
+          ))
+      .toList(growable: false);
   static final Map<String, Uint8List> _cache = <String, Uint8List>{};
   static final Map<String, DateTime> _lastPlayed = <String, DateTime>{};
   static int _playerIndex = 0;
+
+  /// Haptic-only selection for aiming gestures, respecting device preferences.
+  static Future<void> selection() => _settings.vibrationEnabled
+      ? HapticFeedback.selectionClick()
+      : Future<void>.value();
 
   static Future<void> uiTap() => _emit(
         GameSound.uiTap,
@@ -80,58 +96,79 @@ class GameFeedback {
         volume: .64,
       );
 
-  static Future<void> win([GameAudioTheme theme = GameAudioTheme.system]) =>
+  static Future<void> win(
+          [GameAudioTheme theme = GameAudioTheme.system,
+          GameFeedbackCancellation? cancellation]) =>
       _emit(
         GameSound.win,
         theme: theme,
+        cancellation: cancellation,
         haptic: HapticFeedback.mediumImpact,
         volume: theme == GameAudioTheme.domino ? .82 : .76,
       );
 
-  static Future<void> lose([GameAudioTheme theme = GameAudioTheme.system]) =>
+  static Future<void> lose(
+          [GameAudioTheme theme = GameAudioTheme.system,
+          GameFeedbackCancellation? cancellation]) =>
       _emit(
         GameSound.lose,
         theme: theme,
+        cancellation: cancellation,
         haptic: HapticFeedback.heavyImpact,
         volume: theme == GameAudioTheme.domino ? .76 : .70,
       );
 
-  static Future<void> error([GameAudioTheme theme = GameAudioTheme.system]) =>
+  static Future<void> error(
+          [GameAudioTheme theme = GameAudioTheme.system,
+          GameFeedbackCancellation? cancellation]) =>
       _emit(
         GameSound.error,
         theme: theme,
+        cancellation: cancellation,
         haptic: HapticFeedback.heavyImpact,
         volume: .58,
       );
 
-  static Future<void> kick([GameAudioTheme theme = GameAudioTheme.football]) =>
+  static Future<void> kick(
+          [GameAudioTheme theme = GameAudioTheme.football,
+          GameFeedbackCancellation? cancellation]) =>
       _emit(
         GameSound.kick,
         theme: theme,
+        cancellation: cancellation,
         haptic: HapticFeedback.lightImpact,
         volume: .70,
       );
 
-  static Future<void> goal([GameAudioTheme theme = GameAudioTheme.football]) =>
+  static Future<void> goal(
+          [GameAudioTheme theme = GameAudioTheme.football,
+          GameFeedbackCancellation? cancellation]) =>
       _emit(
         GameSound.goal,
         theme: theme,
+        cancellation: cancellation,
         haptic: HapticFeedback.heavyImpact,
         volume: .84,
       );
 
-  static Future<void> save([GameAudioTheme theme = GameAudioTheme.football]) =>
+  static Future<void> save(
+          [GameAudioTheme theme = GameAudioTheme.football,
+          GameFeedbackCancellation? cancellation]) =>
       _emit(
         GameSound.save,
         theme: theme,
+        cancellation: cancellation,
         haptic: HapticFeedback.mediumImpact,
         volume: .70,
       );
 
-  static Future<void> post([GameAudioTheme theme = GameAudioTheme.football]) =>
+  static Future<void> post(
+          [GameAudioTheme theme = GameAudioTheme.football,
+          GameFeedbackCancellation? cancellation]) =>
       _emit(
         GameSound.post,
         theme: theme,
+        cancellation: cancellation,
         haptic: HapticFeedback.heavyImpact,
         volume: .78,
       );
@@ -139,35 +176,42 @@ class GameFeedback {
   static Future<void> _emit(
     GameSound sound, {
     GameAudioTheme theme = GameAudioTheme.system,
+    GameFeedbackCancellation? cancellation,
     Future<void> Function()? haptic,
     bool vibration = true,
     double volume = .35,
     Duration minInterval = const Duration(milliseconds: 70),
   }) async {
+    if (cancellation?.isCancelled ?? false) return;
     final now = DateTime.now();
     final cacheKey = '${theme.name}:${sound.name}';
     final previous = _lastPlayed[cacheKey];
-    if (previous != null && now.difference(previous) < minInterval) return;
+    if (cancellation == null &&
+        previous != null &&
+        now.difference(previous) < minInterval) {
+      return;
+    }
     _lastPlayed[cacheKey] = now;
 
+    // Event-timed vibration starts immediately, independently of device audio
+    // preparation. It must never be delayed by stop/source/resume futures.
+    final vibrationFuture =
+        vibration && _settings.vibrationEnabled && haptic != null
+            ? haptic()
+            : Future<void>.value();
     if (_settings.soundEnabled) {
       try {
-        final player = _players[_playerIndex++ % _players.length];
-        await player.stop();
-        await player.play(
-          BytesSource(
-            _cache.putIfAbsent(cacheKey, () => _buildWav(sound, theme)),
-          ),
+        final channel = _channels[_playerIndex++ % _channels.length];
+        await channel.play(
+          bytes: _cache.putIfAbsent(cacheKey, () => _buildWav(sound, theme)),
           volume: volume,
+          cancellation: cancellation,
         );
       } catch (_) {
-        // Keep gameplay responsive even if a device audio backend rejects a cue.
+        // Keep gameplay responsive when a device audio backend rejects a cue.
       }
     }
-
-    if (vibration && _settings.vibrationEnabled && haptic != null) {
-      await haptic();
-    }
+    await vibrationFuture;
   }
 
   static Uint8List _buildWav(GameSound sound, GameAudioTheme theme) {
