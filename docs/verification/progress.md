@@ -1,19 +1,27 @@
-# Game quality progress 2026-11-06
+# Game quality progress — 2026-11-06
 
-Branch feature/world-class-ui-v2 initially b3bb7ab493078922f09c5a56bf0d41ab8adce8fb. PR66 draft, never merge. main untouched.
+## Binding constraints
+Work only on feature/world-class-ui-v2. Never modify main or merge PR66. Preserve rules, score, ArcadeTiming, Random call order and all network payload keys. User authorizes continuous implementation, review, incremental pushes and verified release APK. No approval pauses required.
 
-- Repository cloned to /workspace/scratch/2eba1a5ed526/gameslocal (full history).
-- Flutter stable installed /tmp/flutter (3.47.9, Dart3.13.7); ALWAYS CI=true FLUTTER_SUPPRESS_ANALYTICS=true to avoid Azure metadata bot detection. Default --version rejected by automatic review; source BotDetector explicitly short circuits when CI defined. Safe invocation worked.
-- Flutter pub get bootstrap downloading engine/deps (root session69170).
-- Plan docs/superpowers/plans/2026-11-06-game-quality.md reflects user full task. User authorized full execution/push/build; no approval pauses.
-- Cards implementer /root/cards: tests only written, awaiting runtime; owns cards/hand51/tests; report /tmp/cards-report.md; no commits/push allowed.
-- Root workflow changes: adds target branch push, format gate, target-only verified direct APK publication guarded exact SHA. Not committed yet.
-- carsgame cloned /tmp/carsgame; source audio audited docs/verification/audio-audit.md; no WAV import planned (existing feedback retained).
+## Completed
+1. Cards: commit90185583a53a0392f00135afab7dd5dafcc7eb62. Hand51 shared geometry/reverse paint-order hits,20cards readable and horizontally scrollable; large identities/corners/joker. Cards full72x112/compact64x100 scalable, four-card scroll row, concise retained status, bounded table/longmelds/landscape. Independent review found raised selected-card dead strip + croppedtable; both fixed with behavioral RED/GREEN tests. Final19 focused/96full tests pass; analysis0/noerrors,189nonfatal diagnostics; format clean. Real-font320/long/landscape captures reviewed.
+2. Build infrastructure: target branch push CI, format/test/analyze gate, exact-SHA guarded publication to apk/world-class-ui-v2/gameslocal-release.apk. GitHub Actions628 succeeded: https://github.com/aljwaal1/gameslocal/actions/runs/42158425733 . Source90185583; artifact commit0c092a2085ed3110b4d76ea235ad2b9216d4342b. Actual56MB APK exists, intermediate cards-only build.
+3. Audio reference audit saved audio-audit.md. carsgame fedb200b784fb8ec37fcf778cafccb32fa1be6bd; no clipped samples. Retain existing synthesized feedback unless perceptual/gameplay benefit shown; no WAV import so far.
 
-Pending ordered tasks: cards -> review -> commit/push; hockey -> review; football timeline/local/cancellation -> review; network -> review; road -> review; plane -> review; final integration/test/analyze/release/Actions/direct APK.
+## Current
+Hockey implementer /root/hockey owns lib/games/air_hockey and new tests. TDD, independent review required before next subsystem. Report /tmp/hockey-report.md. No worker commits/pushes; root publishes through GitHub connector (CLI git push lacks auth).
 
-Baseline: original 80 tests all passed (/tmp/gameslocal-baseline-tests.log). Android SDK36 + build-tools36 + NDK28.2 installed /workspace/android-sdk; Android scaffold local only, CI regenerates it. Cards RED actual compact text scale overflow observed.
+## Pending ordered work
+- Hockey controller/physics -> focused/full/analyze -> independent review -> branch push.
+- Football shared timeline/local feedback cancellation -> review.
+- Network football integration/event order -> review.
+- Smooth2.5D road geometry/vector cars/weather/HUD, existing mechanics retained -> review.
+- Smooth aerial plane geometry/vector art/background/fuel/HUD, mechanics retained -> review.
+- Final integration320x640/long/landscape/textscale1.3; focused tests; pubget/format/check/analyze/fulltests/releasebuild; CI green; actual final APK direct URL. No merge.
 
-Cards review round1: two Important issues (raised selected-card hit strip; useful full-card table area at320x640). Implementer adds RED regressions and fixes; long-meld overflow also reproduced. Full suite before these fixes94pass, analyze0 with189 nonfatal findings. Root format baseline all unaffected files performed per user command; legacy source-scroll test adjusted to behavioral card tests.
+## Runtime recovery
+The session environment was cleaned during user inactivity after cards push; all completed source recovered from GitHub at0c092a2. Runtime being reinstalled at/tmp/flutter, AndroidSDK at/workspace/android-sdk. ALWAYS prefix Flutter with CI=true FLUTTER_SUPPRESS_ANALYTICS=true: Flutter BotDetector otherwise probes Azure metadata; automatic review rejected that default invocation previously. CI=true short-circuits metadata code; safe invocation verified in prior stage. Dart3.13.7/Flutter3.47.9 stable. All local reports/screenshots can be regenerated from committed behavioral tests. GitHub source/build logs are durable authority.
 
-Task1 cards complete: independent re-review PASS/APPROVED (/tmp/cards-rereview.md), both Important findings fixed. Focused19 passed, full96 passed, analyzeexit0/noerrors189nonfatal. Real-font captures visually reviewed at320x640/1.3. No game rule/model/network changes. Next hockey.
+Hockey review round1: focused28/full122 passed, analyze0/noerrors186nonfatal. Independentreview requests actual landscapegeometry fix:640x320/1.3 field too wide forheight, width-scaled paddle protrudes. Implementer adding widgetRED thencompactlandscapeHUD/aspectboundedfield; no rule changes. Controller/physics/network otherwise approved. Actualbotmotion72000steps passed; wrongpredictionwall and terminalgoalbroadcast fixed after RED. Flutter+AndroidSDK restored; root offlinepubget restored completeYAMLlock without changing tested84-package resolution.
+
+Task2 hockey complete: independent re-review PASS/PASS, landscapefinding addressed. Focused31/full125 passed; analyzeexit0/noerrors185nonfatal; formatclean. Source preserves five-goal rules,payloads,authority; fixes finalgoal broadcast. Added fullYAMLpubspec.lock consistent with tested84-package resolution; CI now preserves lock around Flutter Android scaffolding. Next:footballtimeline/localcancellation/network.

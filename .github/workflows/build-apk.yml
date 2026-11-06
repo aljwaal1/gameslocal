@@ -50,12 +50,15 @@ jobs:
           echo "COMMIT=$GITHUB_SHA" | tee -a build-status/latest.log
           echo "RUN_ID=$GITHUB_RUN_ID" | tee -a build-status/latest.log
 
+          if [ -f pubspec.lock ]; then cp pubspec.lock /tmp/gameslocal-original-pubspec.lock; fi
+
           WIDGET_TEST_TRACKED=0
           git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1 && WIDGET_TEST_TRACKED=1
 
           echo "=== CREATE ANDROID ===" | tee -a build-status/latest.log
           flutter create --platforms=android --org com.explapp --no-pub . 2>&1 | tee -a build-status/latest.log
           CREATE=${PIPESTATUS[0]}
+          if [ -f /tmp/gameslocal-original-pubspec.lock ]; then cp /tmp/gameslocal-original-pubspec.lock pubspec.lock; fi
           if [ "$WIDGET_TEST_TRACKED" -eq 0 ]; then
             rm -f test/widget_test.dart
           fi

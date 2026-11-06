@@ -6,6 +6,7 @@ import '../../core/app_settings.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import 'hockey_physics.dart';
+import 'hockey_bot_controller.dart';
 
 class AirHockeyGameScreen extends StatefulWidget {
   const AirHockeyGameScreen({super.key, this.networkCore});
@@ -36,6 +37,23 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
   StreamSubscription<NetworkMessage>? networkSub;
   int syncTick = 0;
   Size fieldSize = const Size(360, 720);
+  HockeyBotState botState = HockeyBotState.initial(const Offset(180, 115.2));
+  Size botFieldSize = Size.zero;
+  BotDifficulty? botDifficulty;
+
+  Offset _pixels(Offset value) =>
+      HockeyGeometry.velocityToPixels(value, fieldSize);
+  Offset _normalized(Offset value) =>
+      HockeyGeometry.velocityToNormalized(value, fieldSize);
+  Offset _limitPuck(Offset value) =>
+      _normalized(HockeyPhysics.limitVelocity(_pixels(value)));
+
+  void _resetBot() {
+    botState = HockeyBotState.initial(_pixels(top));
+    botFieldSize = fieldSize;
+    botDifficulty = null;
+    if (botMode) topVelocity = Offset.zero;
+  }
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
@@ -76,43 +94,35 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     }
     final dt = ((now - lastMicros) / 1000000).clamp(.001, .034).toDouble();
     lastMicros = now;
-    var p = puck + velocity * dt;
-    var v = velocity * pow(.985, dt * 60).toDouble();
+    final advanced = HockeyPhysics.advancePuck(
+        position: _pixels(puck), velocity: _pixels(velocity), dt: dt);
+    var p = _normalized(advanced.position);
+    var v = _normalized(advanced.velocity * pow(.985, dt * 60).toDouble());
 
-    if (botMode && p.dy < .64) {
+    if (botMode) {
       final difficulty = settings.botDifficultyFor('air_hockey');
-      final attacking = p.dy < .46;
-      final prediction = switch (difficulty) {
-        BotDifficulty.easy => .06,
-        BotDifficulty.normal => .11,
-        BotDifficulty.hard => .17
-      };
-      final botSpeed = switch (difficulty) {
-        BotDifficulty.easy => .58,
-        BotDifficulty.normal => .82,
-        BotDifficulty.hard => 1.12
-      };
-      final targetX =
-          (p.dx + v.dx * (attacking ? prediction * .72 : prediction))
-              .clamp(.10, .90)
-              .toDouble();
-      final targetY =
-          (attacking ? (p.dy + .045).clamp(.10, .39) : .16).toDouble();
-      final delta = Offset(targetX - top.dx, targetY - top.dy);
-      final maxStep = botSpeed * (attacking ? 1.12 : .78) * dt;
-      final step =
-          delta.distance > maxStep ? delta / delta.distance * maxStep : delta;
-      final old = top;
-      top = Offset((top.dx + step.dx).clamp(.10, .90),
-          (top.dy + step.dy).clamp(.08, .43));
-      topVelocity = (top - old) / dt;
-    } else if (botMode) {
-      topVelocity *= pow(.20, dt).toDouble();
+      if (botFieldSize != fieldSize || botDifficulty != difficulty) {
+        _resetBot();
+        botDifficulty = difficulty;
+      }
+      final controller =
+          HockeyBotController(HockeyBotProfile.forDifficulty(difficulty));
+      final oldTop = _pixels(top);
+      botState = controller.step(
+          state: botState,
+          puckPosition: _pixels(p),
+          puckVelocity: _pixels(v),
+          field: fieldSize,
+          dt: dt);
+      top = _normalized(botState.position);
+      // The collision receives actual pixel movement, including field bounds.
+      topVelocity = _normalized((botState.position - oldTop) / dt);
     }
 
     const radius = .042;
     if (p.dx < radius || p.dx > 1 - radius) {
-      v = Offset(-v.dx * .94, v.dy);
+      v = _normalized(HockeyPhysics.reflectWall(
+          velocity: _pixels(v), normal: Offset(p.dx < radius ? 1 : -1, 0)));
       p = Offset(p.dx.clamp(radius, 1 - radius), p.dy);
       GameFeedback.move(GameAudioTheme.hockey);
     }
@@ -128,26 +138,28 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
       v = hit.velocity;
     }
     if (!inGoal && p.dy < radius) {
-      v = Offset(v.dx, -v.dy * .94);
+      v = _normalized(HockeyPhysics.reflectWall(
+          velocity: _pixels(v), normal: const Offset(0, 1)));
       p = Offset(p.dx, radius);
       GameFeedback.move(GameAudioTheme.hockey);
     }
     if (!inGoal && p.dy > 1 - radius) {
-      v = Offset(v.dx, -v.dy * .94);
+      v = _normalized(HockeyPhysics.reflectWall(
+          velocity: _pixels(v), normal: const Offset(0, -1)));
       p = Offset(p.dx, 1 - radius);
       GameFeedback.move(GameAudioTheme.hockey);
     }
 
-    final lower = _collide(bottom, p, bottomVelocity, bottomContact, v, false);
+    final lower = _collide(bottom, p, bottomVelocity, bottomContact, v);
     p = lower.position;
     v = lower.velocity;
     bottomContact = lower.contact;
-    final upper = _collide(top, p, topVelocity, topContact, v, true);
+    final upper = _collide(top, p, topVelocity, topContact, v);
     p = upper.position;
     v = upper.velocity;
     topContact = upper.contact;
     bottomVelocity *= pow(.08, dt).toDouble();
-    topVelocity *= pow(.08, dt).toDouble();
+    if (!botMode) topVelocity *= pow(.08, dt).toDouble();
 
     if (p.dy < -.05 && inGoal) {
       bottomScore++;
@@ -172,71 +184,39 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     }
     setState(() {
       puck = p;
-      velocity = v;
+      velocity = _limitPuck(v);
     });
     if (isNetworkGame && isHost && ++syncTick % 2 == 0) _sendState();
   }
 
-  ({Offset position, Offset velocity, bool contact}) _collide(
-      Offset paddle,
-      Offset p,
-      Offset paddleSpeed,
-      bool wasTouching,
-      Offset current,
-      bool upper) {
-    final d = HockeyGeometry.pixelDelta(p, paddle, fieldSize),
-        distance = d.distance;
-    final combined = fieldSize.width * .108;
-    if (distance >= combined || distance == 0)
-      return (position: p, velocity: current, contact: false);
-    final n = d / distance;
-    if (wasTouching) return (position: p, velocity: current, contact: true);
-    final currentPx = HockeyGeometry.velocityToPixels(current, fieldSize);
-    final paddlePx = HockeyGeometry.velocityToPixels(paddleSpeed, fieldSize);
-    final relative = currentPx - paddlePx;
-    final approach = relative.dx * n.dx + relative.dy * n.dy;
-    if (approach >= 0 && paddlePx.distance < fieldSize.width * .08)
-      return (position: p, velocity: current, contact: true);
-    var resultPx = relative - n * (1.96 * approach) + paddlePx * 1.42;
-    final minimum = (upper && botMode
-            ? switch (settings.botDifficultyFor('air_hockey')) {
-                BotDifficulty.easy => .31,
-                BotDifficulty.normal => .42,
-                BotDifficulty.hard => .52
-              }
-            : .25) *
-        fieldSize.width;
-    if (resultPx.distance < minimum) resultPx = n * minimum + paddlePx * .72;
-    var result = HockeyGeometry.velocityToNormalized(resultPx, fieldSize);
-    result = _limit(result, 2.65);
-    GameFeedback.capture(GameAudioTheme.hockey);
+  ({Offset position, Offset velocity, bool contact}) _collide(Offset paddle,
+      Offset p, Offset paddleSpeed, bool wasTouching, Offset current) {
+    final hit = HockeyPhysics.resolvePaddleCollision(
+        puckPosition: _pixels(p),
+        puckVelocity: _pixels(current),
+        paddlePosition: _pixels(paddle),
+        paddleVelocity: _pixels(paddleSpeed),
+        combinedRadius: fieldSize.width * .108,
+        wasTouching: wasTouching);
+    if (hit.struck) GameFeedback.capture(GameAudioTheme.hockey);
     return (
-      position: paddle +
-          HockeyGeometry.normalizedOffset(n * (combined + 1), fieldSize),
-      velocity: result,
-      contact: true
+      position: _normalized(hit.position),
+      velocity: _normalized(hit.velocity),
+      contact: hit.contact
     );
   }
 
   ({Offset position, Offset velocity}) _collidePost(
       Offset post, Offset p, Offset current) {
-    final d = HockeyGeometry.pixelDelta(p, post, fieldSize);
-    final distance = d.distance;
-    final combined = fieldSize.width * .064;
-    if (distance >= combined || distance == 0)
-      return (position: p, velocity: current);
-    final n = d / distance;
-    final currentPx = HockeyGeometry.velocityToPixels(current, fieldSize);
-    final approach = currentPx.dx * n.dx + currentPx.dy * n.dy;
-    final safePosition =
-        post + HockeyGeometry.normalizedOffset(n * (combined + 1), fieldSize);
-    if (approach >= 0) return (position: safePosition, velocity: current);
-    final bounced = currentPx - n * (1.92 * approach);
-    GameFeedback.post(GameAudioTheme.hockey);
+    final hit = HockeyPhysics.resolvePostCollision(
+        puckPosition: _pixels(p),
+        puckVelocity: _pixels(current),
+        postPosition: _pixels(post),
+        combinedRadius: fieldSize.width * .064);
+    if (hit.struck) GameFeedback.post(GameAudioTheme.hockey);
     return (
-      position: safePosition,
-      velocity:
-          _limit(HockeyGeometry.velocityToNormalized(bounced, fieldSize), 2.65)
+      position: _normalized(hit.position),
+      velocity: _normalized(hit.velocity)
     );
   }
 
@@ -324,7 +304,10 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
       bottomContact = false;
       topContact = false;
       slowTime = 0;
+      _resetBot();
     });
+    // The fifth goal stops ticking, so broadcast it before the next frame.
+    if (isNetworkGame && isHost) _sendState();
   }
 
   void _reset({bool send = true}) {
@@ -349,6 +332,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
       lastMicros = physicsClock.elapsedMicroseconds;
       pointerSamples.clear();
       pointerLower.clear();
+      _resetBot();
     });
     if (isNetworkGame && isHost && send) _sendState();
   }
@@ -405,13 +389,116 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     pointerLower.remove(e.pointer);
   }
 
+  Widget _modeSelector() => Row(children: [
+        if (!isNetworkGame)
+          Expanded(
+              child: ChoiceChip(
+                  label: const Text('ضد الروبوت'),
+                  selected: botMode,
+                  onSelected: (_) {
+                    botMode = true;
+                    _reset();
+                  })),
+        if (!isNetworkGame) const SizedBox(width: 8),
+        Expanded(
+            child: ChoiceChip(
+                label: Text(isNetworkGame ? 'عبر الشبكة' : 'مع صديق'),
+                selected: isNetworkGame || !botMode,
+                onSelected: isNetworkGame
+                    ? null
+                    : (_) {
+                        botMode = false;
+                        _reset();
+                      }))
+      ]);
+
+  List<Widget> _hud(String subtitle) => [
+        Text(subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 16)),
+        const SizedBox(height: 8),
+        _modeSelector(),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+              child: _Score(
+                  name: 'اللاعب 1',
+                  score: bottomScore,
+                  color: const Color(0xFF22D3EE))),
+          const SizedBox(width: 14),
+          Expanded(
+              child: _Score(
+                  name: botMode ? 'الروبوت' : 'اللاعب 2',
+                  score: topScore,
+                  color: const Color(0xFFF472B6))),
+        ]),
+        const SizedBox(height: 8),
+      ];
+
+  Widget _replay() => Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+              onPressed: _reset,
+              icon: const Icon(Icons.replay_rounded),
+              label: const Text('مباراة جديدة'))));
+
+  Widget _field() => LayoutBuilder(builder: (context, viewport) {
+        // Radii and network coordinates remain unchanged. Constrain the actual
+        // field aspect so even a paddle at y=.08 clears its width-based radius.
+        final width = min(viewport.maxWidth, viewport.maxHeight * 1.05);
+        return Center(
+            child: SizedBox(
+                width: width,
+                height: viewport.maxHeight,
+                child: Stack(children: [
+                  Positioned.fill(child: LayoutBuilder(builder: (context, c) {
+                    fieldSize = Size(c.maxWidth, c.maxHeight);
+                    return Listener(
+                        onPointerDown: (e) => _down(e, c),
+                        onPointerMove: (e) => _move(e, c),
+                        onPointerUp: _up,
+                        onPointerCancel: _up,
+                        child: CustomPaint(
+                            size: fieldSize,
+                            painter:
+                                _HockeyPainter(puck, bottom, top, velocity)));
+                  })),
+                  Positioned.fill(
+                      child: IgnorePointer(
+                          child: AnimatedOpacity(
+                              opacity: goalFlash ? 1 : 0,
+                              duration: const Duration(milliseconds: 120),
+                              child: Container(
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(30),
+                                      color: Colors.white.withAlpha(32)),
+                                  alignment: Alignment.center,
+                                  child: Text(goalEffect,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 34,
+                                          fontWeight: FontWeight.w900,
+                                          shadows: [
+                                            Shadow(
+                                                color: Colors.black54,
+                                                blurRadius: 12)
+                                          ])))))),
+                ])));
+      });
+
   @override
   Widget build(BuildContext context) {
     final subtitle = playing
         ? 'الأول الذي يسجل 5 أهداف يفوز'
         : (bottomScore > topScore
             ? 'فاز اللاعب 1 🎉'
-            : 'فاز ' + (botMode ? 'الروبوت' : 'اللاعب 2') + ' 🎉');
+            : 'فاز ${botMode ? 'الروبوت' : 'اللاعب 2'} 🎉');
     return Scaffold(
         backgroundColor: const Color(0xFF061321),
         appBar: AppBar(
@@ -425,95 +512,30 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
         body: SafeArea(
             child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                child: Column(children: [
-                  Text(subtitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16)),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    if (!isNetworkGame)
-                      Expanded(
-                          child: ChoiceChip(
-                              label: const Text('ضد الروبوت'),
-                              selected: botMode,
-                              onSelected: (_) {
-                                botMode = true;
-                                _reset();
-                              })),
-                    if (!isNetworkGame) const SizedBox(width: 8),
-                    Expanded(
-                        child: ChoiceChip(
-                            label:
-                                Text(isNetworkGame ? 'عبر الشبكة' : 'مع صديق'),
-                            selected: isNetworkGame || !botMode,
-                            onSelected: isNetworkGame
-                                ? null
-                                : (_) {
-                                    botMode = false;
-                                    _reset();
-                                  }))
-                  ]),
-                  const SizedBox(height: 8),
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    _Score(
-                        name: 'اللاعب 1',
-                        score: bottomScore,
-                        color: const Color(0xFF22D3EE)),
-                    const SizedBox(width: 14),
-                    _Score(
-                        name: botMode ? 'الروبوت' : 'اللاعب 2',
-                        score: topScore,
-                        color: const Color(0xFFF472B6))
-                  ]),
-                  const SizedBox(height: 8),
-                  Expanded(
-                      child: Stack(children: [
-                    Positioned.fill(child: LayoutBuilder(builder: (context, c) {
-                      fieldSize = Size(c.maxWidth, c.maxHeight);
-                      return Listener(
-                          onPointerDown: (e) => _down(e, c),
-                          onPointerMove: (e) => _move(e, c),
-                          onPointerUp: _up,
-                          onPointerCancel: _up,
-                          child: CustomPaint(
-                              size: fieldSize,
-                              painter:
-                                  _HockeyPainter(puck, bottom, top, velocity)));
-                    })),
-                    Positioned.fill(
-                        child: IgnorePointer(
-                            child: AnimatedOpacity(
-                      opacity: goalFlash ? 1 : 0,
-                      duration: const Duration(milliseconds: 120),
-                      child: Container(
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                            color: Colors.white.withAlpha(32)),
-                        alignment: Alignment.center,
-                        child: Text(goalEffect,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 34,
-                                fontWeight: FontWeight.w900,
-                                shadows: [
-                                  Shadow(color: Colors.black54, blurRadius: 12)
-                                ])),
-                      ),
-                    )))
-                  ])),
-                  if (!playing)
-                    Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: SizedBox(
-                            width: double.infinity,
-                            child: FilledButton.icon(
-                                onPressed: _reset,
-                                icon: const Icon(Icons.replay_rounded),
-                                label: const Text('مباراة جديدة'))))
-                ]))));
+                child: LayoutBuilder(builder: (context, c) {
+                  if (c.maxWidth >= 480 && c.maxWidth > c.maxHeight * 1.25) {
+                    // Only the HUD may scroll on short screens; the playable field
+                    // keeps the entire available height and stable touch geometry.
+                    return Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                              width: min(260, c.maxWidth * .42),
+                              child: SingleChildScrollView(
+                                  child: Column(children: [
+                                ..._hud(subtitle),
+                                if (!playing) _replay(),
+                              ]))),
+                          const SizedBox(width: 16),
+                          Expanded(child: _field()),
+                        ]);
+                  }
+                  return Column(children: [
+                    ..._hud(subtitle),
+                    Expanded(child: _field()),
+                    if (!playing) _replay(),
+                  ]);
+                }))));
   }
 }
 
