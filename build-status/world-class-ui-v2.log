@@ -1,34 +1,34 @@
-COMMIT=90185583a53a0392f00135afab7dd5dafcc7eb62
-RUN_ID=42158416339
+COMMIT=bf935247f1debc794e6a75b3288ac8273b21d2e4
+RUN_ID=42192577895
 === CREATE ANDROID ===
 Recreating project ....
   analysis_options.yaml (created)
-  gameslocal.iml (created)
-  android/app/build.gradle.kts (created)
-  android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
-  android/gameslocal_android.iml (created)
-  android/build.gradle.kts (created)
+  .idea/runConfigurations/main_dart.xml (created)
+  .idea/workspace.xml (created)
+  .idea/modules.xml (created)
   .idea/libraries/Dart_SDK.xml (created)
   .idea/libraries/KotlinJavaRuntime.xml (created)
-  .idea/workspace.xml (created)
-  .idea/runConfigurations/main_dart.xml (created)
-  .idea/modules.xml (created)
-  android/app/src/debug/AndroidManifest.xml (created)
-  android/app/src/main/AndroidManifest.xml (created)
-  android/app/src/main/res/mipmap-xhdpi/ic_launcher.png (created)
-  android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png (created)
-  android/app/src/main/res/values/styles.xml (created)
-  android/app/src/main/res/drawable/launch_background.xml (created)
-  android/app/src/main/res/values-night/styles.xml (created)
-  android/app/src/main/res/mipmap-hdpi/ic_launcher.png (created)
-  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (created)
-  android/app/src/main/res/drawable-v21/launch_background.xml (created)
-  android/app/src/main/res/mipmap-mdpi/ic_launcher.png (created)
-  android/app/src/profile/AndroidManifest.xml (created)
-  android/gradle.properties (created)
-  android/.gitignore (created)
   android/settings.gradle.kts (created)
   android/gradle/wrapper/gradle-wrapper.properties (created)
+  android/gradle.properties (created)
+  android/.gitignore (created)
+  android/app/src/debug/AndroidManifest.xml (created)
+  android/app/src/main/AndroidManifest.xml (created)
+  android/app/src/main/res/mipmap-mdpi/ic_launcher.png (created)
+  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (created)
+  android/app/src/main/res/drawable/launch_background.xml (created)
+  android/app/src/main/res/mipmap-xhdpi/ic_launcher.png (created)
+  android/app/src/main/res/mipmap-hdpi/ic_launcher.png (created)
+  android/app/src/main/res/drawable-v21/launch_background.xml (created)
+  android/app/src/main/res/values/styles.xml (created)
+  android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png (created)
+  android/app/src/main/res/values-night/styles.xml (created)
+  android/app/src/profile/AndroidManifest.xml (created)
+  android/gameslocal_android.iml (created)
+  android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
+  android/app/build.gradle.kts (created)
+  android/build.gradle.kts (created)
+  gameslocal.iml (created)
   test/widget_test.dart (created)
 Wrote 31 files.
 
@@ -46,122 +46,40 @@ Your application code is in ./lib/main.dart.
 === PUB GET ===
 Resolving dependencies...
 Downloading packages...
-+ args 2.7.0
-+ async 2.13.1
-+ audioplayers 6.8.1
-+ audioplayers_android 5.3.0
-+ audioplayers_darwin 6.5.0
-+ audioplayers_linux 4.3.0
-+ audioplayers_platform_interface 7.2.0
-+ audioplayers_web 5.3.0
-+ audioplayers_windows 4.4.1
-+ boolean_selector 2.1.2
-  characters 1.4.1 (from direct dependency to transitive dependency)
-+ clock 1.1.3
-+ code_assets 1.2.1 (2.1.0 available)
-  collection 1.19.1 (from direct dependency to transitive dependency)
-+ crypto 3.0.8
-+ fake_async 1.3.3
-+ ffi 2.2.0
-+ file 7.0.1
-+ fixnum 1.1.1
-+ flame 1.38.2
-+ flutter 0.0.0 from sdk flutter
-+ flutter_lints 6.0.0
-+ flutter_svg 2.3.2
-+ flutter_test 0.0.0 from sdk flutter
-+ flutter_web_plugins 0.0.0 from sdk flutter
-+ hooks 2.0.2 (2.2.0 available)
-+ http 1.6.0
-+ http_parser 4.1.2
-+ jni 1.1.2
-+ jni_flutter 1.0.4+1
-+ jni_util 1.0.0
-+ leak_tracker 11.0.2
-+ leak_tracker_flutter_testing 3.0.10
-+ leak_tracker_testing 3.0.2
-+ lints 6.1.0
-+ logging 1.3.0
-+ matcher 0.12.20
-  material_color_utilities 0.13.0 (from direct dependency to transitive dependency) (0.13.1 available)
-  meta 1.18.3 (from direct dependency to transitive dependency) (1.19.0 available)
-+ objective_c 9.5.0 (9.6.3 available)
-+ ordered_set 8.0.1
-+ package_config 3.0.0
-+ path 1.9.1
-+ path_parsing 1.1.0
-+ path_provider 2.1.6
-+ path_provider_android 2.3.1
-+ path_provider_foundation 2.6.0
-+ path_provider_linux 2.2.2
-+ path_provider_platform_interface 2.1.3
-+ path_provider_windows 2.3.0
-+ petitparser 7.0.2 (7.1.0 available)
-+ platform 3.2.0
-+ plugin_platform_interface 2.1.8
-+ pub_semver 2.2.1
-+ qr 3.0.3 (4.0.1 available)
-+ qr_flutter 4.1.0
-+ record_use 0.6.0 (1.1.1 available)
-+ shared_preferences 2.5.6
-+ shared_preferences_android 2.5.4
-+ shared_preferences_foundation 2.5.7 (2.6.1 available)
-+ shared_preferences_linux 2.4.1
-+ shared_preferences_platform_interface 2.4.2
-+ shared_preferences_web 2.4.3
-+ shared_preferences_windows 2.4.1
-+ sky_engine 0.0.0 from sdk flutter
-+ source_span 1.10.2
-+ stack_trace 1.12.2
-+ stream_channel 2.1.4
-+ string_scanner 1.4.1
-+ synchronized 3.6.1
-+ term_glyph 1.2.2
-+ test_api 0.7.12 (0.7.15 available)
-+ typed_data 1.4.0
-+ uuid 4.6.0
-+ vector_graphics 1.2.6
-+ vector_graphics_codec 1.1.13
-+ vector_graphics_compiler 1.3.4
-  vector_math 2.4.0 (from direct dependency to transitive dependency) (2.4.4 available)
-+ vm_service 15.4.0
-+ web 1.1.2
-+ xdg_directories 1.1.0
-+ xml 7.0.1 (7.1.0 available)
-+ yaml 3.1.4
-Changed 83 dependencies!
+  code_assets 1.2.1 (2.1.0 available)
+  hooks 2.0.2 (2.2.0 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  meta 1.18.3 (1.19.0 available)
+  objective_c 9.5.0 (9.6.3 available)
+  petitparser 7.0.2 (7.1.0 available)
+  qr 3.0.3 (4.0.1 available)
+  record_use 0.6.0 (1.1.1 available)
+  shared_preferences_foundation 2.5.7 (2.6.1 available)
+  test_api 0.7.12 (0.7.15 available)
+  vector_math 2.4.0 (2.4.4 available)
+  xml 7.0.1 (7.1.0 available)
+Got dependencies!
 12 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 === FORMAT ===
-Formatted 95 files (0 changed) in 0.32 seconds.
+Formatted 101 files (0 changed) in 0.36 seconds.
 === TEST ===
 
 ::group::✅ Passing tests
-✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: XO bot is allowed to place O on the bot turn
-✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: line games provide an offline robot without changing line scoring
-✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: Domino starts the bot when the bot owns the opening turn
-✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard final mover captures any fully shaded line
-✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard line score equals number of shaded points
-✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard uses every complete straight line on all three axes
-✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard keeps valid two-point edge lines
-✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet multiplayer reuses the existing game message contract
-✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: relay validates rooms and has abuse and lifetime limits
-✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet option is exposed without replacing LAN discovery
-✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Render blueprint deploys the relay separately from the app
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities all thirteen games declare honest modes and complete instructions
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities hand 51 only advertises modes it really implements
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities air hockey exposes all implemented multiplayer modes
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: home keeps the responsive premium navigation contract
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities instructions reject empty objective and gesture
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: LAN shortcut routes into the production GameRoom flow
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: game room exposes offline, difficulty, LAN, Internet and retry choices
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: settings no longer exposes unfinished-product messaging
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: shared QR lobby is large and non-scrollable
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: XO uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: checkers uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: both line games use the shared pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: name animal object uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: game room labels browser QR as a pregame action
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_shootout_contract_test.dart: penalty shootout keeps robot, LAN, and allowed-team contract
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(320.0, 640.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(320.0, 640.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: gameplay does not receive a global pointer click sound
+✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: football routes haptics through GameFeedback only
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules forces captures by removing ordinary moves when a capture exists
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules keeps ordinary moves when no capture is available
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules continues a capture chain only from the piece that captured
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText shows a concise four-line summary for a red win
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText reports capture advantage for either side and a true tie
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText uses natural Arabic wording for capture differences
@@ -173,69 +91,109 @@ Formatted 95 files (0 changed) in 0.32 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator blocked boards keeps a draw only when a blocked board has equal piece counts
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator piece-count normalization clamps impossible counts before returning an active match
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator piece-count normalization treats negative counts as zero when deciding the winner
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(390.0, 844.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(844.0, 390.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(844.0, 390.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: long Hand51 meld stays inside its table at 320
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: all hand51 face identities are legible including joker
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: cycles through four players
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: skips blocked players
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: validates a reset starting player
-✅ /home/runner/work/gameslocal/gameslocal/test/football_actor_visibility_contract_test.dart: professional football scene keeps full player and goalkeeper artwork
-✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities all thirteen games declare honest modes and complete instructions
-✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities hand 51 only advertises modes it really implements
-✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities air hockey exposes all implemented multiplayer modes
-✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities instructions reject empty objective and gesture
-✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: gameplay does not receive a global pointer click sound
-✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: football routes haptics through GameFeedback only
-✅ /home/runner/work/gameslocal/gameslocal/test/arcade_timing_test.dart: thirty and sixty hertz advance equal simulation time
-✅ /home/runner/work/gameslocal/gameslocal/test/arcade_timing_test.dart: spawn chance scales with elapsed time
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: selects the player holding the highest double
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: falls back to the strongest tile when there are no doubles
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects duplicate tiles even when their pip order is reversed
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects empty hands
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects tiles outside the standard zero-to-six range
-✅ /home/runner/work/gameslocal/gameslocal/test/professional_penalty_visual_contract_test.dart: penalty mode uses the cinematic arena and keeps LAN compatibility
-✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules forces captures by removing ordinary moves when a capture exists
-✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules keeps ordinary moves when no capture is available
-✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules continues a capture chain only from the piece that captured
-✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: card values follow the capture rules
-✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: picture cards score ten while number cards score one
-✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: detects red and black suits
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: selects the player with the lowest remaining points
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: supports tied blocked-round winners
-✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: rejects a blocked result without players
-✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: loads saved gameplay preferences
-✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: stores a separate robot level for each game
-✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: clamps invalid saved indexes safely
-✅ /home/runner/work/gameslocal/gameslocal/test/hockey_physics_test.dart: pixel distance respects a tall field aspect ratio
-✅ /home/runner/work/gameslocal/gameslocal/test/hockey_physics_test.dart: normalized offset preserves a pixel collision radius
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(320.0, 640.0) and scale1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(390.0, 844.0) and scale1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: shared QR lobby is large and non-scrollable
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: XO uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: checkers uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: both line games use the shared pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: name animal object uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: game room labels browser QR as a pregame action
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(640.0, 320.0) and scale1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: audio engine exposes a distinct theme for every production game
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: competitive games use distinct win and loss cues
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: LAN rooms use real player names instead of a host placeholder
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: every production game selects its own audio identity
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: the beard game uses its new public Arabic name everywhere
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout ends early when trailing side cannot recover
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout continues while trailing side can still recover
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: sudden death waits until both sides have taken the same shots
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet multiplayer reuses the existing game message contract
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: relay validates rooms and has abuse and lifetime limits
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet option is exposed without replacing LAN discovery
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Render blueprint deploys the relay separately from the app
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: friend mode resets bot state and both paddles remain controllable
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: fifth goal still ends the match and resets bot lifetime
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: LAN host publishes the fifth goal with unchanged state payload keys
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: NetworkConnectionKind.local client preserves mirrored score and authoritative state
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: NetworkConnectionKind.internet client preserves mirrored score and authoritative state
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: selects the player with the lowest remaining points
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: supports tied blocked-round winners
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: rejects a blocked result without players
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: all games are listed and the legacy LAN hub retains its rooms
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: robot games consume the shared three-level difficulty
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: LAN core ignores duplicate transported messages
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: name game receives its room directly instead of relying on globals
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: selects the player holding the highest double
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: falls back to the strongest tile when there are no doubles
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects duplicate tiles even when their pip order is reversed
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects empty hands
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects tiles outside the standard zero-to-six range
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(320.0, 640.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(320.0, 640.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(390.0, 844.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/football_actor_visibility_contract_test.dart: professional football scene keeps full player and goalkeeper artwork
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(844.0, 390.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(844.0, 390.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: long Hand51 meld stays inside its table at 320
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: all hand51 face identities are legible including joker
+✅ /home/runner/work/gameslocal/gameslocal/test/professional_penalty_visual_contract_test.dart: penalty mode uses the cinematic arena and keeps LAN compatibility
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_speed_regression_test.dart: the live field caps pixel speed even before any paddle contact
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: stationary paddle returns 90 percent of normal speed without tangential gain
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: moving paddle transfers only 65 percent of its normal speed
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: separating and repeated contacts never inject another impulse
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: coincident stationary and moving centers stay finite
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: speed cap applies before integration rather than after displacement
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: paddle, post and wall paths cap speed at 900 pixels per second
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_physics_test.dart: pixel distance respects a tall field aspect ratio
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_physics_test.dart: normalized offset preserves a pixel collision radius
+✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: XO bot is allowed to place O on the bot turn
+✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: line games provide an offline robot without changing line scoring
+✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: Domino starts the bot when the bot owns the opening turn
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: difficulty orders reaction, pixel speed, acceleration and prediction
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.easy holds target until its reaction interval
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.easy never exceeds pixel speed or acceleration
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.normal holds target until its reaction interval
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.normal never exceeds pixel speed or acceleration
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.hard holds target until its reaction interval
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.hard never exceeds pixel speed or acceleration
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: a distant puck returns the robot to a natural defensive position
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: attack requires a slow reachable puck inside the attacking half
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: pixel acceleration is independent of field dimensions
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: prediction reflects approaching trajectories with difficulty accuracy
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: invalid time does nothing and large time advances at most one safe step
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: reflected prediction uses puck walls rather than paddle movement limits
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: cycles through four players
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: skips blocked players
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: validates a reset starting player
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: actual movement matches reported velocity and remains acceleration bounded near edges
+✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: board games retain their fixed gameplay viewport
+✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: every active native game is connected to the shared audio engine
+✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: browser game clients lock the viewport and expose browser audio
+✅ /home/runner/work/gameslocal/gameslocal/test/arcade_timing_test.dart: thirty and sixty hertz advance equal simulation time
+✅ /home/runner/work/gameslocal/gameslocal/test/arcade_timing_test.dart: spawn chance scales with elapsed time
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: large card identities fit at text scale 1.0
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: four full cards remain in one touchable row at 320 and 1.0
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: large card identities fit at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: four full cards remain in one touchable row at 320 and 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: 20 card geometry exposes readable headers and maps scrolled touch
+✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: card values follow the capture rules
+✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: picture cards score ten while number cards score one
+✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: detects red and black suits
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: 20-card hand selects first, middle, last after real scroll
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: raised selected card remains selectable in overlapping top strip after scroll
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout ends early when trailing side cannot recover
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout continues while trailing side can still recover
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: sudden death waits until both sides have taken the same shots
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard final mover captures any fully shaded line
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard line score equals number of shaded points
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard uses every complete straight line on all three axes
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard keeps valid two-point edge lines
+✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: loads saved gameplay preferences
+✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: stores a separate robot level for each game
+✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: clamps invalid saved indexes safely
 ✅ /home/runner/work/gameslocal/gameslocal/test/playing_card_scale_regression_test.dart: compact 10 keeps its main identity inside the card at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: board games retain their fixed gameplay viewport
-✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: every active native game is connected to the shared audio engine
-✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: browser game clients lock the viewport and expose browser audio
 ::endgroup::
 
-🎉 96 tests passed.
+🎉 125 tests passed.
 === ANALYZE ===
 Analyzing gameslocal...                                         
 
@@ -260,12 +218,8 @@ Analyzing gameslocal...
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:1047:53 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:1061:53 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/graphics/retro_pixels.dart:20:47 • deprecated_member_use
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:191:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:199:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:227:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:261:44 • curly_braces_in_flow_control_structures
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:414:15 • prefer_interpolation_to_compose_strings
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:538:19 • prefer_interpolation_to_compose_strings
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:241:44 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:560:19 • prefer_interpolation_to_compose_strings
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:190:52 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:260:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:288:11 • curly_braces_in_flow_control_structures
@@ -429,7 +383,7 @@ warning • The value of the field '_power' isn't used. Try removing the field, 
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/settings/settings_screen.dart:438:37 • deprecated_member_use
 
-189 issues found. (ran in 9.4s)
+185 issues found. (ran in 10.0s)
 === BUILD APK ===
 Using production relay URL compiled into the app.
 Running Gradle task 'assembleRelease'...                        
@@ -534,7 +488,7 @@ Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
 Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          299.2s
+Running Gradle task 'assembleRelease'...                          273.3s
 ✓ Built build/app/outputs/flutter-apk/app-release.apk (58.5MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
