@@ -113,14 +113,14 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
     final boot = const Color(0xFF111827);
 
     if (divingKeeper) {
-      _limb(canvas, const Offset(-22, -112), const Offset(-69, -70), 24,
-          shorts, shorts.withValues(alpha: .80));
-      _limb(canvas, const Offset(19, -111), const Offset(75, -75), 24,
-          shorts, shorts.withValues(alpha: .80));
-      _limb(canvas, const Offset(-69, -70), const Offset(-103, -39), 19,
-          sock, sock.withValues(alpha: .72));
-      _limb(canvas, const Offset(75, -75), const Offset(112, -51), 19,
-          sock, sock.withValues(alpha: .72));
+      _limb(canvas, const Offset(-22, -112), const Offset(-69, -70), 24, shorts,
+          shorts.withValues(alpha: .80));
+      _limb(canvas, const Offset(19, -111), const Offset(75, -75), 24, shorts,
+          shorts.withValues(alpha: .80));
+      _limb(canvas, const Offset(-69, -70), const Offset(-103, -39), 19, sock,
+          sock.withValues(alpha: .72));
+      _limb(canvas, const Offset(75, -75), const Offset(112, -51), 19, sock,
+          sock.withValues(alpha: .72));
       _boot(canvas, const Offset(-111, -35), -.18, boot);
       _boot(canvas, const Offset(119, -47), .16, boot);
     } else {
@@ -145,7 +145,8 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
       _limb(canvas, const Offset(20, -128), rightKnee, 27, shorts,
           shorts.withValues(alpha: .82));
       _limb(canvas, leftKnee, leftFoot, 20, sock, sock.withValues(alpha: .72));
-      _limb(canvas, rightKnee, rightFoot, 20, sock, sock.withValues(alpha: .72));
+      _limb(
+          canvas, rightKnee, rightFoot, 20, sock, sock.withValues(alpha: .72));
       _boot(canvas, leftFoot, -.06, boot);
       _boot(canvas, rightFoot, kicking ? -.34 : .08, boot);
     }
@@ -157,9 +158,11 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
     );
     final torso = Path()
       ..moveTo(torsoRect.left + 16, torsoRect.top)
-      ..quadraticBezierTo(0, torsoRect.top - 8, torsoRect.right - 16, torsoRect.top)
+      ..quadraticBezierTo(
+          0, torsoRect.top - 8, torsoRect.right - 16, torsoRect.top)
       ..lineTo(torsoRect.right, torsoRect.bottom - 18)
-      ..quadraticBezierTo(0, torsoRect.bottom + 8, torsoRect.left, torsoRect.bottom - 18)
+      ..quadraticBezierTo(
+          0, torsoRect.bottom + 8, torsoRect.left, torsoRect.bottom - 18)
       ..close();
     final jersey = Paint()
       ..shader = LinearGradient(
@@ -183,12 +186,12 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
     if (readyKeeper) {
       _limb(canvas, const Offset(-37, -230), const Offset(-92, -189), 20,
           primary, primary.withValues(alpha: .72));
-      _limb(canvas, const Offset(37, -230), const Offset(92, -189), 20,
-          primary, primary.withValues(alpha: .72));
-      _limb(canvas, const Offset(-92, -189), const Offset(-117, -158), 15,
-          skin, skinShade);
-      _limb(canvas, const Offset(92, -189), const Offset(117, -158), 15,
-          skin, skinShade);
+      _limb(canvas, const Offset(37, -230), const Offset(92, -189), 20, primary,
+          primary.withValues(alpha: .72));
+      _limb(canvas, const Offset(-92, -189), const Offset(-117, -158), 15, skin,
+          skinShade);
+      _limb(canvas, const Offset(92, -189), const Offset(117, -158), 15, skin,
+          skinShade);
       _glove(canvas, const Offset(-123, -153), primary);
       _glove(canvas, const Offset(123, -153), primary);
     } else if (divingKeeper) {
@@ -198,8 +201,8 @@ class _BroadcastFootballCharacterPainter extends CustomPainter {
           primary, primary.withValues(alpha: .75));
       _limb(canvas, const Offset(-104, -242), const Offset(-154, -240), 15,
           skin, skinShade);
-      _limb(canvas, const Offset(116, -263), const Offset(167, -278), 15,
-          skin, skinShade);
+      _limb(canvas, const Offset(116, -263), const Offset(167, -278), 15, skin,
+          skinShade);
       _glove(canvas, const Offset(-164, -239), primary);
       _glove(canvas, const Offset(178, -282), primary);
     } else {

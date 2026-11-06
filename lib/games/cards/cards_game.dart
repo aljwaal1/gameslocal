@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'card_table_viewport.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_settings.dart';
@@ -70,6 +72,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
+  String get inviterName => widget.networkCore?.hostPlayerName ?? 'الداعي';
   bool get isLocalTurn =>
       isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
   List<PlayingCardModel> get localHand =>
@@ -213,7 +216,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void _startNextRound() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'انتظر المضيف لبدء الجولة الجديدة');
+      setState(() => message = 'انتظر $inviterName لبدء الجولة الجديدة');
       return;
     }
     newRound();
@@ -222,7 +225,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void _resetMatch() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'المضيف وحده يستطيع تصفير المباراة');
+      setState(() => message = '$inviterName وحده يستطيع تصفير المباراة');
       return;
     }
     newRound(resetScore: true);
@@ -243,7 +246,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
 
   void playPlayerCard(PlayingCardModel card) {
     if (!isLocalTurn || roundFinished) return;
-    GameFeedback.move();
+    GameFeedback.move(GameAudioTheme.cards);
     final ownPile = isNetworkGame && !isHost ? botPile : playerPile;
     final opponentPile = isNetworkGame && !isHost ? playerPile : botPile;
     playCard(card, localHand, ownPile, opponentPile,
@@ -279,7 +282,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         .where((card) => playerPile.any((p) => p.value == card.value))
         .toList();
 
-    switch (settings.botDifficulty) {
+    switch (settings.botDifficultyFor('cards')) {
       case BotDifficulty.easy:
         if (tablePlayable.isNotEmpty && random.nextBool())
           return tablePlayable.first;
@@ -340,7 +343,11 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
             ? 'الكمبيوتر عمل بسرا +10'
             : 'الكمبيوتر التقط أوراقًا متشابهة وربح $gained نقطة';
       }
-      GameFeedback.win();
+      if (madeBasra) {
+        GameFeedback.win(GameAudioTheme.cards);
+      } else {
+        GameFeedback.capture(GameAudioTheme.cards);
+      }
     } else {
       final stolen = opponentPile.where((p) => p.value == card.value).toList();
       if (stolen.isNotEmpty) {
@@ -359,7 +366,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
           botSteals++;
           message = 'الكمبيوتر سرق متشابهات منك وربح $gained نقطة';
         }
-        GameFeedback.win();
+        GameFeedback.capture(GameAudioTheme.cards);
       } else {
         table.add(card);
         message = isPlayer
@@ -387,15 +394,20 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         }
         table.clear();
       }
-      if (playerScore > botScore) {
-        message = 'انتهت الجولة: فزت $playerScore مقابل $botScore';
-        GameFeedback.win();
-      } else if (botScore > playerScore) {
-        message = 'انتهت الجولة: فاز الكمبيوتر $botScore مقابل $playerScore';
-        GameFeedback.error();
+      final int localScore = isNetworkGame && !isHost ? botScore : playerScore;
+      final int opponentScore =
+          isNetworkGame && !isHost ? playerScore : botScore;
+      if (localScore > opponentScore) {
+        message = 'انتهت الجولة: فزت $localScore مقابل $opponentScore';
+        GameFeedback.win(GameAudioTheme.cards);
+      } else if (opponentScore > localScore) {
+        message = isNetworkGame
+            ? 'انتهت الجولة: فاز اللاعب الآخر $opponentScore مقابل $localScore'
+            : 'انتهت الجولة: فاز الكمبيوتر $opponentScore مقابل $localScore';
+        GameFeedback.lose(GameAudioTheme.cards);
       } else {
-        message = 'انتهت الجولة بتعادل $playerScore - $botScore';
-        GameFeedback.tap();
+        message = 'انتهت الجولة بتعادل $localScore - $opponentScore';
+        GameFeedback.tap(GameAudioTheme.cards);
       }
       setState(() {});
       return true;
@@ -438,7 +450,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
             ],
           ),
           body: SafeArea(
-            child: Padding(
+            child: CardTableViewport(
+                child: Padding(
               padding: const EdgeInsets.fromLTRB(10, 3, 10, 7),
               child: Column(
                 children: [
@@ -452,7 +465,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                     botBasra: botBasra,
                     playerSteals: playerSteals,
                     botSteals: botSteals,
-                    botLevel: settings.botDifficultyText,
+                    botLevel: settings.botDifficultyTextFor('cards'),
                   ),
                   const SizedBox(height: 8),
                   _OpponentPanel(count: botHand.length, pile: botPile.length),
@@ -470,7 +483,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                           ? const Center(
                               child: Text('لا توجد أوراق على الأرض',
                                   style: TextStyle(color: Colors.white)))
-                          : Wrap(
+                          : SingleChildScrollView(
+                              child: Wrap(
                               alignment: WrapAlignment.center,
                               runAlignment: WrapAlignment.center,
                               spacing: 8,
@@ -479,33 +493,15 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                                 for (final card in table)
                                   PlayingCardView(card: card, compact: true)
                               ],
-                            ),
+                            )),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  SizedBox(
-                    height: 104,
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      runAlignment: WrapAlignment.center,
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final card in localHand)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(14),
-                            onTap: isLocalTurn && !roundFinished
-                                ? () => playPlayerCard(card)
-                                : null,
-                            child: Opacity(
-                              opacity: isLocalTurn && !roundFinished ? 1 : 0.5,
-                              child: PlayingCardView(
-                                  card: card,
-                                  highlight: canCaptureOrSteal(card)),
-                            ),
-                          ),
-                      ],
-                    ),
+                  PlayingCardHand(
+                    cards: localHand,
+                    enabled: isLocalTurn && !roundFinished,
+                    highlightFor: canCaptureOrSteal,
+                    onSelected: (index) => playPlayerCard(localHand[index]),
                   ),
                   if (roundFinished)
                     SizedBox(
@@ -518,7 +514,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                     ),
                 ],
               ),
-            ),
+            )),
           ),
         );
       },
@@ -555,7 +551,7 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(9),
+        padding: const EdgeInsets.all(7),
         child: Column(
           children: [
             Row(
@@ -570,7 +566,7 @@ class _StatusCard extends StatelessWidget {
                             fontSize: 15, fontWeight: FontWeight.bold))),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Row(
               children: [
                 _MiniStat(label: 'نقاطك', value: '$playerScore'),
@@ -579,13 +575,16 @@ class _StatusCard extends StatelessWidget {
                 _MiniStat(label: 'الرزمة', value: '$deckCount'),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Row(
               children: [
-                _MiniStat(label: 'بسرا لك', value: '$playerBasra'),
-                _MiniStat(label: 'بسرا كمبيوتر', value: '$botBasra'),
-                _MiniStat(label: 'سرقاتك', value: '$playerSteals'),
-                _MiniStat(label: 'سرقاته', value: '$botSteals'),
+                Expanded(
+                    child: Text('بسرا لك / له: $playerBasra / $botBasra',
+                        maxLines: 2, style: const TextStyle(fontSize: 10))),
+                const SizedBox(width: 8),
+                Expanded(
+                    child: Text('سرقاتك / له: $playerSteals / $botSteals',
+                        maxLines: 2, style: const TextStyle(fontSize: 10))),
               ],
             ),
           ],
@@ -603,15 +602,16 @@ class _OpponentPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
           color: Colors.white, borderRadius: BorderRadius.circular(18)),
       child: Row(
         children: [
           const Icon(Icons.smart_toy, color: AppColors.primary),
           const SizedBox(width: 8),
-          Expanded(child: Text('يد الكمبيوتر: $count')),
-          Text('رصيد للسرقة: $pile'),
+          Expanded(
+              child: Text('الكمبيوتر: $count ورقات • رصيد السرقة: $pile',
+                  maxLines: 2, style: const TextStyle(fontSize: 12))),
         ],
       ),
     );
@@ -635,9 +635,13 @@ class _MiniStat extends StatelessWidget {
         child: Column(
           children: [
             Text(value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                     fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
             Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 10, color: AppColors.muted)),
           ],
@@ -645,6 +649,44 @@ class _MiniStat extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A single-row hand that never wraps outside its hit-test area.
+class PlayingCardHand extends StatelessWidget {
+  const PlayingCardHand(
+      {super.key,
+      required this.cards,
+      required this.onSelected,
+      this.enabled = true,
+      this.highlightFor});
+
+  final List<PlayingCardModel> cards;
+  final ValueChanged<int> onSelected;
+  final bool enabled;
+  final bool Function(PlayingCardModel card)? highlightFor;
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          for (var i = 0; i < cards.length; i++)
+            Padding(
+              padding: EdgeInsets.only(right: i == cards.length - 1 ? 0 : 8),
+              child: InkWell(
+                key: ValueKey('playing-hand-$i'),
+                borderRadius: BorderRadius.circular(12),
+                onTap: enabled ? () => onSelected(i) : null,
+                child: Opacity(
+                  opacity: enabled ? 1 : .5,
+                  child: PlayingCardView(
+                      card: cards[i],
+                      highlight: highlightFor?.call(cards[i]) ?? false),
+                ),
+              ),
+            ),
+        ]),
+      );
 }
 
 class PlayingCardView extends StatelessWidget {
@@ -660,59 +702,87 @@ class PlayingCardView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = compact ? 48.0 : 60.0;
-    final height = compact ? 68.0 : 90.0;
-    final mainColor = card.red ? AppColors.danger : AppColors.ink;
+    final scale = max(1.0, MediaQuery.textScalerOf(context).scale(1));
+    final mainColor =
+        card.red ? const Color(0xFFB01025) : const Color(0xFF111827);
     final rankSize = compact ? 24.0 : 30.0;
     final suitSize = compact ? 24.0 : 32.0;
-
+    Widget corner(Key key) =>
+        Row(key: key, mainAxisSize: MainAxisSize.min, children: [
+          Text(card.rank,
+              maxLines: 1,
+              style: TextStyle(
+                  fontSize: compact ? 11 : 12,
+                  fontWeight: FontWeight.w900,
+                  color: mainColor,
+                  height: 1)),
+          const SizedBox(width: 2),
+          Text(card.suit,
+              style: TextStyle(
+                  fontSize: compact ? 11 : 12,
+                  fontWeight: FontWeight.w900,
+                  color: mainColor,
+                  height: 1)),
+        ]);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 160),
-      width: width,
-      height: height,
+      width: (compact ? 64.0 : 72.0) * scale,
+      height: (compact ? 100.0 : 112.0) * scale,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-            color: highlight ? AppColors.accent : mainColor.withOpacity(0.25),
+            color: highlight ? AppColors.accent : mainColor.withOpacity(.25),
             width: highlight ? 3 : 1.4),
         boxShadow: [
           BoxShadow(
               color: highlight
-                  ? AppColors.accent.withOpacity(0.45)
+                  ? AppColors.accent.withOpacity(.45)
                   : Colors.black26,
               blurRadius: highlight ? 10 : 7,
               offset: const Offset(0, 3))
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(card.rank,
-                maxLines: 1,
-                style: TextStyle(
-                    fontSize: rankSize,
-                    fontWeight: FontWeight.w900,
-                    color: mainColor,
-                    height: 0.9)),
-            const SizedBox(height: 5),
-            Text(card.suit,
-                style: TextStyle(
-                    fontSize: suitSize,
-                    fontWeight: FontWeight.bold,
-                    color: mainColor,
-                    height: 0.9)),
-            const SizedBox(height: 3),
-            Text('${card.scoreValue}',
-                style: TextStyle(
-                    fontSize: compact ? 10 : 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.muted)),
-          ],
-        ),
-      ),
+      child: Directionality(
+          textDirection: TextDirection.ltr,
+          child: Stack(children: [
+            Positioned(
+                top: 5,
+                left: 5,
+                child: corner(const ValueKey('card-top-corner'))),
+            Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(card.rank,
+                  key: const ValueKey('card-main-rank'),
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontSize: rankSize,
+                      fontWeight: FontWeight.w900,
+                      color: mainColor,
+                      height: .95)),
+              const SizedBox(height: 3),
+              Text(card.suit,
+                  key: const ValueKey('card-main-suit'),
+                  style: TextStyle(
+                      fontSize: suitSize,
+                      fontWeight: FontWeight.w900,
+                      color: mainColor,
+                      height: .95)),
+              const SizedBox(height: 2),
+              Text('${card.scoreValue}',
+                  style: TextStyle(
+                      fontSize: compact ? 8 : 9,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.muted,
+                      height: 1)),
+            ])),
+            Positioned(
+                bottom: 5,
+                right: 5,
+                child: Transform.rotate(
+                    angle: pi,
+                    child: corner(const ValueKey('card-bottom-corner')))),
+          ])),
     );
   }
 }

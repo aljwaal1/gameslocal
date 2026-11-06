@@ -105,7 +105,8 @@ class _WorldPenaltyShellState extends State<_WorldPenaltyShell> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text(widget.title,
+                style: const TextStyle(fontWeight: FontWeight.w900)),
             Text(
               widget.subtitle,
               style: const TextStyle(
@@ -155,9 +156,10 @@ class _WorldPenaltyShellState extends State<_WorldPenaltyShell> {
                           if (_dragStart == null || !_game.canShoot) return;
                           _dragNow = details.localPosition;
                           final delta = _dragNow! - _dragStart!;
-                          final power = (.48 + delta.distance / (size.height * .42))
-                              .clamp(.48, 1.0)
-                              .toDouble();
+                          final power =
+                              (.48 + delta.distance / (size.height * .42))
+                                  .clamp(.48, 1.0)
+                                  .toDouble();
                           final curve = (delta.dx / size.width * 2.1)
                               .clamp(-.52, .52)
                               .toDouble();
@@ -168,15 +170,18 @@ class _WorldPenaltyShellState extends State<_WorldPenaltyShell> {
                           );
                         },
                         onPanEnd: (_) {
-                          if (_dragStart == null || _dragNow == null || !_game.canShoot) {
+                          if (_dragStart == null ||
+                              _dragNow == null ||
+                              !_game.canShoot) {
                             _dragStart = null;
                             _dragNow = null;
                             return;
                           }
                           final delta = _dragNow! - _dragStart!;
-                          final power = (.48 + delta.distance / (size.height * .42))
-                              .clamp(.48, 1.0)
-                              .toDouble();
+                          final power =
+                              (.48 + delta.distance / (size.height * .42))
+                                  .clamp(.48, 1.0)
+                                  .toDouble();
                           final curve = (delta.dx / size.width * 2.1)
                               .clamp(-.52, .52)
                               .toDouble();
@@ -190,7 +195,8 @@ class _WorldPenaltyShellState extends State<_WorldPenaltyShell> {
                         },
                         onTapDown: (details) {
                           if (!_game.canDive) return;
-                          _game.chooseDive(_normalizedAim(details.localPosition, size));
+                          _game.chooseDive(
+                              _normalizedAim(details.localPosition, size));
                         },
                         child: GameWidget<WorldPenaltyFlameGame>(game: _game),
                       ),
@@ -257,7 +263,8 @@ class _ScoreHud extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                const Text('أنت', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                const Text('أنت',
+                    style: TextStyle(color: Colors.white70, fontSize: 11)),
                 Text(
                   '${hud.playerGoals}',
                   style: const TextStyle(
@@ -291,7 +298,8 @@ class _ScoreHud extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: <Widget>[
-                const Text('الروبوت', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                const Text('الروبوت',
+                    style: TextStyle(color: Colors.white70, fontSize: 11)),
                 Text(
                   '${hud.robotGoals}',
                   style: const TextStyle(
@@ -324,7 +332,8 @@ class _ActionPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0x3348C5FF)),
         boxShadow: const <BoxShadow>[
-          BoxShadow(color: Colors.black54, blurRadius: 20, offset: Offset(0, 8)),
+          BoxShadow(
+              color: Colors.black54, blurRadius: 20, offset: Offset(0, 8)),
         ],
       ),
       child: Column(
@@ -343,7 +352,8 @@ class _ActionPanel extends StatelessWidget {
           if (hud.phase == WorldPenaltyPhase.aiming)
             Row(
               children: <Widget>[
-                const Text('POWER', style: TextStyle(color: Colors.white54, fontSize: 9)),
+                const Text('POWER',
+                    style: TextStyle(color: Colors.white54, fontSize: 9)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: ClipRRect(
@@ -455,7 +465,8 @@ class WorldPenaltyFlameGame extends FlameGame {
     _syncHud();
   }
 
-  void shoot({required Offset aim, required double power, required double curve}) {
+  void shoot(
+      {required Offset aim, required double power, required double curve}) {
     if (!canShoot) return;
     this.aim = aim;
     this.power = power;
@@ -477,8 +488,12 @@ class WorldPenaltyFlameGame extends FlameGame {
     final reads = _random.nextDouble() < readChance;
     keeperTarget = reads
         ? Offset(
-            (actualAim.dx + (_random.nextDouble() - .5) * .10).clamp(.04, .96).toDouble(),
-            (actualAim.dy + (_random.nextDouble() - .5) * .12).clamp(.08, .92).toDouble(),
+            (actualAim.dx + (_random.nextDouble() - .5) * .10)
+                .clamp(.04, .96)
+                .toDouble(),
+            (actualAim.dy + (_random.nextDouble() - .5) * .12)
+                .clamp(.08, .92)
+                .toDouble(),
           )
         : Offset(
             (.10 + _random.nextDouble() * .80),
@@ -619,7 +634,10 @@ class WorldPenaltyFlameGame extends FlameGame {
       keeperTarget = const Offset(.5, .58);
       power = .62;
       curve = 0;
-      _syncHud(message: suddenDeath ? 'الحسم المفاجئ — دورك للتسديد' : 'اسحب من الكرة نحو زاوية المرمى');
+      _syncHud(
+          message: suddenDeath
+              ? 'الحسم المفاجئ — دورك للتسديد'
+              : 'اسحب من الكرة نحو زاوية المرمى');
     } else {
       phase = WorldPenaltyPhase.saving;
       chosenDive = const Offset(.5, .58);
@@ -655,7 +673,8 @@ class WorldPenaltyFlameGame extends FlameGame {
     if (w <= 0 || h <= 0) return;
 
     final shake = phase == WorldPenaltyPhase.result
-        ? math.sin(resultClock * 50) * (1 - resultClock.clamp(0.0, 1.0)) *
+        ? math.sin(resultClock * 50) *
+            (1 - resultClock.clamp(0.0, 1.0)) *
             (outcome == WorldPenaltyOutcome.post ? 4.0 : 1.6)
         : 0.0;
     canvas.save();
@@ -678,13 +697,20 @@ class WorldPenaltyFlameGame extends FlameGame {
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: <Color>[Color(0xFF02050A), Color(0xFF071A2A), Color(0xFF0B3340)],
+        colors: <Color>[
+          Color(0xFF02050A),
+          Color(0xFF071A2A),
+          Color(0xFF0B3340)
+        ],
         stops: <double>[0, .48, 1],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), bg);
 
     final bowl = Paint()..color = const Color(0xFF071018);
-    canvas.drawOval(Rect.fromCenter(center: Offset(w * .5, h * .18), width: w * 1.45, height: h * .38), bowl);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(w * .5, h * .18), width: w * 1.45, height: h * .38),
+        bowl);
 
     final crowd = Paint();
     for (var i = 0; i < 150; i++) {
@@ -695,7 +721,8 @@ class WorldPenaltyFlameGame extends FlameGame {
         const Color(0xFF1E40AF),
         championsMode ? const Color(0xFFFDE68A) : const Color(0xFF38BDF8),
         pulse,
-      )!.withAlpha(185);
+      )!
+          .withAlpha(185);
       canvas.drawCircle(Offset(x, y), 1.1 + (i % 3) * .25, crowd);
     }
 
@@ -706,7 +733,8 @@ class WorldPenaltyFlameGame extends FlameGame {
           const Color(0xFF7DD3FC).withAlpha(95),
           Colors.transparent,
         ],
-      ).createShader(Rect.fromCircle(center: Offset(w * .5, h * .05), radius: w * .62));
+      ).createShader(
+          Rect.fromCircle(center: Offset(w * .5, h * .05), radius: w * .62));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h * .40), lights);
   }
 
@@ -721,7 +749,11 @@ class WorldPenaltyFlameGame extends FlameGame {
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: <Color>[Color(0xFF087A4A), Color(0xFF0B9B59), Color(0xFF087044)],
+        colors: <Color>[
+          Color(0xFF087A4A),
+          Color(0xFF0B9B59),
+          Color(0xFF087044)
+        ],
       ).createShader(Rect.fromLTWH(0, h * .42, w, h * .58));
     canvas.drawPath(field, fieldPaint);
 
@@ -737,20 +769,24 @@ class WorldPenaltyFlameGame extends FlameGame {
       ..color = Colors.white.withAlpha(155);
     canvas.drawPath(field, line);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(w * .5, h * .77), width: w * .36, height: h * .14),
+      Rect.fromCenter(
+          center: Offset(w * .5, h * .77), width: w * .36, height: h * .14),
       line,
     );
-    canvas.drawCircle(Offset(w * .5, h * .79), 2.4, Paint()..color = Colors.white.withAlpha(200));
+    canvas.drawCircle(Offset(w * .5, h * .79), 2.4,
+        Paint()..color = Colors.white.withAlpha(200));
   }
 
-  Rect _goalRect(double w, double h) => Rect.fromLTRB(w * .14, h * .12, w * .86, h * .46);
+  Rect _goalRect(double w, double h) =>
+      Rect.fromLTRB(w * .14, h * .12, w * .86, h * .46);
 
   void _drawGoal(Canvas canvas, double w, double h) {
     final goal = _goalRect(w, h);
     final netDepth = h * .045;
-    final bulge = phase == WorldPenaltyPhase.result && outcome == WorldPenaltyOutcome.goal
-        ? math.sin(math.min(1.0, resultClock * 3.2) * math.pi) * h * .018
-        : 0.0;
+    final bulge =
+        phase == WorldPenaltyPhase.result && outcome == WorldPenaltyOutcome.goal
+            ? math.sin(math.min(1.0, resultClock * 3.2) * math.pi) * h * .018
+            : 0.0;
 
     final net = Paint()
       ..style = PaintingStyle.stroke
@@ -814,7 +850,12 @@ class WorldPenaltyFlameGame extends FlameGame {
     canvas.rotate(rotation);
 
     final shadow = Paint()..color = Colors.black.withAlpha(80);
-    canvas.drawOval(Rect.fromCenter(center: Offset(0, scale * 1.95), width: scale * 3.6, height: scale * .55), shadow);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(0, scale * 1.95),
+            width: scale * 3.6,
+            height: scale * .55),
+        shadow);
 
     final jersey = Paint()
       ..shader = LinearGradient(
@@ -824,7 +865,8 @@ class WorldPenaltyFlameGame extends FlameGame {
       ).createShader(Rect.fromLTWH(-scale, -scale, scale * 2, scale * 3));
 
     final body = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset.zero, width: scale * 1.15, height: scale * 2.15),
+      Rect.fromCenter(
+          center: Offset.zero, width: scale * 1.15, height: scale * 2.15),
       Radius.circular(scale * .35),
     );
     canvas.drawRRect(body, jersey);
@@ -832,15 +874,21 @@ class WorldPenaltyFlameGame extends FlameGame {
     final limb = Paint()
       ..strokeCap = StrokeCap.round
       ..strokeWidth = scale * .34
-      ..color = championsMode ? const Color(0xFFF59E0B) : const Color(0xFF0EA5E9);
+      ..color =
+          championsMode ? const Color(0xFFF59E0B) : const Color(0xFF0EA5E9);
     final reach = 1.55 + lateral * .85;
-    canvas.drawLine(Offset(-scale * .35, -scale * .45), Offset(-scale * reach, scale * .02), limb);
-    canvas.drawLine(Offset(scale * .35, -scale * .45), Offset(scale * reach, scale * .02), limb);
+    canvas.drawLine(Offset(-scale * .35, -scale * .45),
+        Offset(-scale * reach, scale * .02), limb);
+    canvas.drawLine(Offset(scale * .35, -scale * .45),
+        Offset(scale * reach, scale * .02), limb);
 
     final shorts = Paint()..color = const Color(0xFF111827);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(0, scale * 1.0), width: scale * 1.2, height: scale * .65),
+        Rect.fromCenter(
+            center: Offset(0, scale * 1.0),
+            width: scale * 1.2,
+            height: scale * .65),
         Radius.circular(scale * .15),
       ),
       shorts,
@@ -850,8 +898,10 @@ class WorldPenaltyFlameGame extends FlameGame {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = scale * .30
       ..color = const Color(0xFF111827);
-    canvas.drawLine(Offset(-scale * .30, scale * 1.22), Offset(-scale * .62, scale * 2.0), legs);
-    canvas.drawLine(Offset(scale * .30, scale * 1.22), Offset(scale * .62, scale * 2.0), legs);
+    canvas.drawLine(Offset(-scale * .30, scale * 1.22),
+        Offset(-scale * .62, scale * 2.0), legs);
+    canvas.drawLine(Offset(scale * .30, scale * 1.22),
+        Offset(scale * .62, scale * 2.0), legs);
 
     final skin = Paint()..color = const Color(0xFFD6A77A);
     canvas.drawCircle(Offset(0, -scale * 1.28), scale * .47, skin);
@@ -863,8 +913,10 @@ class WorldPenaltyFlameGame extends FlameGame {
   }
 
   void _drawPlayer(Canvas canvas, double w, double h) {
-    final active = phase == WorldPenaltyPhase.flying || phase == WorldPenaltyPhase.result;
-    final t = active ? Curves.easeInOut.transform(math.min(1.0, flight * 1.8)) : 0.0;
+    final active =
+        phase == WorldPenaltyPhase.flying || phase == WorldPenaltyPhase.result;
+    final t =
+        active ? Curves.easeInOut.transform(math.min(1.0, flight * 1.8)) : 0.0;
     final x = w * (.38 + t * .09);
     final y = h * (.83 - t * .015);
     final scale = w * .050;
@@ -875,7 +927,12 @@ class WorldPenaltyFlameGame extends FlameGame {
     canvas.rotate(lean);
 
     final shadow = Paint()..color = Colors.black.withAlpha(95);
-    canvas.drawOval(Rect.fromCenter(center: Offset(scale * .2, scale * 2.5), width: scale * 3.2, height: scale * .48), shadow);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(scale * .2, scale * 2.5),
+            width: scale * 3.2,
+            height: scale * .48),
+        shadow);
 
     final kit = Paint()
       ..shader = LinearGradient(
@@ -885,7 +942,8 @@ class WorldPenaltyFlameGame extends FlameGame {
       ).createShader(Rect.fromLTWH(-scale, -scale, scale * 2, scale * 3));
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset.zero, width: scale * 1.05, height: scale * 2.15),
+        Rect.fromCenter(
+            center: Offset.zero, width: scale * 1.05, height: scale * 2.15),
         Radius.circular(scale * .30),
       ),
       kit,
@@ -894,16 +952,20 @@ class WorldPenaltyFlameGame extends FlameGame {
     final limb = Paint()
       ..strokeCap = StrokeCap.round
       ..strokeWidth = scale * .31
-      ..color = championsMode ? const Color(0xFF5B21B6) : const Color(0xFF991B1B);
-    canvas.drawLine(Offset(-scale * .34, -scale * .35), Offset(-scale * 1.1, scale * .45), limb);
-    canvas.drawLine(Offset(scale * .34, -scale * .35), Offset(scale * 1.0, scale * .28), limb);
+      ..color =
+          championsMode ? const Color(0xFF5B21B6) : const Color(0xFF991B1B);
+    canvas.drawLine(Offset(-scale * .34, -scale * .35),
+        Offset(-scale * 1.1, scale * .45), limb);
+    canvas.drawLine(Offset(scale * .34, -scale * .35),
+        Offset(scale * 1.0, scale * .28), limb);
 
     final leg = Paint()
       ..strokeCap = StrokeCap.round
       ..strokeWidth = scale * .34
       ..color = const Color(0xFF111827);
     final kick = active ? math.sin(math.min(1.0, flight * 2.5) * math.pi) : 0.0;
-    canvas.drawLine(Offset(-scale * .25, scale * 1.05), Offset(-scale * .52, scale * 2.15), leg);
+    canvas.drawLine(Offset(-scale * .25, scale * 1.05),
+        Offset(-scale * .52, scale * 2.15), leg);
     canvas.drawLine(
       Offset(scale * .25, scale * 1.05),
       Offset(scale * (.55 + kick * 1.15), scale * (2.0 - kick * .85)),
@@ -943,12 +1005,14 @@ class WorldPenaltyFlameGame extends FlameGame {
       for (var i = 1; i <= 6; i++) {
         final tt = math.max(0.0, t - i * .028);
         final p = Offset.lerp(start, target, tt)! +
-            Offset(math.sin(tt * math.pi) * curve * w * .10, -math.sin(tt * math.pi) * h * (.045 + power * .022));
+            Offset(math.sin(tt * math.pi) * curve * w * .10,
+                -math.sin(tt * math.pi) * h * (.045 + power * .022));
         canvas.drawCircle(p, radius * (1 - i * .07), trail);
       }
     }
 
-    final shadow = Paint()..color = Colors.black.withAlpha((85 * (1 - t * .6)).round());
+    final shadow = Paint()
+      ..color = Colors.black.withAlpha((85 * (1 - t * .6)).round());
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(pos.dx, math.min(h * .82, pos.dy + radius * 2.2)),
@@ -1008,7 +1072,8 @@ class WorldPenaltyFlameGame extends FlameGame {
         WorldPenaltyOutcome.post => const Color(0xFFF59E0B),
         WorldPenaltyOutcome.miss => const Color(0xFFEF4444),
       };
-      canvas.drawRect(Rect.fromLTWH(0, 0, w, h), Paint()..color = color.withAlpha(flashAlpha));
+      canvas.drawRect(Rect.fromLTWH(0, 0, w, h),
+          Paint()..color = color.withAlpha(flashAlpha));
     }
   }
 }

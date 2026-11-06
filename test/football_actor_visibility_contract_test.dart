@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('professional football scene keeps full player and goalkeeper artwork', () {
+  test('professional football scene keeps full player and goalkeeper artwork',
+      () {
     final wrapper = File(
       'lib/games/football/professional_penalty_scene.dart',
     ).readAsStringSync();

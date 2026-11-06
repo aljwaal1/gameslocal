@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
+import 'penalty_actor_painter.dart';
+import 'penalty_motion_timeline.dart';
+import 'penalty_rules.dart';
 
 class ChampionsPenaltyGameScreen extends StatelessWidget {
   const ChampionsPenaltyGameScreen({super.key, this.networkCore});
@@ -36,6 +39,7 @@ class ProPenaltyShootoutGameScreen extends StatelessWidget {
 }
 
 enum _Phase { ready, shooting, saving, flying, result, finished }
+
 enum _Outcome { goal, save, post, miss }
 
 class _ElitePenaltyGame extends StatefulWidget {
@@ -58,7 +62,7 @@ class _ElitePenaltyGame extends StatefulWidget {
 }
 
 class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final math.Random _random = math.Random();
   late final AnimationController _shot;
   late final AnimationController _stadium;
@@ -78,6 +82,21 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
   int _leftShots = 0;
   int _rightShots = 0;
   bool _connectionLost = false;
+  GameFeedbackCancellation? _shotFeedback;
+  bool _contactEmitted = false;
+  bool _arrivalEmitted = false;
+  int _generation = 0;
+  bool _lifecyclePaused = false;
+  bool _keeperDragActive = false;
+  ({
+    int turn,
+    Offset target,
+    Offset keeper,
+    double power,
+    double curve,
+    _Outcome outcome
+  })? _pendingShot;
+  PenaltyActorPainter? _actors;
   final List<_Outcome> _leftResults = <_Outcome>[];
   final List<_Outcome> _rightResults = <_Outcome>[];
   String _message = 'اسحب من الكرة إلى زاوية المرمى';
@@ -87,11 +106,12 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
   bool get _localTurn => !_network || (_turn.isEven == _isHost);
   bool get _leftTurn => _turn.isEven;
 
-  bool get _finished {
-    if (_leftShots < 5 || _rightShots < 5) return false;
-    if (_leftShots != _rightShots) return false;
-    return _leftGoals != _rightGoals;
-  }
+  bool get _finished => PenaltyRules.isFinished(
+        playerGoals: _leftGoals,
+        robotGoals: _rightGoals,
+        playerShots: _leftShots,
+        robotShots: _rightShots,
+      );
 
   String get _localId {
     final players = widget.networkCore?.state.players ?? const <LocalPlayer>[];
@@ -102,10 +122,15 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    unawaited(PenaltyActorPainter.load().then((actors) {
+      if (mounted) setState(() => _actors = actors);
+    }));
     _shot = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1650),
     );
+    _shot.addListener(_onShotTick);
     _stadium = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 6),
@@ -117,6 +142,11 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
 
   @override
   void dispose() {
+    _pendingShot = null;
+    _shotFeedback?.cancel();
+    _shotFeedback = null;
+    WidgetsBinding.instance.removeObserver(this);
+    _cancelShot();
     _networkSub?.cancel();
     _shot.dispose();
     _stadium.dispose();
@@ -124,6 +154,12 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
   }
 
   void _reset() {
+    _pendingShot = null;
+    _cancelShot();
+    _shotFeedback = null;
+    _dragStart = null;
+    _dragNow = null;
+    _keeperDragActive = false;
     setState(() {
       _phase = _Phase.ready;
       _turn = 0;
@@ -151,19 +187,31 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
       );
 
   void _beginDrag(DragStartDetails details, Size size) {
-    if (_phase != _Phase.ready || !_localTurn || _connectionLost) return;
+    if (_lifecyclePaused ||
+        _phase != _Phase.ready ||
+        !_localTurn ||
+        _connectionLost) {
+      return;
+    }
     final ball = Offset(size.width * .5, size.height * .80);
-    if ((details.localPosition - ball).distance > size.width * .20) return;
+    if ((details.localPosition - ball).distance > size.width * .20) {
+      return;
+    }
     setState(() {
       _phase = _Phase.shooting;
       _dragStart = details.localPosition;
       _dragNow = details.localPosition;
     });
-    HapticFeedback.selectionClick();
+    GameFeedback.selection();
   }
 
   void _updateDrag(DragUpdateDetails details, Size size) {
-    if (_phase != _Phase.shooting || _dragStart == null) return;
+    if (_lifecyclePaused ||
+        _connectionLost ||
+        _phase != _Phase.shooting ||
+        _dragStart == null) {
+      return;
+    }
     final p = details.localPosition;
     final goal = _goalRect(size);
     final raw = p - _dragStart!;
@@ -174,17 +222,19 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
         ((p.dx - goal.left) / goal.width).clamp(.015, .985).toDouble(),
         ((p.dy - goal.top) / goal.height).clamp(.025, .975).toDouble(),
       );
-      _power = (.38 + distance / (size.height * .43))
-          .clamp(.42, 1.0)
-          .toDouble();
-      _curve = (raw.dx / (size.width * .55))
-          .clamp(-1.0, 1.0)
-          .toDouble();
+      _power =
+          (.38 + distance / (size.height * .43)).clamp(.42, 1.0).toDouble();
+      _curve = (raw.dx / (size.width * .55)).clamp(-1.0, 1.0).toDouble();
     });
   }
 
   void _endDrag(DragEndDetails details) {
-    if (_phase != _Phase.shooting || _dragStart == null) return;
+    if (_lifecyclePaused ||
+        _connectionLost ||
+        _phase != _Phase.shooting ||
+        _dragStart == null) {
+      return;
+    }
     _dragStart = null;
     _dragNow = null;
     unawaited(_takeShot(_aim, _power, _curve, local: true));
@@ -196,7 +246,12 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
     double curve, {
     required bool local,
   }) async {
-    if (_phase != _Phase.shooting && _phase != _Phase.ready) return;
+    if (_lifecyclePaused ||
+        _connectionLost ||
+        (local && !_localTurn) ||
+        (_phase != _Phase.shooting && _phase != _Phase.ready)) {
+      return;
+    }
 
     final overPower = ((power - .90) / .10).clamp(0.0, 1.0).toDouble();
     final underPower = ((.58 - power) / .16).clamp(0.0, 1.0).toDouble();
@@ -247,18 +302,6 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
     }
 
     final turn = _turn;
-    await _animate(
-      target: Offset(
-        actual.dx.clamp(-.06, 1.06).toDouble(),
-        actual.dy.clamp(-.05, 1.03).toDouble(),
-      ),
-      keeper: predicted,
-      power: power,
-      curve: curve,
-      outcome: outcome,
-      local: local,
-    );
-
     if (_network && local) {
       widget.networkCore!.sendMove(<String, dynamic>{
         'action': widget.actionName,
@@ -272,6 +315,109 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
         'outcome': outcome.name,
       }, senderId: _localId);
     }
+    await _animate(
+      target: Offset(
+        actual.dx.clamp(-.06, 1.06).toDouble(),
+        actual.dy.clamp(-.05, 1.03).toDouble(),
+      ),
+      keeper: predicted,
+      power: power,
+      curve: curve,
+      outcome: outcome,
+      local: local,
+    );
+  }
+
+  void _cancelShot() {
+    _generation++;
+    _shotFeedback?.cancel();
+    _shot.stop(canceled: true);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (!_lifecyclePaused) {
+        return;
+      }
+      _lifecyclePaused = false;
+      if (_connectionLost) {
+        return;
+      }
+      final feedback = _shotFeedback;
+      if (feedback != null &&
+          (_phase == _Phase.flying || _phase == _Phase.result)) {
+        // Keep the resolved, already-sent turn. Its cancelled feedback lifetime
+        // remains silent while its presentation catches up after foregrounding.
+        unawaited(_continueShot(_generation, feedback));
+      } else {
+        _drainPendingShot();
+      }
+      return;
+    }
+    if (_lifecyclePaused) {
+      return;
+    }
+    _lifecyclePaused = true;
+    _dragStart = null;
+    _dragNow = null;
+    _keeperDragActive = false;
+    if (_phase == _Phase.shooting && !_connectionLost) {
+      setState(() {
+        _phase = _Phase.ready;
+        _message = 'اسحب من الكرة إلى زاوية المرمى';
+      });
+    }
+    _cancelShot();
+  }
+
+  void _onShotTick() {
+    if (!mounted ||
+        _connectionLost ||
+        _lifecyclePaused ||
+        _shotFeedback == null) {
+      return;
+    }
+    if (!_contactEmitted && _shot.value >= PenaltyMotionTimeline.contactStart) {
+      _contactEmitted = true;
+      GameFeedback.kick(GameAudioTheme.football, _shotFeedback);
+    }
+    if (_arrivalEmitted || _shot.value < PenaltyMotionTimeline.ballArrival) {
+      return;
+    }
+    _arrivalEmitted = true;
+    final wasLeft = _leftTurn;
+    setState(() {
+      final goal = _outcome == _Outcome.goal;
+      if (wasLeft) {
+        _leftShots++;
+        _leftResults.add(_outcome);
+        if (goal) _leftGoals++;
+      } else {
+        _rightShots++;
+        _rightResults.add(_outcome);
+        if (goal) _rightGoals++;
+      }
+      _turn++;
+      _phase = _Phase.result;
+      _message = switch (_outcome) {
+        _Outcome.goal => 'هــــدف! ⚽',
+        _Outcome.save => 'تصـــدٍ رائع! 🧤',
+        _Outcome.post => 'في القائم! 💥',
+        _Outcome.miss => 'خارج المرمى!',
+      };
+    });
+
+    switch (_outcome) {
+      case _Outcome.goal:
+        GameFeedback.goal(GameAudioTheme.football, _shotFeedback);
+      case _Outcome.save:
+        GameFeedback.save(GameAudioTheme.football, _shotFeedback);
+      case _Outcome.post:
+        GameFeedback.post(GameAudioTheme.football, _shotFeedback);
+      case _Outcome.miss:
+        GameFeedback.error(GameAudioTheme.football, _shotFeedback);
+    }
   }
 
   Future<void> _animate({
@@ -282,64 +428,67 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
     required _Outcome outcome,
     required bool local,
   }) async {
-    if (!mounted) return;
+    if (!mounted || _connectionLost || _lifecyclePaused || _finished) {
+      return;
+    }
+    _cancelShot();
+    final generation = _generation;
+    final feedback = _shotFeedback = GameFeedbackCancellation();
+    _contactEmitted = false;
+    _arrivalEmitted = false;
     setState(() {
       _phase = _Phase.flying;
-      _aim = target;
+      _aim = Offset(target.dx.clamp(-.06, 1.06).toDouble(),
+          target.dy.clamp(-.05, 1.03).toDouble());
       _keeper = keeper;
       _power = power;
       _curve = curve;
       _outcome = outcome;
       _message = local ? 'التسديدة تنطلق...' : 'المنافس يسدد...';
     });
-    HapticFeedback.lightImpact();
+    _shot.value = 0;
+    await _continueShot(generation, feedback);
+  }
+
+  Future<void> _continueShot(
+      int generation, GameFeedbackCancellation feedback) async {
+    if (!mounted ||
+        _connectionLost ||
+        _lifecyclePaused ||
+        generation != _generation) {
+      return;
+    }
     try {
-      await _shot.forward(from: 0).orCancel;
+      await _shot.forward().orCancel;
     } on TickerCanceled {
       return;
     }
-    if (!mounted) return;
-
-    final wasLeft = _leftTurn;
-    setState(() {
-      final goal = outcome == _Outcome.goal;
-      if (wasLeft) {
-        _leftShots++;
-        _leftResults.add(outcome);
-        if (goal) _leftGoals++;
-      } else {
-        _rightShots++;
-        _rightResults.add(outcome);
-        if (goal) _rightGoals++;
-      }
-      _turn++;
-      _phase = _Phase.result;
-      _message = switch (outcome) {
-        _Outcome.goal => 'هــــدف! ⚽',
-        _Outcome.save => 'تصـــدٍ رائع! 🧤',
-        _Outcome.post => 'في القائم! 💥',
-        _Outcome.miss => 'خارج المرمى!',
-      };
-    });
-
-    if (outcome == _Outcome.goal) {
-      HapticFeedback.heavyImpact();
-      SystemSound.play(SystemSoundType.alert);
-    } else {
-      HapticFeedback.mediumImpact();
-      SystemSound.play(SystemSoundType.click);
+    if (!mounted ||
+        _connectionLost ||
+        _lifecyclePaused ||
+        generation != _generation) {
+      return;
     }
 
     await Future<void>.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
+    if (!mounted ||
+        _connectionLost ||
+        _lifecyclePaused ||
+        generation != _generation) {
+      return;
+    }
     _shot.reset();
 
     if (_finished) {
+      if (_leftGoals > _rightGoals) {
+        GameFeedback.win(GameAudioTheme.football, feedback);
+      } else {
+        GameFeedback.lose(GameAudioTheme.football, feedback);
+      }
       setState(() {
         _phase = _Phase.finished;
-        _message = _leftGoals > _rightGoals
-            ? '🏆 فاز اللاعب الأول'
-            : '🏆 فاز المنافس';
+        _message =
+            _leftGoals > _rightGoals ? '🏆 فاز اللاعب الأول' : '🏆 فاز المنافس';
       });
       return;
     }
@@ -357,7 +506,12 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
           _message = 'المنافس يجهز التسديدة...';
         });
         await Future<void>.delayed(const Duration(milliseconds: 700));
-        if (mounted) await _robotShot();
+        if (mounted &&
+            !_connectionLost &&
+            !_lifecyclePaused &&
+            generation == _generation) {
+          await _robotShot();
+        }
       }
     } else {
       setState(() {
@@ -366,10 +520,14 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
             ? 'بانتظار اللاعب الآخر'
             : 'اسحب من الكرة إلى زاوية المرمى';
       });
+      _drainPendingShot();
     }
   }
 
   Future<void> _robotShot({Offset? forcedKeeper}) async {
+    if (!mounted || _connectionLost || _lifecyclePaused) {
+      return;
+    }
     final target = Offset(
       .08 + _random.nextDouble() * .84,
       .07 + _random.nextDouble() * .76,
@@ -406,7 +564,13 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
   }
 
   void _keeperPanEnd(DragEndDetails details) {
-    if (_phase != _Phase.saving) return;
+    if (_lifecyclePaused ||
+        _connectionLost ||
+        !_keeperDragActive ||
+        _phase != _Phase.saving) {
+      return;
+    }
+    _keeperDragActive = false;
     final velocity = details.velocity.pixelsPerSecond;
     final dx = (velocity.dx / 1300).clamp(-.44, .44).toDouble();
     final dy = (velocity.dy / 1500).clamp(-.34, .25).toDouble();
@@ -422,34 +586,100 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
     unawaited(_robotShot(forcedKeeper: dive));
   }
 
+  void _drainPendingShot() {
+    final pending = _pendingShot;
+    if (!mounted ||
+        _connectionLost ||
+        _finished ||
+        _lifecyclePaused ||
+        _phase != _Phase.ready ||
+        pending == null ||
+        pending.turn != _turn ||
+        !_remoteOwnsTurn(pending.turn)) {
+      return;
+    }
+    _pendingShot = null;
+    unawaited(_animate(
+        target: pending.target,
+        keeper: pending.keeper,
+        power: pending.power,
+        curve: pending.curve,
+        outcome: pending.outcome,
+        local: false));
+  }
+
+  bool _remoteOwnsTurn(int turn) => _network && (turn.isEven != _isHost);
+
   void _onNetwork(NetworkMessage message) {
-    if (!mounted || message.senderId == _localId) return;
+    if (!mounted || message.senderId == _localId) {
+      return;
+    }
     if (message.type == NetworkMessageType.disconnect) {
+      _cancelShot();
+      _pendingShot = null;
+      _shotFeedback = null;
+      _dragStart = null;
+      _dragNow = null;
+      _keeperDragActive = false;
       setState(() {
         _connectionLost = true;
+        _phase = _Phase.ready;
         _message = 'انقطع اتصال اللاعب الآخر';
       });
       return;
     }
-    if (message.type != NetworkMessageType.move ||
+    if (_connectionLost ||
+        _finished ||
+        _phase == _Phase.finished ||
+        message.type != NetworkMessageType.move ||
         message.payload['action'] != widget.actionName) {
       return;
     }
-    final turn = (message.payload['turn'] as num?)?.toInt();
-    if (turn != _turn) return;
-    final tx = (message.payload['tx'] as num?)?.toDouble();
-    final ty = (message.payload['ty'] as num?)?.toDouble();
-    final kx = (message.payload['kx'] as num?)?.toDouble();
-    final ky = (message.payload['ky'] as num?)?.toDouble();
-    final power = (message.payload['power'] as num?)?.toDouble();
-    final curve = (message.payload['curve'] as num?)?.toDouble();
-    final outcomeName = message.payload['outcome']?.toString();
+    final turnValue = message.payload['turn'];
+    if (turnValue is! num ||
+        !turnValue.isFinite ||
+        turnValue < 0 ||
+        turnValue != turnValue.roundToDouble()) {
+      return;
+    }
+    final turn = turnValue.toInt();
+    final activeShot = _phase == _Phase.flying || _phase == _Phase.result;
+    // Before arrival _turn still names the in-flight shot; afterwards it
+    // already names the next turn. Only that one next owner can be queued.
+    final admissibleTurn = activeShot && !_arrivalEmitted ? _turn + 1 : _turn;
+    if (turn != admissibleTurn || !_remoteOwnsTurn(turn)) {
+      return;
+    }
+    double? number(String key, double minimum, double maximum) {
+      final value = message.payload[key];
+      if (value is! num || !value.isFinite) {
+        return null;
+      }
+      final result = value.toDouble();
+      if (result < minimum - 1e-9 || result > maximum + 1e-9) {
+        return null;
+      }
+      return result;
+    }
+
+    // A pan without updates retains the preceding displayed aim, clamped by
+    // _animate to x=-.06..1.06, y=-.05..1.03. Updated aim is narrower.
+    // Maximum skillNoise=.077 adds ±.0385, and curve adds ±.018 to x.
+    // Validate the full producer envelope without changing its raw wire values.
+    final tx = number('tx', -.1165, 1.1165);
+    final ty = number('ty', -.0885, 1.0685);
+    final kx = number('kx', .06, .94);
+    final ky = number('ky', .08, .88);
+    final power = number('power', .42, 1);
+    final curve = number('curve', -1, 1);
+    final outcomeName = message.payload['outcome'];
     if (tx == null ||
         ty == null ||
         kx == null ||
         ky == null ||
         power == null ||
-        curve == null) {
+        curve == null ||
+        outcomeName is! String) {
       return;
     }
     _Outcome? outcome;
@@ -459,15 +689,29 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
         break;
       }
     }
-    if (outcome == null) return;
+    if (outcome == null) {
+      return;
+    }
+    if (_lifecyclePaused || activeShot) {
+      // At most one validated next turn is retained while this arena finishes
+      // presenting its current turn. No wire protocol or authority changes.
+      _pendingShot ??= (
+        turn: turn,
+        target: Offset(tx, ty),
+        keeper: Offset(kx, ky),
+        power: power,
+        curve: curve,
+        outcome: outcome
+      );
+      return;
+    }
     unawaited(_animate(
-      target: Offset(tx, ty),
-      keeper: Offset(kx, ky),
-      power: power,
-      curve: curve,
-      outcome: outcome,
-      local: false,
-    ));
+        target: Offset(tx, ty),
+        keeper: Offset(kx, ky),
+        power: power,
+        curve: curve,
+        outcome: outcome,
+        local: false));
   }
 
   @override
@@ -495,91 +739,93 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
         ],
       ),
       body: SafeArea(
-        child: Column(
-          children: <Widget>[
-            _ScoreBar(
-              leftGoals: _leftGoals,
-              rightGoals: _rightGoals,
-              left: _leftResults,
-              right: _rightResults,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  color: _phase == _Phase.result &&
-                          _outcome == _Outcome.goal
-                      ? const Color(0xFF087F5B)
-                      : const Color(0xFF0D1B28),
-                ),
-                child: Row(
-                  children: <Widget>[
-                    const Icon(Icons.sports_soccer,
-                        color: Color(0xFFFFD166), size: 19),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final score = _ScoreBar(
+            leftGoals: _leftGoals,
+            rightGoals: _rightGoals,
+            left: _leftResults,
+            right: _rightResults,
+          );
+          final message = Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                color: _phase == _Phase.result && _outcome == _Outcome.goal
+                    ? const Color(0xFF087F5B)
+                    : const Color(0xFF0D1B28),
+              ),
+              child: Row(
+                children: <Widget>[
+                  const Icon(Icons.sports_soccer,
+                      color: Color(0xFFFFD166), size: 19),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _message,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final size = constraints.biggest;
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onPanStart: (details) {
-                        if (_phase != _Phase.saving) {
-                          _beginDrag(details, size);
-                        }
-                      },
-                      onPanUpdate: (details) => _updateDrag(details, size),
-                      onPanEnd: (details) {
-                        if (_phase == _Phase.saving) {
-                          _keeperPanEnd(details);
-                        } else {
-                          _endDrag(details);
-                        }
-                      },
-                      child: AnimatedBuilder(
-                        animation:
-                            Listenable.merge(<Listenable>[_shot, _stadium]),
-                        builder: (context, _) => CustomPaint(
-                          painter: _ElitePenaltyPainter(
-                            progress: _shot.value,
-                            ambient: _stadium.value,
-                            aim: _aim,
-                            keeper: _keeper,
-                            power: _power,
-                            curve: _curve,
-                            phase: _phase,
-                            outcome: _outcome,
-                            dragPoint: _dragNow,
-                            goalRect: _goalRect(size),
-                          ),
-                          size: size,
+          );
+          final arena = Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final size = constraints.biggest;
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanStart: (details) {
+                      if (_lifecyclePaused || _connectionLost) return;
+                      if (_phase == _Phase.saving) {
+                        _keeperDragActive = true;
+                      } else {
+                        _beginDrag(details, size);
+                      }
+                    },
+                    onPanUpdate: (details) => _updateDrag(details, size),
+                    onPanEnd: (details) {
+                      if (_phase == _Phase.saving) {
+                        _keeperPanEnd(details);
+                      } else {
+                        _endDrag(details);
+                      }
+                    },
+                    child: AnimatedBuilder(
+                      animation:
+                          Listenable.merge(<Listenable>[_shot, _stadium]),
+                      builder: (context, _) => CustomPaint(
+                        painter: _ElitePenaltyPainter(
+                          actors: _actors,
+                          progress: _shot.value,
+                          ambient: _stadium.value,
+                          aim: _aim,
+                          keeper: _keeper,
+                          power: _power,
+                          curve: _curve,
+                          phase: _phase,
+                          outcome: _outcome,
+                          dragPoint: _dragNow,
+                          goalRect: _goalRect(size),
                         ),
+                        size: size,
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
             ),
+          );
+          final finish = <Widget>[
             if (_phase == _Phase.finished)
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -588,9 +834,20 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
                   icon: const Icon(Icons.replay_rounded),
                   label: const Text('مباراة جديدة'),
                 ),
-              ),
-          ],
-        ),
+              )
+          ];
+          if (constraints.maxWidth > constraints.maxHeight * 1.3) {
+            return Row(children: [
+              arena,
+              SizedBox(
+                  width: math.min(280, constraints.maxWidth * .44),
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [score, message, ...finish])),
+            ]);
+          }
+          return Column(children: [score, message, arena, ...finish]);
+        }),
       ),
     );
   }
@@ -664,6 +921,7 @@ class _ScoreBar extends StatelessWidget {
 
 class _ElitePenaltyPainter extends CustomPainter {
   const _ElitePenaltyPainter({
+    required this.actors,
     required this.progress,
     required this.ambient,
     required this.aim,
@@ -676,6 +934,7 @@ class _ElitePenaltyPainter extends CustomPainter {
     required this.goalRect,
   });
 
+  final PenaltyActorPainter? actors;
   final double progress;
   final double ambient;
   final Offset aim;
@@ -715,25 +974,18 @@ class _ElitePenaltyPainter extends CustomPainter {
       goalRect.left + aim.dx * goalRect.width,
       goalRect.top + aim.dy * goalRect.height,
     );
-    final keeperTarget = Offset(
-      goalRect.left + keeper.dx * goalRect.width,
-      goalRect.top + keeper.dy * goalRect.height,
-    );
-    final keeperRaw = ((progress - .34) / .48).clamp(0.0, 1.0).toDouble();
-    final keeperT = Curves.easeOutCubic.transform(keeperRaw);
-    final keeperPos = Offset.lerp(
-      goalRect.center + Offset(0, goalRect.height * .17),
-      keeperTarget,
-      keeperT,
-    )!;
-    _keeperBody(canvas, keeperPos, keeperT, paint, size);
+    final frame = const PenaltyMotionTimeline().frame(progress);
+    final layout = PenaltyActorLayout(
+        size: size, goal: goalRect, keeperTarget: keeper, frame: frame);
+    actors?.paintKeeper(canvas, layout);
+    actors?.paintPlayer(canvas, layout);
 
     final ballStart = Offset(size.width * .5, size.height * .80);
-    final flightRaw = ((progress - .26) / .62).clamp(0.0, 1.0).toDouble();
-    final flight = Curves.easeInCubic.transform(flightRaw);
+    final flight = frame.ballFlight;
     final mid = Offset(size.width * (.5 + curve * .055), size.height * .48);
     final ballPos = _quadratic(ballStart, mid, target, flight);
-    final radius = math.max(4.8, size.width * .047 * (1 - flight * .74));
+    final radius = math.max(3.0,
+        math.min(size.height * .045, size.width * .047) * (1 - flight * .74));
 
     if (flight > .03) {
       paint.style = PaintingStyle.stroke;
@@ -744,7 +996,7 @@ class _ElitePenaltyPainter extends CustomPainter {
         ..quadraticBezierTo(mid.dx, mid.dy, ballPos.dx, ballPos.dy);
       canvas.drawPath(trail, paint);
     }
-    _ball(canvas, ballPos, radius, paint, progress * 12);
+    _ball(canvas, ballPos, radius, paint, flight * 12);
 
     if (phase == _Phase.shooting && dragPoint != null) {
       paint.style = PaintingStyle.stroke;
@@ -755,7 +1007,8 @@ class _ElitePenaltyPainter extends CustomPainter {
       _powerMeter(canvas, size, paint);
     }
 
-    if (phase == _Phase.flying && progress > .76) {
+    if ((phase == _Phase.flying || phase == _Phase.result) &&
+        progress >= PenaltyMotionTimeline.ballArrival) {
       _impact(canvas, target, paint);
     }
   }
@@ -836,62 +1089,8 @@ class _ElitePenaltyPainter extends CustomPainter {
     }
   }
 
-  void _keeperBody(
-    Canvas canvas,
-    Offset center,
-    double dive,
-    Paint paint,
-    Size size,
-  ) {
-    final scale = size.width * .050;
-    final lean = (keeper.dx - .5) * 1.2;
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(lean * dive);
-    paint.style = PaintingStyle.stroke;
-    paint.strokeCap = StrokeCap.round;
-    paint.strokeWidth = scale * .36;
-    paint.color = const Color(0xFFFFB703);
-    canvas.drawLine(Offset(0, -scale * .85), Offset(0, scale * .9), paint);
-    canvas.drawLine(
-      Offset(0, -scale * .35),
-      Offset(-scale * (1.35 + dive * .35), -scale * .05),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, -scale * .35),
-      Offset(scale * (1.35 + dive * .35), -scale * .05),
-      paint,
-    );
-    paint.color = const Color(0xFF152D40);
-    canvas.drawLine(
-      Offset(0, scale * .85),
-      Offset(-scale * .7, scale * 1.65),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, scale * .85),
-      Offset(scale * .7, scale * 1.65),
-      paint,
-    );
-    paint.style = PaintingStyle.fill;
-    paint.color = const Color(0xFFFFD2A6);
-    canvas.drawCircle(Offset(0, -scale * 1.35), scale * .48, paint);
-    paint.color = Colors.white;
-    canvas.drawCircle(
-      Offset(-scale * (1.48 + dive * .35), -scale * .05),
-      scale * .28,
-      paint,
-    );
-    canvas.drawCircle(
-      Offset(scale * (1.48 + dive * .35), -scale * .05),
-      scale * .28,
-      paint,
-    );
-    canvas.restore();
-  }
-
-  void _ball(Canvas canvas, Offset center, double radius, Paint paint, double spin) {
+  void _ball(
+      Canvas canvas, Offset center, double radius, Paint paint, double spin) {
     paint.style = PaintingStyle.fill;
     paint.color = Colors.black.withOpacity(.28);
     canvas.drawOval(
@@ -943,7 +1142,10 @@ class _ElitePenaltyPainter extends CustomPainter {
   }
 
   void _impact(Canvas canvas, Offset target, Paint paint) {
-    final t = ((progress - .76) / .24).clamp(0.0, 1.0).toDouble();
+    final t = ((progress - PenaltyMotionTimeline.ballArrival) /
+            (1 - PenaltyMotionTimeline.ballArrival))
+        .clamp(0.0, 1.0)
+        .toDouble();
     if (outcome == _Outcome.goal) {
       paint.style = PaintingStyle.stroke;
       paint.strokeWidth = 2.5;
@@ -955,10 +1157,9 @@ class _ElitePenaltyPainter extends CustomPainter {
       paint.color = const Color(0xFFFFD166).withOpacity(1 - t);
       for (var i = 0; i < 8; i++) {
         final angle = i * math.pi / 4;
-        final start = target +
-            Offset(math.cos(angle), math.sin(angle)) * 9;
-        final end = target +
-            Offset(math.cos(angle), math.sin(angle)) * (18 + t * 20);
+        final start = target + Offset(math.cos(angle), math.sin(angle)) * 9;
+        final end =
+            target + Offset(math.cos(angle), math.sin(angle)) * (18 + t * 20);
         canvas.drawLine(start, end, paint);
       }
     }

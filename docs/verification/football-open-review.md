@@ -1,0 +1,19 @@
+Resolved: all five findings closed; see football-report.md and football-rereview-round2.md.
+
+# Football review findings and follow-up
+
+Follow-up: all five findings have implementation fixes and behavioral regression coverage, including round 2 keeper-input and full producer-envelope corrections. See `football-report.md` for actual RED/GREEN logs and final command results. Independent scoped re-review approved the fixes; see `football-rereview-round2.md`. The original review history follows.
+
+Baseline source bf935247f1debc794e6a75b3288ac8273b21d2e4 (cards+hockey reviewed/CI green). Current football changes remain local, not yet approved/pushed. Prior worker was interrupted during fixes; inspect current code/tests, do not assume completion. Last full suite before review fixes:167 pass; analysis0/noerrors185nonfatal. Runtime/tmp reports were pruned; repo changes preserved.
+
+Independent review approved shared timeline/event order, serialized audio ownership and cancellation, unchanged Random/score/probability blocks, exact outgoing9keys. Five findings must be closed with behavioral RED/GREEN and independent scoped re-review:
+
+1. High: local shell switches Column→Row on orientation change, disposing GameWidget for same CinematicPenaltyGame. onRemove sets_removed forever. Fix preserve GameWidget element across live rotation both directions; prove interaction, ongoing shot and scores survive. GlobalKey already partially added: verify actual rotation.
+2. High: elite accepts remote moves for locally-owned turns. Host aftershot0 has_turn1 during result; guestturn2 fills pending-slot and blocks realguestturn1, while guestturn0 can count as hostshot. Enforce remote role parity, one admissible next turn based on arrival, finished-match rejection. Preserve outgoingprotocol/authority.
+3. Medium: disconnect cancels ticker but leaves resumable shot; subsequent pause/resume continues oldshot, scores and overwrites disconnectmessage. Terminalcancel mustclear/guard pending/resume/incoming. Verify disconnect→background→foreground never revives work.
+4. Medium: pause during armed drag leaves oldpan-end able to resolve/send whilepaused, or afterresume. Elite andlocal entrypoints must reject paused/released work; discard incomplete gestures on lifecycle pause. Test actualLOCALshell startdrag→pause→resume→oldpointerup yields no shot/RNG/lifetime, nextfreshgesture works. Preserve already-sent network shot during resumable suspension: keep turn, mute oldfeedback; do NOT rollback/resend.
+5. Medium: network wrongtype JSON casts throw; fractionalturn truncated; outlierkeepercoordinate kx100 yields giantdive + invertedclamp. Validate types/integerturn/finite/ranges BEFORE queue. Derive allowed ranges from actual outboundproducer; don't reject legitimate noisy tx/ty or change Random/calculation/outgoingpayload. Defensively clamp actorlayout targets too. Test invalid packets cannot occupy pending slot or mutate score; validproducerboundaries stillaccepted.
+
+Already added before review: sharedtimeline .22plant/.28approach/.26push/.34contact/.38launch/.48reach/.58followthrough/.84reachend/.86arrival/landingto1; local+network actualsprites/ball, footposeanchored; haptic immediate despite blockedstop, ownershiprace controlledCompletertests; nativeaudio channel integration/backcompat; pairedLAN/internetpause tests include nextpeerturn arriving whilehostpaused using boundedpendingturn, normalorderingpasses. Some queue validation is still defective perfinding2. Localhintmovedoutsidefield; landscapeHUDsidepanel preserves60%+ screenheight; actorboundingrect+footcontacttested across320/long/landscape. Existing visual sourcecontract updated for shared painter. No tests disabled.
+
+Strict globalconstraints and fullspec: docs/superpowers/specs/2026-11-06-games-quality.md. No mainchanges/merge. Do not delete features. Next stages road andplane remain whollypending. Final APK must includeALL stages.
