@@ -36,10 +36,13 @@ class PregameQrLobby extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxHeight < 650;
-            final qrSize = math.min(
-              constraints.maxWidth * .78,
-              constraints.maxHeight * (compact ? .40 : .46),
-            ).clamp(88.0, 380.0).toDouble();
+            final qrSize = math
+                .min(
+                  constraints.maxWidth * .78,
+                  constraints.maxHeight * (compact ? .40 : .46),
+                )
+                .clamp(88.0, 380.0)
+                .toDouble();
 
             return Padding(
               padding: EdgeInsets.fromLTRB(14, compact ? 7 : 14, 14, 12),
@@ -168,18 +171,25 @@ class PregameQrLobby extends StatelessWidget {
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 220),
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 13, vertical: 10),
                     decoration: BoxDecoration(
-                      color: joined ? const Color(0xFFE7F8F4) : AppColors.surfaceSoft,
+                      color: joined
+                          ? const Color(0xFFE7F8F4)
+                          : AppColors.surfaceSoft,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: joined ? const Color(0x665EEAD4) : AppColors.hairline,
+                        color: joined
+                            ? const Color(0x665EEAD4)
+                            : AppColors.hairline,
                       ),
                     ),
                     child: Row(
                       children: <Widget>[
                         Icon(
-                          joined ? Icons.check_circle_rounded : Icons.hourglass_top_rounded,
+                          joined
+                              ? Icons.check_circle_rounded
+                              : Icons.hourglass_top_rounded,
                           color: joined ? AppColors.primary : AppColors.muted,
                         ),
                         const SizedBox(width: 8),
@@ -193,7 +203,8 @@ class PregameQrLobby extends StatelessWidget {
                         ),
                         Container(
                           constraints: const BoxConstraints(minWidth: 34),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: joined
                                 ? const Color(0x1F0F766E)
@@ -231,7 +242,9 @@ class PregameQrLobby extends StatelessWidget {
                     child: FilledButton.icon(
                       onPressed: joined ? onStart : null,
                       icon: Icon(
-                        joined ? Icons.play_arrow_rounded : Icons.people_alt_rounded,
+                        joined
+                            ? Icons.play_arrow_rounded
+                            : Icons.people_alt_rounded,
                       ),
                       label: Text(joined ? 'بدء اللعبة' : 'بانتظار لاعب'),
                     ),

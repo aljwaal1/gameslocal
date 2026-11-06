@@ -33,7 +33,8 @@ void main() {
       gameSource,
       contains('legacy.ProPenaltyShootoutGameScreen(networkCore: networkCore)'),
     );
-    expect(gameSource, contains('class CinematicPenaltyGame extends FlameGame'));
+    expect(
+        gameSource, contains('class CinematicPenaltyGame extends FlameGame'));
     expect(gameSource, contains('GameWidget<CinematicPenaltyGame>'));
     expect(
       gameSource,
@@ -73,7 +74,8 @@ void main() {
       File('assets/football/keeper_dive_pro_v2.png').existsSync(),
       isTrue,
     );
-    expect(File('assets/football/player_ready_pro_v2.png').existsSync(), isTrue);
+    expect(
+        File('assets/football/player_ready_pro_v2.png').existsSync(), isTrue);
     expect(File('assets/football/player_run_pro_v2.png').existsSync(), isTrue);
     expect(File('assets/football/player_kick_pro_v2.png').existsSync(), isTrue);
     expect(gameSource, contains('_drawPlayer'));

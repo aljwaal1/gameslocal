@@ -18,7 +18,9 @@ Future<void> showGameHelp(BuildContext context, GameDefinition game) {
             Text(
               'كيف تلعب ${game.name}؟',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 16),

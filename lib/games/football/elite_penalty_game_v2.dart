@@ -37,6 +37,7 @@ class ProPenaltyShootoutGameScreen extends StatelessWidget {
 }
 
 enum _Phase { ready, shooting, saving, flying, result, finished }
+
 enum _Outcome { goal, save, post, miss }
 
 class _ElitePenaltyGame extends StatefulWidget {
@@ -176,12 +177,9 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
         ((p.dx - goal.left) / goal.width).clamp(.015, .985).toDouble(),
         ((p.dy - goal.top) / goal.height).clamp(.025, .975).toDouble(),
       );
-      _power = (.38 + distance / (size.height * .43))
-          .clamp(.42, 1.0)
-          .toDouble();
-      _curve = (raw.dx / (size.width * .55))
-          .clamp(-1.0, 1.0)
-          .toDouble();
+      _power =
+          (.38 + distance / (size.height * .43)).clamp(.42, 1.0).toDouble();
+      _curve = (raw.dx / (size.width * .55)).clamp(-1.0, 1.0).toDouble();
     });
   }
 
@@ -339,9 +337,8 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
     if (_finished) {
       setState(() {
         _phase = _Phase.finished;
-        _message = _leftGoals > _rightGoals
-            ? '🏆 فاز اللاعب الأول'
-            : '🏆 فاز المنافس';
+        _message =
+            _leftGoals > _rightGoals ? '🏆 فاز اللاعب الأول' : '🏆 فاز المنافس';
       });
       return;
     }
@@ -513,8 +510,7 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
-                  color: _phase == _Phase.result &&
-                          _outcome == _Outcome.goal
+                  color: _phase == _Phase.result && _outcome == _Outcome.goal
                       ? const Color(0xFF087F5B)
                       : const Color(0xFF0D1B28),
                 ),
@@ -893,7 +889,8 @@ class _ElitePenaltyPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _ball(Canvas canvas, Offset center, double radius, Paint paint, double spin) {
+  void _ball(
+      Canvas canvas, Offset center, double radius, Paint paint, double spin) {
     paint.style = PaintingStyle.fill;
     paint.color = Colors.black.withOpacity(.28);
     canvas.drawOval(
@@ -957,10 +954,9 @@ class _ElitePenaltyPainter extends CustomPainter {
       paint.color = const Color(0xFFFFD166).withOpacity(1 - t);
       for (var i = 0; i < 8; i++) {
         final angle = i * math.pi / 4;
-        final start = target +
-            Offset(math.cos(angle), math.sin(angle)) * 9;
-        final end = target +
-            Offset(math.cos(angle), math.sin(angle)) * (18 + t * 20);
+        final start = target + Offset(math.cos(angle), math.sin(angle)) * 9;
+        final end =
+            target + Offset(math.cos(angle), math.sin(angle)) * (18 + t * 20);
         canvas.drawLine(start, end, paint);
       }
     }

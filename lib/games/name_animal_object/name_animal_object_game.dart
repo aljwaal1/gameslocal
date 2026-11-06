@@ -126,7 +126,6 @@ class _NameAnimalObjectGameScreenState
     }
   }
 
-
   Future<void> _startWebBridge() async {
     final bridge = IphoneWebBridge();
     _webBridge = bridge;
@@ -430,7 +429,8 @@ class _NameAnimalObjectGameScreenState
     final int myTotal = scores[_myId] ?? 0;
     final int bestTotal =
         totals.isEmpty ? 0 : totals.reduce((int a, int b) => a > b ? a : b);
-    final bool allTied = totals.isEmpty || totals.every((score) => score == bestTotal);
+    final bool allTied =
+        totals.isEmpty || totals.every((score) => score == bestTotal);
     if (allTied) {
       GameFeedback.tap(GameAudioTheme.word);
     } else if (myTotal == bestTotal) {
@@ -569,13 +569,20 @@ class _NameAnimalObjectGameScreenState
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            QrImageView(data: _webUrl, size: (MediaQuery.sizeOf(context).shortestSide * .80).clamp(280.0, 360.0).toDouble(), backgroundColor: Colors.white),
+            QrImageView(
+                data: _webUrl,
+                size: (MediaQuery.sizeOf(context).shortestSide * .80)
+                    .clamp(280.0, 360.0)
+                    .toDouble(),
+                backgroundColor: Colors.white),
             const SizedBox(height: 8),
             SelectableText(_webUrl, textAlign: TextAlign.center),
           ],
         ),
         actions: <Widget>[
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إغلاق')),
         ],
       ),
     );
@@ -585,17 +592,14 @@ class _NameAnimalObjectGameScreenState
   Widget build(BuildContext context) {
     if (_network == null)
       return const Scaffold(body: Center(child: Text('أنشئ غرفة أولًا.')));
-    if (_isHost &&
-        _stage == _Stage.waiting &&
-        _showNetworkQrLobby) {
+    if (_isHost && _stage == _Stage.waiting && _showNetworkQrLobby) {
       return PregameQrLobby(
         title: 'اسم حيوان جماد • دعوة لاعبين',
         url: _webUrl,
-        connectedPlayers: (_network?.state.players
-                    .where((player) => !player.isHost)
-                    .length ??
-                0) +
-            _webPlayers.length,
+        connectedPlayers:
+            (_network?.state.players.where((player) => !player.isHost).length ??
+                    0) +
+                _webPlayers.length,
         accent: const Color(0xFF8B5CF6),
         onStart: () {
           GameFeedback.tap(GameAudioTheme.word);
@@ -624,9 +628,12 @@ class _NameAnimalObjectGameScreenState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Icon(Icons.edit_note_rounded, size: 74, color: Color(0xFF6D28D9)),
+                const Icon(Icons.edit_note_rounded,
+                    size: 74, color: Color(0xFF6D28D9)),
                 const SizedBox(height: 12),
-                const Text('اكتب اسمك', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
+                const Text('اكتب اسمك',
+                    style:
+                        TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 14),
                 TextField(
                   controller: _nameController,
@@ -634,7 +641,11 @@ class _NameAnimalObjectGameScreenState
                   decoration: const InputDecoration(labelText: 'اسم اللاعب'),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(width: double.infinity, child: FilledButton(onPressed: _saveName, child: const Text('دخول اللعبة'))),
+                SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                        onPressed: _saveName,
+                        child: const Text('دخول اللعبة'))),
               ],
             ),
           ),
@@ -652,12 +663,17 @@ class _NameAnimalObjectGameScreenState
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: <Color>[Color(0xFF6D28D9), Color(0xFF0EA5E9)]),
+                    gradient: const LinearGradient(
+                        colors: <Color>[Color(0xFF6D28D9), Color(0xFF0EA5E9)]),
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Column(
                     children: <Widget>[
-                      Text('اللاعبون: $_totalPlayers', style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                      Text('اللاعبون: $_totalPlayers',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900)),
                       const SizedBox(height: 6),
                       if (_isHost && _webUrl.startsWith('http'))
                         FilledButton.icon(
@@ -681,9 +697,15 @@ class _NameAnimalObjectGameScreenState
                         alignment: WrapAlignment.center,
                         children: <Widget>[
                           for (final p in androidPlayers)
-                            Chip(avatar: Icon(p.isHost ? Icons.star : Icons.android, size: 18), label: Text(_playerNames[p.id] ?? p.name)),
+                            Chip(
+                                avatar: Icon(
+                                    p.isHost ? Icons.star : Icons.android,
+                                    size: 18),
+                                label: Text(_playerNames[p.id] ?? p.name)),
                           for (final p in _webPlayers.values)
-                            Chip(avatar: const Icon(Icons.public, size: 18), label: Text(p.name)),
+                            Chip(
+                                avatar: const Icon(Icons.public, size: 18),
+                                label: Text(p.name)),
                         ],
                       ),
                     ),
@@ -696,7 +718,9 @@ class _NameAnimalObjectGameScreenState
                     child: FilledButton.icon(
                       onPressed: _totalPlayers >= 2 ? _startRound : null,
                       icon: const Icon(Icons.play_arrow),
-                      label: Text(_totalPlayers >= 2 ? 'ابدأ الحرف' : 'بانتظار لاعب آخر'),
+                      label: Text(_totalPlayers >= 2
+                          ? 'ابدأ الحرف'
+                          : 'بانتظار لاعب آخر'),
                     ),
                   )
                 else
@@ -734,7 +758,9 @@ class _NameAnimalObjectGameScreenState
                       child: TextField(
                         controller: _answers[c],
                         enabled: !_submitted,
-                        textInputAction: c == _categories.last ? TextInputAction.done : TextInputAction.next,
+                        textInputAction: c == _categories.last
+                            ? TextInputAction.done
+                            : TextInputAction.next,
                         decoration: InputDecoration(
                           labelText: c,
                           hintText: '$c يبدأ بحرف $_letter',
@@ -747,12 +773,15 @@ class _NameAnimalObjectGameScreenState
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: _submitted ? null : () {
-                      GameFeedback.tap(GameAudioTheme.word);
-                      _submitAnswers(endAll: true);
-                    },
+                    onPressed: _submitted
+                        ? null
+                        : () {
+                            GameFeedback.tap(GameAudioTheme.word);
+                            _submitAnswers(endAll: true);
+                          },
                     icon: const Icon(Icons.flag),
-                    label: Text(_submitted ? 'تم التسليم' : 'إنهاء الجولة للجميع'),
+                    label:
+                        Text(_submitted ? 'تم التسليم' : 'إنهاء الجولة للجميع'),
                   ),
                 ),
               ],
@@ -778,158 +807,158 @@ class _NameAnimalObjectGameScreenState
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 14, vertical: 8),
       child: Column(
-      children: [
-        Text(
-          'نتائج حرف $_letter',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: compact ? 21 : 27,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: Card(
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: EdgeInsets.all(compact ? 2 : 6),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.topCenter,
-                  child: DataTable(
-                    horizontalMargin: compact ? 4 : 10,
-                    columnSpacing: compact ? 7 : 16,
-                    dataRowMinHeight: compact ? 34 : 44,
-                    dataRowMaxHeight: compact ? 40 : 52,
-                    headingRowHeight: compact ? 32 : 42,
-                    headingRowColor:
-                        WidgetStateProperty.all(const Color(0xFFEDE4FF)),
-                    border: TableBorder.all(color: const Color(0xFFD6C8EE)),
-                    columns: [
-                      DataColumn(
-                        label: Text('اللاعب', style: headingTextStyle),
-                      ),
-                      ..._categories.map(
-                        (category) => DataColumn(
-                          label: Text(category, style: headingTextStyle),
-                        ),
-                      ),
-                      DataColumn(
-                        label: Text('الجولة', style: headingTextStyle),
-                      ),
-                      DataColumn(
-                        label: Text('المجموع', style: headingTextStyle),
-                      ),
-                      if (_isHost)
-                        DataColumn(
-                          label: Text('تعديل', style: headingTextStyle),
-                        ),
-                    ],
-                    rows: ids.map((id) {
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            SizedBox(
-                              width: compact ? 54 : 100,
-                              child: Text(
-                                _playerNames[id] ?? 'لاعب',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: tableTextStyle.copyWith(
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ),
-                          ..._categories.map(
-                            (category) => DataCell(
-                              SizedBox(
-                                width: compact ? 40 : 78,
-                                child: Text(
-                                  _lastAnswers[id]?[category]?.isNotEmpty ==
-                                          true
-                                      ? _lastAnswers[id]![category]!
-                                      : '—',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                  style: tableTextStyle,
-                                ),
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              '${_lastPoints[id] ?? 0}',
-                              style: tableTextStyle.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            Text(
-                              '${_scores[id] ?? 0}',
-                              style: tableTextStyle.copyWith(
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
-                          ),
-                          if (_isHost)
-                            DataCell(
-                              IconButton(
-                                constraints: const BoxConstraints(
-                                  minWidth: 26,
-                                  minHeight: 26,
-                                ),
-                                padding: EdgeInsets.zero,
-                                iconSize: compact ? 15 : 20,
-                                tooltip: 'طلب تعديل النقاط',
-                                onPressed: () => _proposeScoreEdit(id),
-                                icon: const Icon(Icons.edit),
-                              ),
-                            ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                );
-              },
+        children: [
+          Text(
+            'نتائج حرف $_letter',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: compact ? 21 : 27,
+              fontWeight: FontWeight.w900,
             ),
           ),
-        ),
-        ),
-        if (_isHost) ...[
-          const SizedBox(height: 6),
-          const Card(
-            color: Color(0xFFFFF4D8),
-            child: Padding(
-              padding: EdgeInsets.all(10),
-              child: Text(
-                'تعديل النقاط يُرسل للتصويت ويحتاج موافقة لاعبين مختلفين.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
+          const SizedBox(height: 8),
+          Expanded(
+            child: Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: EdgeInsets.all(compact ? 2 : 6),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.topCenter,
+                      child: DataTable(
+                        horizontalMargin: compact ? 4 : 10,
+                        columnSpacing: compact ? 7 : 16,
+                        dataRowMinHeight: compact ? 34 : 44,
+                        dataRowMaxHeight: compact ? 40 : 52,
+                        headingRowHeight: compact ? 32 : 42,
+                        headingRowColor:
+                            WidgetStateProperty.all(const Color(0xFFEDE4FF)),
+                        border: TableBorder.all(color: const Color(0xFFD6C8EE)),
+                        columns: [
+                          DataColumn(
+                            label: Text('اللاعب', style: headingTextStyle),
+                          ),
+                          ..._categories.map(
+                            (category) => DataColumn(
+                              label: Text(category, style: headingTextStyle),
+                            ),
+                          ),
+                          DataColumn(
+                            label: Text('الجولة', style: headingTextStyle),
+                          ),
+                          DataColumn(
+                            label: Text('المجموع', style: headingTextStyle),
+                          ),
+                          if (_isHost)
+                            DataColumn(
+                              label: Text('تعديل', style: headingTextStyle),
+                            ),
+                        ],
+                        rows: ids.map((id) {
+                          return DataRow(
+                            cells: [
+                              DataCell(
+                                SizedBox(
+                                  width: compact ? 54 : 100,
+                                  child: Text(
+                                    _playerNames[id] ?? 'لاعب',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tableTextStyle.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              ..._categories.map(
+                                (category) => DataCell(
+                                  SizedBox(
+                                    width: compact ? 40 : 78,
+                                    child: Text(
+                                      _lastAnswers[id]?[category]?.isNotEmpty ==
+                                              true
+                                          ? _lastAnswers[id]![category]!
+                                          : '—',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      textAlign: TextAlign.center,
+                                      style: tableTextStyle,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Text(
+                                  '${_lastPoints[id] ?? 0}',
+                                  style: tableTextStyle.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                Text(
+                                  '${_scores[id] ?? 0}',
+                                  style: tableTextStyle.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              if (_isHost)
+                                DataCell(
+                                  IconButton(
+                                    constraints: const BoxConstraints(
+                                      minWidth: 26,
+                                      minHeight: 26,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    iconSize: compact ? 15 : 20,
+                                    tooltip: 'طلب تعديل النقاط',
+                                    onPressed: () => _proposeScoreEdit(id),
+                                    icon: const Icon(Icons.edit),
+                                  ),
+                                ),
+                            ],
+                          );
+                        }).toList(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
           ),
+          if (_isHost) ...[
+            const SizedBox(height: 6),
+            const Card(
+              color: Color(0xFFFFF4D8),
+              child: Padding(
+                padding: EdgeInsets.all(10),
+                child: Text(
+                  'تعديل النقاط يُرسل للتصويت ويحتاج موافقة لاعبين مختلفين.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          if (_isHost)
+            FilledButton.icon(
+              onPressed: _totalPlayers >= 2 ? _startRound : null,
+              icon: const Icon(Icons.refresh),
+              label: const Text('حرف جديد'),
+            )
+          else
+            Text(
+              'بانتظار ${_network?.hostPlayerName ?? 'الداعي'} للحرف التالي',
+              textAlign: TextAlign.center,
+            ),
         ],
-        const SizedBox(height: 8),
-        if (_isHost)
-          FilledButton.icon(
-            onPressed: _totalPlayers >= 2 ? _startRound : null,
-            icon: const Icon(Icons.refresh),
-            label: const Text('حرف جديد'),
-          )
-        else
-          Text(
-            'بانتظار ${_network?.hostPlayerName ?? 'الداعي'} للحرف التالي',
-            textAlign: TextAlign.center,
-          ),
-      ],
       ),
     );
   }

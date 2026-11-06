@@ -359,9 +359,8 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
   String get _myId => widget.networkCore?.localPlayerId ?? 'local';
 
-  String get _gameId => widget.kind == LineGameKind.sheikhBeard
-      ? 'sheikh_beard'
-      : 'dots_boxes';
+  String get _gameId =>
+      widget.kind == LineGameKind.sheikhBeard ? 'sheikh_beard' : 'dots_boxes';
 
   List<Map<String, String>> get _players {
     if (_isOffline) {
@@ -733,8 +732,7 @@ class _LineGameScreenState extends State<LineGameScreen> {
 
   Set<String> get _winnerIds {
     if (_scores.isEmpty) return const <String>{};
-    final int best =
-        _scores.values.reduce((int a, int b) => a > b ? a : b);
+    final int best = _scores.values.reduce((int a, int b) => a > b ? a : b);
     return _scores.entries
         .where((entry) => entry.value == best)
         .map((entry) => entry.key)
@@ -1022,7 +1020,9 @@ class _LineGameScreenState extends State<LineGameScreen> {
           ],
         ),
         actions: <Widget>[
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إغلاق')),
         ],
       ),
     );
@@ -1059,7 +1059,10 @@ class _LineGameScreenState extends State<LineGameScreen> {
         title: Text(title),
         actions: <Widget>[
           if (_isHost && _webUrl.startsWith('http'))
-            IconButton(tooltip: 'QR للمتصفح', onPressed: _showBrowserQr, icon: const Icon(Icons.qr_code_2_rounded)),
+            IconButton(
+                tooltip: 'QR للمتصفح',
+                onPressed: _showBrowserQr,
+                icon: const Icon(Icons.qr_code_2_rounded)),
         ],
       ),
       body: Column(
@@ -1141,9 +1144,9 @@ class _LineGameScreenState extends State<LineGameScreen> {
                   textAlign: TextAlign.center,
                   text: TextSpan(
                     style: DefaultTextStyle.of(context).style.copyWith(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
-                    ),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                        ),
                     children: <InlineSpan>[
                       const TextSpan(text: 'الدور: '),
                       TextSpan(

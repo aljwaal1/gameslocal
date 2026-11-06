@@ -20,8 +20,7 @@ void main() {
   });
 
   test('relay validates rooms and has abuse and lifetime limits', () {
-    final relay =
-        File('server/internet_relay/server.dart').readAsStringSync();
+    final relay = File('server/internet_relay/server.dart').readAsStringSync();
 
     expect(relay, contains('_maxPlayersPerRoom = 12'));
     expect(relay, contains('_maxFrameBytes = 65536'));

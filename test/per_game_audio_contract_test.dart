@@ -18,7 +18,8 @@ void main() {
     ]) {
       expect(source, contains('GameAudioTheme.$theme'));
     }
-    expect(source, contains("final cacheKey = '\${theme.name}:\${sound.name}';"));
+    expect(
+        source, contains("final cacheKey = '\${theme.name}:\${sound.name}';"));
     expect(source, contains('signatureFrequency'));
     expect(source, contains('GameSound.lose'));
     expect(source, contains('static Future<void> lose'));
@@ -63,13 +64,15 @@ void main() {
 
   test('every production game selects its own audio identity', () {
     final expectations = <String, String>{
-      'lib/games/football/world_class_penalty_game_v2.dart': 'GameAudioTheme.football',
+      'lib/games/football/world_class_penalty_game_v2.dart':
+          'GameAudioTheme.football',
       'lib/games/xo/xo_game.dart': 'GameAudioTheme.xo',
       'lib/games/checkers/checkers_game.dart': 'GameAudioTheme.checkers',
       'lib/games/domino/domino_game.dart': 'GameAudioTheme.domino',
       'lib/games/chess/chess_game.dart': 'GameAudioTheme.chess',
       'lib/games/cards/cards_game.dart': 'GameAudioTheme.cards',
-      'lib/games/name_animal_object/name_animal_object_game.dart': 'GameAudioTheme.word',
+      'lib/games/name_animal_object/name_animal_object_game.dart':
+          'GameAudioTheme.word',
       'lib/games/line_games/line_games.dart': 'GameAudioTheme.beard',
     };
 
@@ -77,7 +80,8 @@ void main() {
       expect(File(path).readAsStringSync(), contains(theme), reason: path);
     });
 
-    final lineGames = File('lib/games/line_games/line_games.dart').readAsStringSync();
+    final lineGames =
+        File('lib/games/line_games/line_games.dart').readAsStringSync();
     expect(lineGames, contains('GameAudioTheme.dots'));
   });
 

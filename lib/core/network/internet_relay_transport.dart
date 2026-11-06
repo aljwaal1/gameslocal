@@ -97,8 +97,7 @@ class InternetRelayTransport implements NetworkTransport {
     try {
       final Object? decoded = jsonDecode(frame);
       if (decoded is! Map) return;
-      final Map<String, dynamic> envelope =
-          Map<String, dynamic>.from(decoded);
+      final Map<String, dynamic> envelope = Map<String, dynamic>.from(decoded);
       switch ((envelope['kind'] ?? '').toString()) {
         case 'ready':
           final String roomCode = _cleanRoomCode(

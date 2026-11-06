@@ -180,7 +180,8 @@ class LocalWifiTransport implements NetworkTransport {
     }
 
     final String? playerId = _socketPlayerIds.remove(socket);
-    final StreamSubscription<String>? subscription = _hostClients.remove(socket);
+    final StreamSubscription<String>? subscription =
+        _hostClients.remove(socket);
     if (subscription != null) {
       unawaited(subscription.cancel());
     }
@@ -238,7 +239,8 @@ class LocalWifiTransport implements NetworkTransport {
 
       if (candidates.isNotEmpty) {
         candidates.sort(
-          (_AddressCandidate a, _AddressCandidate b) => b.score.compareTo(a.score),
+          (_AddressCandidate a, _AddressCandidate b) =>
+              b.score.compareTo(a.score),
         );
         return candidates.first.address;
       }
@@ -250,7 +252,9 @@ class LocalWifiTransport implements NetworkTransport {
     final String name = interfaceName.toLowerCase();
     int score = 0;
 
-    if (name.contains('wlan') || name.contains('wifi') || name.startsWith('wl')) {
+    if (name.contains('wlan') ||
+        name.contains('wifi') ||
+        name.startsWith('wl')) {
       score += 100;
     } else if (name.contains('hotspot') || name.contains('ap')) {
       score += 90;

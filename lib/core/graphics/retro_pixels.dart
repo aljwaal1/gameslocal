@@ -11,13 +11,16 @@ class RetroPixels {
   }) {
     if (rows.isEmpty) return;
     final rowCount = rows.length;
-    final colCount = rows.map((r) => r.length).fold<int>(0, (a, b) => a > b ? a : b);
-    final origin = Offset(center.dx - colCount * pixel / 2, center.dy - rowCount * pixel / 2);
+    final colCount =
+        rows.map((r) => r.length).fold<int>(0, (a, b) => a > b ? a : b);
+    final origin = Offset(
+        center.dx - colCount * pixel / 2, center.dy - rowCount * pixel / 2);
 
     if (shadow > 0) {
       final p = Paint()..color = Colors.black.withOpacity(0.42);
       canvas.drawRect(
-        Rect.fromLTWH(origin.dx + shadow, origin.dy + shadow, colCount * pixel, rowCount * pixel),
+        Rect.fromLTWH(origin.dx + shadow, origin.dy + shadow, colCount * pixel,
+            rowCount * pixel),
         p,
       );
     }
@@ -29,7 +32,8 @@ class RetroPixels {
         final color = palette[key.toString()];
         if (color == null) continue;
         canvas.drawRect(
-          Rect.fromLTWH(origin.dx + x * pixel, origin.dy + y * pixel, pixel + 0.15, pixel + 0.15),
+          Rect.fromLTWH(origin.dx + x * pixel, origin.dy + y * pixel,
+              pixel + 0.15, pixel + 0.15),
           Paint()..color = color,
         );
       }

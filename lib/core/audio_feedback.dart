@@ -54,7 +54,8 @@ class GameFeedback {
         minInterval: const Duration(milliseconds: 45),
       );
 
-  static Future<void> tap([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
+  static Future<void> tap([GameAudioTheme theme = GameAudioTheme.system]) =>
+      _emit(
         GameSound.tap,
         theme: theme,
         haptic: HapticFeedback.selectionClick,
@@ -62,7 +63,8 @@ class GameFeedback {
         minInterval: const Duration(milliseconds: 35),
       );
 
-  static Future<void> move([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
+  static Future<void> move([GameAudioTheme theme = GameAudioTheme.system]) =>
+      _emit(
         GameSound.move,
         theme: theme,
         haptic: HapticFeedback.lightImpact,
@@ -70,56 +72,64 @@ class GameFeedback {
         minInterval: const Duration(milliseconds: 45),
       );
 
-  static Future<void> capture([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
+  static Future<void> capture([GameAudioTheme theme = GameAudioTheme.system]) =>
+      _emit(
         GameSound.capture,
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
         volume: .64,
       );
 
-  static Future<void> win([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
+  static Future<void> win([GameAudioTheme theme = GameAudioTheme.system]) =>
+      _emit(
         GameSound.win,
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
         volume: theme == GameAudioTheme.domino ? .82 : .76,
       );
 
-  static Future<void> lose([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
+  static Future<void> lose([GameAudioTheme theme = GameAudioTheme.system]) =>
+      _emit(
         GameSound.lose,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
         volume: theme == GameAudioTheme.domino ? .76 : .70,
       );
 
-  static Future<void> error([GameAudioTheme theme = GameAudioTheme.system]) => _emit(
+  static Future<void> error([GameAudioTheme theme = GameAudioTheme.system]) =>
+      _emit(
         GameSound.error,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
         volume: .58,
       );
 
-  static Future<void> kick([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
+  static Future<void> kick([GameAudioTheme theme = GameAudioTheme.football]) =>
+      _emit(
         GameSound.kick,
         theme: theme,
         haptic: HapticFeedback.lightImpact,
         volume: .70,
       );
 
-  static Future<void> goal([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
+  static Future<void> goal([GameAudioTheme theme = GameAudioTheme.football]) =>
+      _emit(
         GameSound.goal,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
         volume: .84,
       );
 
-  static Future<void> save([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
+  static Future<void> save([GameAudioTheme theme = GameAudioTheme.football]) =>
+      _emit(
         GameSound.save,
         theme: theme,
         haptic: HapticFeedback.mediumImpact,
         volume: .70,
       );
 
-  static Future<void> post([GameAudioTheme theme = GameAudioTheme.football]) => _emit(
+  static Future<void> post([GameAudioTheme theme = GameAudioTheme.football]) =>
+      _emit(
         GameSound.post,
         theme: theme,
         haptic: HapticFeedback.heavyImpact,
@@ -241,31 +251,30 @@ class GameFeedback {
                 note(t, 138, duration) * .14;
             break;
           case GameSound.tap:
-            value = transient(t, 0, .040, .62) +
-                note(t, 520, duration) * .10;
+            value = transient(t, 0, .040, .62) + note(t, 520, duration) * .10;
             break;
           case GameSound.win:
             final segment = duration / 4;
             final frequencies = <double>[523.25, 659.25, 783.99, 1046.50];
             final index = math.min(3, (t / segment).floor());
-            value = note(t - index * segment, frequencies[index], segment) * .72 +
-                transient(t, 0, .055, .35) +
-                transient(t, duration * .70, .050, .28);
+            value =
+                note(t - index * segment, frequencies[index], segment) * .72 +
+                    transient(t, 0, .055, .35) +
+                    transient(t, duration * .70, .050, .28);
             break;
           case GameSound.lose:
             final segment = duration / 3;
             final frequencies = <double>[349.23, 277.18, 196.00];
             final index = math.min(2, (t / segment).floor());
-            value = note(t - index * segment, frequencies[index], segment) * .66 +
-                transient(t, 0, .060, .30);
+            value =
+                note(t - index * segment, frequencies[index], segment) * .66 +
+                    transient(t, 0, .060, .30);
             break;
           case GameSound.error:
-            value = transient(t, 0, .055, .44) +
-                note(t, 118, duration) * .48;
+            value = transient(t, 0, .055, .44) + note(t, 118, duration) * .48;
             break;
           case GameSound.capture:
-            value = transient(t, 0, .055, .82) +
-                transient(t, .050, .050, .42);
+            value = transient(t, 0, .055, .82) + transient(t, .050, .050, .42);
             break;
           default:
             value = transient(t, 0, .045, .35);
@@ -275,7 +284,9 @@ class GameFeedback {
         switch (sound) {
           case GameSound.capture:
           case GameSound.move:
-            value = transient(t, 0, .032, .88) + note(t, 1760, duration) * .34 + note(t, 260, duration) * .18;
+            value = transient(t, 0, .032, .88) +
+                note(t, 1760, duration) * .34 +
+                note(t, 260, duration) * .18;
             break;
           case GameSound.post:
             value = transient(t, 0, .050, .96) + note(t, 2480, duration) * .62;
@@ -283,7 +294,8 @@ class GameFeedback {
           case GameSound.goal:
           case GameSound.win:
             final rise = 620 + progress * 820;
-            value = math.sin(2 * math.pi * rise * t) * envelope * .72 + note(t, 1240, duration) * .28;
+            value = math.sin(2 * math.pi * rise * t) * envelope * .72 +
+                note(t, 1240, duration) * .28;
             break;
           case GameSound.lose:
             value = note(t, 310, duration) * .58 + note(t, 180, duration) * .42;
@@ -296,13 +308,18 @@ class GameFeedback {
         switch (sound) {
           case GameSound.move:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .58 + math.sin(2 * math.pi * (420 + progress * 250) * t) * .42) * envelope * .72;
+            value = (noise * .58 +
+                    math.sin(2 * math.pi * (420 + progress * 250) * t) * .42) *
+                envelope *
+                .72;
             break;
           case GameSound.capture:
             value = transient(t, 0, .045, .90) + note(t, 210, duration) * .42;
             break;
           case GameSound.win:
-            value = note(t, 880, duration) * .52 + note(t, 1320, duration) * .38 + transient(t, 0, .035, .28);
+            value = note(t, 880, duration) * .52 +
+                note(t, 1320, duration) * .38 +
+                transient(t, 0, .035, .28);
             break;
           case GameSound.lose:
             final noise = random.nextDouble() * 2 - 1;
@@ -324,11 +341,15 @@ class GameFeedback {
             final segment = duration / 3;
             final frequencies = <double>[392, 523.25, 659.25];
             final index = math.min(2, (t / segment).floor());
-            value = note(t - index * segment, frequencies[index], segment) * .74;
+            value =
+                note(t - index * segment, frequencies[index], segment) * .74;
             break;
           case GameSound.lose:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .64 + note(t, 82, duration) * .72 + note(t, 128, duration) * .25) * envelope;
+            value = (noise * .64 +
+                    note(t, 82, duration) * .72 +
+                    note(t, 128, duration) * .25) *
+                envelope;
             break;
           default:
             value = note(t, 180, duration) * .28 + transient(t, 0, .030, .24);
@@ -340,10 +361,12 @@ class GameFeedback {
             value = note(t, 1450, duration) * .40;
             break;
           case GameSound.tap:
-            value = (note(t, 1050, duration) + note(t, 1480, duration) * .42) * .52;
+            value =
+                (note(t, 1050, duration) + note(t, 1480, duration) * .42) * .52;
             break;
           case GameSound.move:
-            value = (note(t, 620, duration) + note(t, 880, duration) * .48) * .62;
+            value =
+                (note(t, 620, duration) + note(t, 880, duration) * .48) * .62;
             break;
           case GameSound.capture:
             final frequency = 460 + progress * 1150;
@@ -353,20 +376,25 @@ class GameFeedback {
             final segment = duration / 3;
             final frequencies = <double>[523.25, 659.25, 783.99];
             final index = math.min(2, (t / segment).floor());
-            value = note(t - index * segment, frequencies[index], segment) * .86;
+            value =
+                note(t - index * segment, frequencies[index], segment) * .86;
             break;
           case GameSound.lose:
             final segment = duration / 3;
             final frequencies = <double>[392.00, 311.13, 220.00];
             final index = math.min(2, (t / segment).floor());
-            value = note(t - index * segment, frequencies[index], segment) * .82;
+            value =
+                note(t - index * segment, frequencies[index], segment) * .82;
             break;
           case GameSound.error:
-            value = (note(t, 185, duration) + note(t, 128, duration) * .52) * .72;
+            value =
+                (note(t, 185, duration) + note(t, 128, duration) * .52) * .72;
             break;
           case GameSound.kick:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .72 + math.sin(2 * math.pi * 115 * t) * .28) * envelope * .82;
+            value = (noise * .72 + math.sin(2 * math.pi * 115 * t) * .28) *
+                envelope *
+                .82;
             break;
           case GameSound.goal:
             final shimmer = math.sin(2 * math.pi * (620 + progress * 330) * t);
@@ -375,10 +403,13 @@ class GameFeedback {
             break;
           case GameSound.save:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .50 + math.sin(2 * math.pi * 255 * t) * .50) * envelope * .75;
+            value = (noise * .50 + math.sin(2 * math.pi * 255 * t) * .50) *
+                envelope *
+                .75;
             break;
           case GameSound.post:
-            value = (note(t, 2350, duration) + note(t, 3150, duration) * .55) * .62;
+            value =
+                (note(t, 2350, duration) + note(t, 3150, duration) * .55) * .62;
             break;
         }
       }
@@ -388,16 +419,23 @@ class GameFeedback {
         GameAudioTheme.system => math.sin(phase),
         GameAudioTheme.football => math.sin(phase) + math.sin(phase * .5) * .55,
         GameAudioTheme.xo => math.sin(phase) + math.sin(phase * 2) * .30,
-        GameAudioTheme.checkers => math.sin(phase) * .72 + math.sin(phase * 1.5) * .38,
-        GameAudioTheme.domino => math.sin(phase) * .48 + math.sin(phase * .31) * .58,
+        GameAudioTheme.checkers =>
+          math.sin(phase) * .72 + math.sin(phase * 1.5) * .38,
+        GameAudioTheme.domino =>
+          math.sin(phase) * .48 + math.sin(phase * .31) * .58,
         GameAudioTheme.chess => math.sin(phase) + math.sin(phase * 2.01) * .18,
         GameAudioTheme.cards => math.sin(phase + progress * math.pi * 7),
-        GameAudioTheme.word => math.sin(phase) * .65 + math.sin(phase * 1.25) * .35,
+        GameAudioTheme.word =>
+          math.sin(phase) * .65 + math.sin(phase * 1.25) * .35,
         GameAudioTheme.beard => math.sin(phase) + math.sin(phase * .75) * .42,
-        GameAudioTheme.dots => math.sin(phase) * .70 + math.sin(phase * 2.5) * .24,
-        GameAudioTheme.hockey => math.sin(phase) * .55 + math.sin(phase * 2.15) * .28,
-        GameAudioTheme.plane => math.sin(phase) * .62 + math.sin(phase * .5) * .34,
-        GameAudioTheme.road => math.sin(phase) * .58 + math.sin(phase * .33) * .46,
+        GameAudioTheme.dots =>
+          math.sin(phase) * .70 + math.sin(phase * 2.5) * .24,
+        GameAudioTheme.hockey =>
+          math.sin(phase) * .55 + math.sin(phase * 2.15) * .28,
+        GameAudioTheme.plane =>
+          math.sin(phase) * .62 + math.sin(phase * .5) * .34,
+        GameAudioTheme.road =>
+          math.sin(phase) * .58 + math.sin(phase * .33) * .46,
       };
       value = value * .88 + signature * envelope * .12;
 

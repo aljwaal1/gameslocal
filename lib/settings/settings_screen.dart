@@ -58,7 +58,8 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 18),
               const _SectionTitle(
                 title: 'الصوت والتفاعل',
-                subtitle: 'تحكم بردود الفعل أثناء اللعب بدون تغيير قواعد الألعاب.',
+                subtitle:
+                    'تحكم بردود الفعل أثناء اللعب بدون تغيير قواعد الألعاب.',
               ),
               const SizedBox(height: 9),
               Container(
@@ -367,9 +368,7 @@ class _PremiumSwitchTile extends StatelessWidget {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: value
-              ? const Color(0x140F766E)
-              : const Color(0x100F172A),
+          color: value ? const Color(0x140F766E) : const Color(0x100F172A),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Icon(

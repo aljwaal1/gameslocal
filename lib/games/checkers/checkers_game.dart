@@ -697,7 +697,6 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
     });
   }
 
-
   Future<void> _showBrowserQr() async {
     if (!_iphoneUrl.startsWith('http') || hasAndroidGuest) return;
     await showDialog<void>(
@@ -721,7 +720,9 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
           ],
         ),
         actions: <Widget>[
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إغلاق')),
         ],
       ),
     );
@@ -753,8 +754,14 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
           appBar: AppBar(
             title: const Text('الضامة'),
             actions: [
-              if (networkMode && localPlayerIsRed && _iphoneUrl.startsWith('http') && !hasAndroidGuest)
-                IconButton(tooltip: 'QR للمتصفح', onPressed: _showBrowserQr, icon: const Icon(Icons.qr_code_2_rounded)),
+              if (networkMode &&
+                  localPlayerIsRed &&
+                  _iphoneUrl.startsWith('http') &&
+                  !hasAndroidGuest)
+                IconButton(
+                    tooltip: 'QR للمتصفح',
+                    onPressed: _showBrowserQr,
+                    icon: const Icon(Icons.qr_code_2_rounded)),
               IconButton(
                 tooltip: 'إعادة المباراة',
                 onPressed: requestBoardReset,
@@ -827,7 +834,8 @@ class _CheckersGameScreenState extends State<CheckersGameScreen> {
                                     label: 'المستوى',
                                     value: networkMode
                                         ? 'Wi‑Fi'
-                                        : settings.botDifficultyTextFor('checkers'))),
+                                        : settings
+                                            .botDifficultyTextFor('checkers'))),
                             const SizedBox(width: 8),
                             Expanded(
                                 child: _InfoChip(

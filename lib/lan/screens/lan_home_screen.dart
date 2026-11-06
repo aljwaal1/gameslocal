@@ -442,7 +442,8 @@ class _LanGameCard extends StatelessWidget {
                       const Spacer(),
                       Row(
                         children: <Widget>[
-                          Icon(Icons.people_alt_rounded, color: accent, size: 15),
+                          Icon(Icons.people_alt_rounded,
+                              color: accent, size: 15),
                           const SizedBox(width: 5),
                           Expanded(
                             child: Text(

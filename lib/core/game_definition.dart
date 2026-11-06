@@ -31,8 +31,8 @@ class GameInstructions {
     required String objective,
     required String controls,
     this.keyRule = '',
-  }) : objective = _requiredText(objective, 'objective'),
-       controls = _requiredText(controls, 'controls');
+  })  : objective = _requiredText(objective, 'objective'),
+        controls = _requiredText(controls, 'controls');
 
   final String objective;
   final String controls;
@@ -55,12 +55,11 @@ class GameDefinition {
     required this.builder,
     this.capabilities = const GameCapabilities(),
     GameInstructions? instructions,
-  }) : instructions =
-           instructions ??
-           GameInstructions(
-             objective: 'حقق هدف اللعبة قبل منافسك.',
-             controls: 'اتبع الرسالة الظاهرة داخل اللعبة لتنفيذ دورك.',
-           );
+  }) : instructions = instructions ??
+            GameInstructions(
+              objective: 'حقق هدف اللعبة قبل منافسك.',
+              controls: 'اتبع الرسالة الظاهرة داخل اللعبة لتنفيذ دورك.',
+            );
 
   final String id;
   final String name;

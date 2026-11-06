@@ -48,8 +48,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   bool botThinking = false;
 
   bool get isNetworkGame => widget.networkCore != null;
-  bool get isHost =>
-      widget.networkCore?.state.mode != LocalNetworkMode.client;
+  bool get isHost => widget.networkCore?.state.mode != LocalNetworkMode.client;
   ChessSide get localSide => isHost ? ChessSide.white : ChessSide.black;
   String get localPlayerId => widget.networkCore?.localPlayerId ?? 'local';
 
@@ -122,7 +121,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _makeMove(int from, int to, {required bool notifyPeer}) {
     final moving = board[from];
-    if (moving == null || moving.side != turn || !_legalMoves(from, moving).contains(to)) {
+    if (moving == null ||
+        moving.side != turn ||
+        !_legalMoves(from, moving).contains(to)) {
       return;
     }
     history.add(List<ChessPiece?>.from(board));
@@ -504,11 +505,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               setState(() => playVsBot = !playVsBot);
               _resetGame(notifyPeer: false);
             },
-            tooltip: playVsBot ? 'التحويل إلى لاعبين محليًا' : 'اللعب ضد الروبوت',
-            icon: Icon(playVsBot ? Icons.smart_toy_rounded : Icons.people_rounded),
+            tooltip:
+                playVsBot ? 'التحويل إلى لاعبين محليًا' : 'اللعب ضد الروبوت',
+            icon: Icon(
+                playVsBot ? Icons.smart_toy_rounded : Icons.people_rounded),
           ),
         IconButton(
-            onPressed: history.isEmpty || isNetworkGame || playVsBot ? null : _undo,
+            onPressed:
+                history.isEmpty || isNetworkGame || playVsBot ? null : _undo,
             tooltip: 'تراجع',
             icon: const Icon(Icons.undo)),
         IconButton(
@@ -584,7 +588,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
                                               width: 3))),
                                 Text(board[i]?.symbol ?? '',
                                     style: const TextStyle(
-                                        fontSize: 32, color: Color(0xFF0F172A))),
+                                        fontSize: 32,
+                                        color: Color(0xFF0F172A))),
                               ],
                             ),
                           ),

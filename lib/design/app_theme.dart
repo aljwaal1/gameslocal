@@ -156,7 +156,8 @@ class AppThemeFactory {
         style: TextButton.styleFrom(
           foregroundColor: AppColors.primaryDark,
           textStyle: const TextStyle(fontWeight: FontWeight.w900),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -174,7 +175,8 @@ class AppThemeFactory {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         hintStyle: const TextStyle(
           color: AppColors.muted,
           fontWeight: FontWeight.w600,
@@ -193,7 +195,8 @@ class AppThemeFactory {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(17),
-          borderSide: const BorderSide(color: AppColors.primaryBright, width: 2),
+          borderSide:
+              const BorderSide(color: AppColors.primaryBright, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(17),

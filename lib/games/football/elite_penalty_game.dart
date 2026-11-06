@@ -38,6 +38,7 @@ class ProPenaltyShootoutGameScreen extends StatelessWidget {
 }
 
 enum _Phase { ready, shooting, saving, flying, result, finished }
+
 enum _Outcome { goal, save, post, miss }
 
 class _ElitePenaltyGame extends StatefulWidget {
@@ -328,7 +329,8 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
     if (_finished) {
       setState(() {
         _phase = _Phase.finished;
-        _message = _leftGoals > _rightGoals ? '🏆 فاز اللاعب 1' : '🏆 فاز المنافس';
+        _message =
+            _leftGoals > _rightGoals ? '🏆 فاز اللاعب 1' : '🏆 فاز المنافس';
       });
       return;
     }
@@ -428,8 +430,14 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
     final power = (message.payload['power'] as num?)?.toDouble();
     final curve = (message.payload['curve'] as num?)?.toDouble();
     final outcomeName = message.payload['outcome']?.toString();
-    if (tx == null || ty == null || kx == null || ky == null || power == null || curve == null) return;
-    final outcome = _Outcome.values.where((e) => e.name == outcomeName).firstOrNull;
+    if (tx == null ||
+        ty == null ||
+        kx == null ||
+        ky == null ||
+        power == null ||
+        curve == null) return;
+    final outcome =
+        _Outcome.values.where((e) => e.name == outcomeName).firstOrNull;
     if (outcome == null) return;
     unawaited(_animate(
       target: Offset(tx, ty),
@@ -451,12 +459,15 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text(widget.title, style: const TextStyle(fontWeight: FontWeight.w900)),
-            Text(widget.subtitle, style: const TextStyle(fontSize: 11, color: Colors.white60)),
+            Text(widget.title,
+                style: const TextStyle(fontWeight: FontWeight.w900)),
+            Text(widget.subtitle,
+                style: const TextStyle(fontSize: 11, color: Colors.white60)),
           ],
         ),
         actions: <Widget>[
-          IconButton(onPressed: _reset, icon: const Icon(Icons.refresh_rounded)),
+          IconButton(
+              onPressed: _reset, icon: const Icon(Icons.refresh_rounded)),
         ],
       ),
       body: SafeArea(
@@ -472,7 +483,8 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 220),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
                   color: _phase == _Phase.result && _outcome == _Outcome.goal
@@ -481,12 +493,15 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
                 ),
                 child: Row(
                   children: <Widget>[
-                    const Icon(Icons.sports_soccer, color: Color(0xFFFFD166), size: 19),
+                    const Icon(Icons.sports_soccer,
+                        color: Color(0xFFFFD166), size: 19),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(_message,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800)),
                     ),
                   ],
                 ),
@@ -500,15 +515,15 @@ class _ElitePenaltyGameState extends State<_ElitePenaltyGame>
                     final size = c.biggest;
                     return GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onPanStart: (d) => _phase == _Phase.saving
-                          ? null
-                          : _beginDrag(d, size),
+                      onPanStart: (d) =>
+                          _phase == _Phase.saving ? null : _beginDrag(d, size),
                       onPanUpdate: (d) => _updateDrag(d, size),
                       onPanEnd: (d) => _phase == _Phase.saving
                           ? _keeperPanEnd(d, size)
                           : _endDrag(d),
                       child: AnimatedBuilder(
-                        animation: Listenable.merge(<Listenable>[_shot, _stadium]),
+                        animation:
+                            Listenable.merge(<Listenable>[_shot, _stadium]),
                         builder: (context, _) => CustomPaint(
                           painter: _ElitePenaltyPainter(
                             progress: _shot.value,
@@ -582,7 +597,10 @@ class _ScoreBar extends StatelessWidget {
         children: <Widget>[
           Expanded(child: _side('أنت', leftGoals, left)),
           Text('$leftGoals  -  $rightGoals',
-              style: const TextStyle(color: Color(0xFFFFD166), fontSize: 26, fontWeight: FontWeight.w900)),
+              style: const TextStyle(
+                  color: Color(0xFFFFD166),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900)),
           Expanded(child: _side('المنافس', rightGoals, right)),
         ],
       ),
@@ -592,9 +610,13 @@ class _ScoreBar extends StatelessWidget {
   Widget _side(String name, int goals, List<_Outcome> results) {
     return Column(
       children: <Widget>[
-        Text(name, style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+        Text(name,
+            style: const TextStyle(
+                color: Colors.white70, fontWeight: FontWeight.w700)),
         const SizedBox(height: 3),
-        Wrap(spacing: 1, children: results.map(_resultDot).toList(growable: false)),
+        Wrap(
+            spacing: 1,
+            children: results.map(_resultDot).toList(growable: false)),
       ],
     );
   }
@@ -635,21 +657,29 @@ class _ElitePenaltyPainter extends CustomPainter {
       colors: <Color>[Color(0xFF02050A), Color(0xFF0A2030), Color(0xFF0A6648)],
       stops: <double>[0, .42, 1],
     ).createShader(whole);
-    canvas.drawRRect(RRect.fromRectAndRadius(whole, const Radius.circular(24)), p);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(whole, const Radius.circular(24)), p);
     p.shader = null;
 
     _stadiumLights(canvas, size, p);
     _pitch(canvas, size, p);
     _goal(canvas, p);
 
-    final target = Offset(goalRect.left + aim.dx * goalRect.width, goalRect.top + aim.dy * goalRect.height);
-    final keeperTarget = Offset(goalRect.left + keeper.dx * goalRect.width, goalRect.top + keeper.dy * goalRect.height);
-    final keeperT = Curves.easeOutCubic.transform(((progress - .34) / .48).clamp(0.0, 1.0));
-    final keeperPos = Offset.lerp(goalRect.center + Offset(0, goalRect.height * .17), keeperTarget, keeperT)!;
+    final target = Offset(goalRect.left + aim.dx * goalRect.width,
+        goalRect.top + aim.dy * goalRect.height);
+    final keeperTarget = Offset(goalRect.left + keeper.dx * goalRect.width,
+        goalRect.top + keeper.dy * goalRect.height);
+    final keeperT =
+        Curves.easeOutCubic.transform(((progress - .34) / .48).clamp(0.0, 1.0));
+    final keeperPos = Offset.lerp(
+        goalRect.center + Offset(0, goalRect.height * .17),
+        keeperTarget,
+        keeperT)!;
     _keeperBody(canvas, keeperPos, keeperT, p, size);
 
     final ballStart = Offset(size.width * .5, size.height * .80);
-    final flight = Curves.easeInCubic.transform(((progress - .26) / .62).clamp(0.0, 1.0));
+    final flight =
+        Curves.easeInCubic.transform(((progress - .26) / .62).clamp(0.0, 1.0));
     final mid = Offset(size.width * (.5 + curve * .055), size.height * .48);
     final ballPos = _quadratic(ballStart, mid, target, flight);
     final radius = math.max(4.8, size.width * .047 * (1 - flight * .74));
@@ -658,7 +688,9 @@ class _ElitePenaltyPainter extends CustomPainter {
       p.style = PaintingStyle.stroke;
       p.strokeWidth = 2.2;
       p.color = Colors.white.withOpacity(.18 * (1 - flight));
-      final trail = Path()..moveTo(ballStart.dx, ballStart.dy)..quadraticBezierTo(mid.dx, mid.dy, ballPos.dx, ballPos.dy);
+      final trail = Path()
+        ..moveTo(ballStart.dx, ballStart.dy)
+        ..quadraticBezierTo(mid.dx, mid.dy, ballPos.dx, ballPos.dy);
       canvas.drawPath(trail, p);
     }
     _ball(canvas, ballPos, radius, p, progress * 12);
@@ -691,11 +723,17 @@ class _ElitePenaltyPainter extends CustomPainter {
       final row = i % 5;
       final y = 15 + row * 12.0;
       final pulse = .45 + .45 * math.sin(ambient * math.pi * 2 + i * .73);
-      p.color = Color.lerp(const Color(0xFF7AD7FF), const Color(0xFFFFE08A), pulse)!;
+      p.color =
+          Color.lerp(const Color(0xFF7AD7FF), const Color(0xFFFFE08A), pulse)!;
       canvas.drawCircle(Offset(x, y), 1.5 + pulse, p);
     }
     p.color = Colors.white.withOpacity(.06);
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * .5, size.height * .25), width: size.width * .9, height: size.height * .28), p);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(size.width * .5, size.height * .25),
+            width: size.width * .9,
+            height: size.height * .28),
+        p);
   }
 
   void _pitch(Canvas canvas, Size size, Paint p) {
@@ -712,7 +750,12 @@ class _ElitePenaltyPainter extends CustomPainter {
     p.strokeWidth = 2;
     p.color = Colors.white70;
     canvas.drawPath(field, p);
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * .5, size.height * .81), width: size.width * .018, height: size.width * .009), p);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(size.width * .5, size.height * .81),
+            width: size.width * .018,
+            height: size.width * .009),
+        p);
   }
 
   void _goal(Canvas canvas, Paint p) {
@@ -746,8 +789,10 @@ class _ElitePenaltyPainter extends CustomPainter {
     p.strokeWidth = s * .36;
     p.color = const Color(0xFFFFB703);
     canvas.drawLine(Offset(0, -s * .85), Offset(0, s * .9), p);
-    canvas.drawLine(Offset(0, -s * .35), Offset(-s * (1.35 + dive * .35), -s * .05), p);
-    canvas.drawLine(Offset(0, -s * .35), Offset(s * (1.35 + dive * .35), -s * .05), p);
+    canvas.drawLine(
+        Offset(0, -s * .35), Offset(-s * (1.35 + dive * .35), -s * .05), p);
+    canvas.drawLine(
+        Offset(0, -s * .35), Offset(s * (1.35 + dive * .35), -s * .05), p);
     p.color = const Color(0xFF152D40);
     canvas.drawLine(Offset(0, s * .85), Offset(-s * .7, s * 1.65), p);
     canvas.drawLine(Offset(0, s * .85), Offset(s * .7, s * 1.65), p);
@@ -763,26 +808,36 @@ class _ElitePenaltyPainter extends CustomPainter {
   void _ball(Canvas canvas, Offset c, double r, Paint p, double spin) {
     p.style = PaintingStyle.fill;
     p.color = Colors.black.withOpacity(.28);
-    canvas.drawOval(Rect.fromCenter(center: c + Offset(2, r * .45), width: r * 2.1, height: r * .65), p);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: c + Offset(2, r * .45), width: r * 2.1, height: r * .65),
+        p);
     p.color = Colors.white;
     canvas.drawCircle(c, r, p);
     p.color = const Color(0xFF101820);
     canvas.drawCircle(c, r * .31, p);
     for (var i = 0; i < 5; i++) {
       final a = spin + i * math.pi * 2 / 5;
-      canvas.drawCircle(c + Offset(math.cos(a), math.sin(a)) * r * .62, r * .14, p);
+      canvas.drawCircle(
+          c + Offset(math.cos(a), math.sin(a)) * r * .62, r * .14, p);
     }
   }
 
   void _powerMeter(Canvas canvas, Size size, Paint p) {
     final w = size.width * .55;
-    final rect = Rect.fromCenter(center: Offset(size.width * .5, size.height * .93), width: w, height: 13);
+    final rect = Rect.fromCenter(
+        center: Offset(size.width * .5, size.height * .93),
+        width: w,
+        height: 13);
     p.style = PaintingStyle.fill;
     p.color = Colors.black54;
-    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(8)), p);
-    final fill = Rect.fromLTWH(rect.left, rect.top, rect.width * power, rect.height);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(8)), p);
+    final fill =
+        Rect.fromLTWH(rect.left, rect.top, rect.width * power, rect.height);
     p.color = power > .92 ? Colors.redAccent : const Color(0xFFFFD166);
-    canvas.drawRRect(RRect.fromRectAndRadius(fill, const Radius.circular(8)), p);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(fill, const Radius.circular(8)), p);
   }
 
   void _impact(Canvas canvas, Offset target, Paint p) {

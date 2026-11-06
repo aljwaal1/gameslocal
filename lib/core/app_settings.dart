@@ -39,9 +39,8 @@ class AppSettingsController extends ChangeNotifier {
     for (final gameId in robotGameIds) {
       final saved = _prefs!.getInt('bot_difficulty_$gameId');
       if (saved != null) {
-        _gameBotDifficulties[gameId] = BotDifficulty.values[
-          saved.clamp(0, BotDifficulty.values.length - 1).toInt()
-        ];
+        _gameBotDifficulties[gameId] = BotDifficulty
+            .values[saved.clamp(0, BotDifficulty.values.length - 1).toInt()];
       }
     }
     soundEnabled = _prefs!.getBool('sound_enabled') ?? true;

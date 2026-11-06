@@ -73,7 +73,8 @@ void main() {
     expect(source, contains('_seenMessageOrder.length > 256'));
   });
 
-  test('name game receives its room directly instead of relying on globals', () {
+  test('name game receives its room directly instead of relying on globals',
+      () {
     final source = File(
       'lib/games/name_animal_object/name_animal_object_game.dart',
     ).readAsStringSync();

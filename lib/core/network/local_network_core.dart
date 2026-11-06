@@ -360,9 +360,8 @@ class LocalNetworkCore {
     required String playerName,
   }) async {
     final String cleanedPlayerName = playerName.trim();
-    final String cleanedRoomCode = roomCode
-        .toUpperCase()
-        .replaceAll(RegExp('[^A-Z0-9]'), '');
+    final String cleanedRoomCode =
+        roomCode.toUpperCase().replaceAll(RegExp('[^A-Z0-9]'), '');
     if (cleanedPlayerName.isEmpty) {
       _emit(_state.copyWith(
         status: LocalNetworkStatus.error,

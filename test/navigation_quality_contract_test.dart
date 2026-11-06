@@ -27,10 +27,12 @@ void main() {
     expect(source, contains("id: 'name_animal_object'"));
     expect(source, contains("id: 'sheikh_beard'"));
     expect(source, contains("id: 'dots_boxes'"));
-    expect(source, isNot(contains('ربط اللعب الفعلي سيكون في المرحلة التالية')));
+    expect(
+        source, isNot(contains('ربط اللعب الفعلي سيكون في المرحلة التالية')));
   });
 
-  test('game room exposes offline, difficulty, LAN, Internet and retry choices', () {
+  test('game room exposes offline, difficulty, LAN, Internet and retry choices',
+      () {
     final source = File('lib/core/game_room.dart').readAsStringSync();
     expect(source, contains('ضد الروبوت / على الجهاز'));
     expect(source, contains('مستوى الروبوت لهذه اللعبة'));

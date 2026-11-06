@@ -125,7 +125,8 @@ class _PenaltyShellState extends State<_PenaltyShell> {
           ],
         ),
         actions: <Widget>[
-          IconButton(onPressed: _restart, icon: const Icon(Icons.refresh_rounded)),
+          IconButton(
+              onPressed: _restart, icon: const Icon(Icons.refresh_rounded)),
         ],
       ),
       body: SafeArea(
@@ -152,30 +153,38 @@ class _PenaltyShellState extends State<_PenaltyShell> {
                           if (!_game.canShoot) return;
                           _dragStart = details.localPosition;
                           _dragNow = details.localPosition;
-                          _game.preview(_aimFromPoint(details.localPosition, size), .55, 0);
+                          _game.preview(
+                              _aimFromPoint(details.localPosition, size),
+                              .55,
+                              0);
                         },
                         onPanUpdate: (details) {
                           if (_dragStart == null || !_game.canShoot) return;
                           _dragNow = details.localPosition;
                           final delta = _dragNow! - _dragStart!;
-                          final power = (.52 + delta.distance / (size.height * .38))
-                              .clamp(.52, 1.0)
-                              .toDouble();
+                          final power =
+                              (.52 + delta.distance / (size.height * .38))
+                                  .clamp(.52, 1.0)
+                                  .toDouble();
                           final curve = (delta.dx / size.width * 1.65)
                               .clamp(-.45, .45)
                               .toDouble();
-                          _game.preview(_aimFromPoint(_dragNow!, size), power, curve);
+                          _game.preview(
+                              _aimFromPoint(_dragNow!, size), power, curve);
                         },
                         onPanEnd: (_) {
-                          if (_dragStart == null || _dragNow == null || !_game.canShoot) {
+                          if (_dragStart == null ||
+                              _dragNow == null ||
+                              !_game.canShoot) {
                             _dragStart = null;
                             _dragNow = null;
                             return;
                           }
                           final delta = _dragNow! - _dragStart!;
-                          final power = (.52 + delta.distance / (size.height * .38))
-                              .clamp(.52, 1.0)
-                              .toDouble();
+                          final power =
+                              (.52 + delta.distance / (size.height * .38))
+                                  .clamp(.52, 1.0)
+                                  .toDouble();
                           final curve = (delta.dx / size.width * 1.65)
                               .clamp(-.45, .45)
                               .toDouble();
@@ -189,7 +198,8 @@ class _PenaltyShellState extends State<_PenaltyShell> {
                         },
                         onTapDown: (details) {
                           if (!_game.canDive) return;
-                          _game.chooseDive(_aimFromPoint(details.localPosition, size));
+                          _game.chooseDive(
+                              _aimFromPoint(details.localPosition, size));
                         },
                         child: GameWidget<CinematicPenaltyGame>(game: _game),
                       ),
@@ -221,12 +231,14 @@ class _ScoreBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget side(String label, int goals, List<PenaltyOutcome> results, CrossAxisAlignment align) {
+    Widget side(String label, int goals, List<PenaltyOutcome> results,
+        CrossAxisAlignment align) {
       return Expanded(
         child: Column(
           crossAxisAlignment: align,
           children: <Widget>[
-            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            Text(label,
+                style: const TextStyle(color: Colors.white54, fontSize: 11)),
             Text(
               '$goals',
               style: const TextStyle(
@@ -268,7 +280,8 @@ class _ScoreBar extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          side('أنت', hud.playerGoals, hud.playerResults, CrossAxisAlignment.start),
+          side('أنت', hud.playerGoals, hud.playerResults,
+              CrossAxisAlignment.start),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
@@ -286,7 +299,8 @@ class _ScoreBar extends StatelessWidget {
               ),
             ),
           ),
-          side('الروبوت', hud.robotGoals, hud.robotResults, CrossAxisAlignment.end),
+          side('الروبوت', hud.robotGoals, hud.robotResults,
+              CrossAxisAlignment.end),
         ],
       ),
     );
@@ -309,7 +323,8 @@ class _HintCard extends StatelessWidget {
         color: const Color(0xD8071019),
         border: Border.all(color: accent.withAlpha(65)),
         boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x77000000), blurRadius: 22, offset: Offset(0, 8)),
+          BoxShadow(
+              color: Color(0x77000000), blurRadius: 22, offset: Offset(0, 8)),
         ],
       ),
       child: Row(
@@ -359,6 +374,7 @@ class _HintCard extends StatelessWidget {
 }
 
 enum PenaltyPhase { aiming, flying, result, saving, finished }
+
 enum PenaltyOutcome { goal, save, post, miss }
 
 class PenaltyHud {
@@ -464,7 +480,8 @@ class CinematicPenaltyGame extends FlameGame {
     _syncHud();
   }
 
-  void shoot({required Offset aim, required double power, required double curve}) {
+  void shoot(
+      {required Offset aim, required double power, required double curve}) {
     if (!canShoot) return;
     this.aim = aim;
     this.power = power;
@@ -487,18 +504,26 @@ class CinematicPenaltyGame extends FlameGame {
       BotDifficulty.normal => .23,
       BotDifficulty.hard => .32,
     };
-    final reads =
-        _random.nextDouble() < (readBase + (1 - power) * .13);
+    final reads = _random.nextDouble() < (readBase + (1 - power) * .13);
     keeperTarget = reads
         ? Offset(
-            (actualAim.dx + (_random.nextDouble() - .5) * .10).clamp(.04, .96).toDouble(),
-            (actualAim.dy + (_random.nextDouble() - .5) * .12).clamp(.08, .92).toDouble(),
+            (actualAim.dx + (_random.nextDouble() - .5) * .10)
+                .clamp(.04, .96)
+                .toDouble(),
+            (actualAim.dy + (_random.nextDouble() - .5) * .12)
+                .clamp(.08, .92)
+                .toDouble(),
           )
-        : Offset(.10 + _random.nextDouble() * .80, .15 + _random.nextDouble() * .70);
+        : Offset(
+            .10 + _random.nextDouble() * .80, .15 + _random.nextDouble() * .70);
 
     final distance = (actualAim - keeperTarget).distance;
-    final outside = actualAim.dx < -.015 || actualAim.dx > 1.015 || actualAim.dy < -.035 || actualAim.dy > 1.03;
-    final nearFrame = actualAim.dx < .024 || actualAim.dx > .976 || actualAim.dy < .024;
+    final outside = actualAim.dx < -.015 ||
+        actualAim.dx > 1.015 ||
+        actualAim.dy < -.035 ||
+        actualAim.dy > 1.03;
+    final nearFrame =
+        actualAim.dx < .024 || actualAim.dx > .976 || actualAim.dy < .024;
     if (outside) {
       outcome = PenaltyOutcome.miss;
     } else if (nearFrame && _random.nextDouble() < .17 + overPower * .62) {
@@ -528,7 +553,8 @@ class CinematicPenaltyGame extends FlameGame {
       BotDifficulty.hard => (.72, .25),
     };
     final robotPower = minimumPower + _random.nextDouble() * powerRange;
-    actualAim = Offset(.07 + _random.nextDouble() * .86, .07 + _random.nextDouble() * .82);
+    actualAim = Offset(
+        .07 + _random.nextDouble() * .86, .07 + _random.nextDouble() * .82);
     aim = actualAim;
     power = robotPower;
     curve = (_random.nextDouble() - .5) * .42;
@@ -544,7 +570,8 @@ class CinematicPenaltyGame extends FlameGame {
       outcome = PenaltyOutcome.miss;
     } else if ((actualAim.dx < .06 || actualAim.dx > .94) && risk < .13) {
       outcome = PenaltyOutcome.post;
-    } else if (distance < .13 || (distance < .22 && _random.nextDouble() < .64)) {
+    } else if (distance < .13 ||
+        (distance < .22 && _random.nextDouble() < .64)) {
       outcome = PenaltyOutcome.save;
     } else {
       outcome = PenaltyOutcome.goal;
@@ -622,7 +649,10 @@ class CinematicPenaltyGame extends FlameGame {
       keeperTarget = const Offset(.5, .58);
       power = .62;
       curve = 0;
-      _syncHud(message: suddenDeath ? 'الحسم المفاجئ — دورك' : 'اسحب من الكرة نحو زاوية المرمى');
+      _syncHud(
+          message: suddenDeath
+              ? 'الحسم المفاجئ — دورك'
+              : 'اسحب من الكرة نحو زاوية المرمى');
     } else {
       phase = PenaltyPhase.saving;
       keeperTarget = const Offset(.5, .58);
@@ -654,7 +684,8 @@ class CinematicPenaltyGame extends FlameGame {
     );
   }
 
-  Rect _goalRect(double w, double h) => Rect.fromLTRB(w * .15, h * .14, w * .85, h * .43);
+  Rect _goalRect(double w, double h) =>
+      Rect.fromLTRB(w * .15, h * .14, w * .85, h * .43);
 
   @override
   void render(Canvas canvas) {
@@ -662,9 +693,8 @@ class CinematicPenaltyGame extends FlameGame {
     final h = size.y;
     if (w <= 0 || h <= 0) return;
 
-    final impact = phase == PenaltyPhase.result
-        ? (1 - resultClock.clamp(0.0, 1.0))
-        : 0.0;
+    final impact =
+        phase == PenaltyPhase.result ? (1 - resultClock.clamp(0.0, 1.0)) : 0.0;
     final shake = outcome == PenaltyOutcome.post ? impact * 4.2 : impact * 1.3;
     canvas.save();
     canvas.translate(math.sin(resultClock * 52) * shake, 0);
@@ -684,7 +714,11 @@ class CinematicPenaltyGame extends FlameGame {
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: <Color>[Color(0xFF02060B), Color(0xFF071724), Color(0xFF0B2530)],
+        colors: <Color>[
+          Color(0xFF02060B),
+          Color(0xFF071724),
+          Color(0xFF0B2530)
+        ],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h), sky);
 
@@ -706,7 +740,8 @@ class CinematicPenaltyGame extends FlameGame {
           championsMode ? const Color(0xFFFFD166) : const Color(0xFF7EE7FF),
           pulse,
         )!;
-        canvas.drawCircle(Offset(x, y), 1.1 + (row % 2) * .25, Paint()..color = c.withAlpha(180));
+        canvas.drawCircle(Offset(x, y), 1.1 + (row % 2) * .25,
+            Paint()..color = c.withAlpha(180));
       }
     }
 
@@ -717,7 +752,8 @@ class CinematicPenaltyGame extends FlameGame {
           const Color(0xFF6DD5FA).withAlpha(70),
           Colors.transparent,
         ],
-      ).createShader(Rect.fromCircle(center: Offset(w * .5, h * .02), radius: w * .58));
+      ).createShader(
+          Rect.fromCircle(center: Offset(w * .5, h * .02), radius: w * .58));
     canvas.drawRect(Rect.fromLTWH(0, 0, w, h * .34), glow);
   }
 
@@ -732,7 +768,11 @@ class CinematicPenaltyGame extends FlameGame {
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: <Color>[Color(0xFF126B44), Color(0xFF0F9C5C), Color(0xFF087044)],
+        colors: <Color>[
+          Color(0xFF126B44),
+          Color(0xFF0F9C5C),
+          Color(0xFF087044)
+        ],
       ).createShader(Rect.fromLTWH(0, h * .43, w, h * .57));
     canvas.drawPath(pitch, paint);
 
@@ -760,10 +800,12 @@ class CinematicPenaltyGame extends FlameGame {
       ..color = Colors.white.withAlpha(165);
     canvas.drawPath(pitch, line);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(w * .5, h * .78), width: w * .34, height: h * .12),
+      Rect.fromCenter(
+          center: Offset(w * .5, h * .78), width: w * .34, height: h * .12),
       line,
     );
-    canvas.drawCircle(Offset(w * .5, h * .79), 2.4, Paint()..color = Colors.white.withAlpha(210));
+    canvas.drawCircle(Offset(w * .5, h * .79), 2.4,
+        Paint()..color = Colors.white.withAlpha(210));
   }
 
   void _drawGoal(Canvas canvas, double w, double h) {
@@ -780,7 +822,8 @@ class CinematicPenaltyGame extends FlameGame {
       ..strokeWidth = .72
       ..color = Colors.white.withAlpha(82);
 
-    final rear = Rect.fromLTRB(goal.left + w * .025, rearTop, goal.right - w * .025, rearBottom + bulge);
+    final rear = Rect.fromLTRB(goal.left + w * .025, rearTop,
+        goal.right - w * .025, rearBottom + bulge);
     for (var i = 0; i <= 12; i++) {
       final xFront = goal.left + goal.width * i / 12;
       final xRear = rear.left + rear.width * i / 12;
@@ -792,16 +835,20 @@ class CinematicPenaltyGame extends FlameGame {
       final yRear = rear.top + rear.height * i / 7;
       canvas.drawLine(Offset(goal.left, yFront), Offset(rear.left, yRear), net);
       canvas.drawLine(Offset(rear.left, yRear), Offset(rear.right, yRear), net);
-      canvas.drawLine(Offset(rear.right, yRear), Offset(goal.right, yFront), net);
+      canvas.drawLine(
+          Offset(rear.right, yRear), Offset(goal.right, yFront), net);
     }
 
     final shadow = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 10
       ..color = Colors.black.withAlpha(70);
-    canvas.drawLine(Offset(goal.left + 4, goal.bottom + 7), Offset(goal.left + 4, goal.top + 7), shadow);
-    canvas.drawLine(Offset(goal.left + 4, goal.top + 7), Offset(goal.right + 4, goal.top + 7), shadow);
-    canvas.drawLine(Offset(goal.right + 4, goal.top + 7), Offset(goal.right + 4, goal.bottom + 7), shadow);
+    canvas.drawLine(Offset(goal.left + 4, goal.bottom + 7),
+        Offset(goal.left + 4, goal.top + 7), shadow);
+    canvas.drawLine(Offset(goal.left + 4, goal.top + 7),
+        Offset(goal.right + 4, goal.top + 7), shadow);
+    canvas.drawLine(Offset(goal.right + 4, goal.top + 7),
+        Offset(goal.right + 4, goal.bottom + 7), shadow);
 
     final posts = Paint()
       ..style = PaintingStyle.stroke
@@ -921,9 +968,8 @@ class CinematicPenaltyGame extends FlameGame {
     final approach = active
         ? Curves.easeOutCubic.transform((flight / .43).clamp(0.0, 1.0))
         : 0.0;
-    final runBlend = active
-        ? math.sin((flight / .48).clamp(0.0, 1.0) * math.pi)
-        : 0.0;
+    final runBlend =
+        active ? math.sin((flight / .48).clamp(0.0, 1.0) * math.pi) : 0.0;
     final kickBlend = active
         ? Curves.easeOutCubic.transform(
             ((flight - .27) / .28).clamp(0.0, 1.0).toDouble(),
@@ -979,7 +1025,8 @@ class CinematicPenaltyGame extends FlameGame {
   void _drawBall(Canvas canvas, double w, double h) {
     final start = Offset(w * .5, h * .805);
     final goal = _goalRect(w, h);
-    final target = Offset(goal.left + actualAim.dx * goal.width, goal.top + actualAim.dy * goal.height);
+    final target = Offset(goal.left + actualAim.dx * goal.width,
+        goal.top + actualAim.dy * goal.height);
     var t = 0.0;
     if (phase == PenaltyPhase.flying) {
       t = Curves.easeInCubic.transform(flight.clamp(0.0, 1.0));
@@ -1014,7 +1061,10 @@ class CinematicPenaltyGame extends FlameGame {
     }
 
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(pos.dx + radius * .35, pos.dy + radius * 1.05), width: radius * 2.0, height: radius * .65),
+      Rect.fromCenter(
+          center: Offset(pos.dx + radius * .35, pos.dy + radius * 1.05),
+          width: radius * 2.0,
+          height: radius * .65),
       Paint()..color = Colors.black.withAlpha(90),
     );
 
@@ -1022,7 +1072,11 @@ class CinematicPenaltyGame extends FlameGame {
       ..shader = RadialGradient(
         center: const Alignment(-.35, -.45),
         radius: .95,
-        colors: const <Color>[Colors.white, Color(0xFFE6EDF3), Color(0xFF9AA7B3)],
+        colors: const <Color>[
+          Colors.white,
+          Color(0xFFE6EDF3),
+          Color(0xFF9AA7B3)
+        ],
       ).createShader(Rect.fromCircle(center: pos, radius: radius));
     canvas.drawCircle(pos, radius, sphere);
 
@@ -1033,7 +1087,10 @@ class CinematicPenaltyGame extends FlameGame {
     canvas.drawCircle(Offset(0, -radius * .15), radius * .24, patch);
     for (var i = 0; i < 5; i++) {
       final a = i * math.pi * 2 / 5;
-      canvas.drawCircle(Offset(math.cos(a) * radius * .58, math.sin(a) * radius * .58), radius * .13, patch);
+      canvas.drawCircle(
+          Offset(math.cos(a) * radius * .58, math.sin(a) * radius * .58),
+          radius * .13,
+          patch);
     }
     canvas.restore();
 
@@ -1045,7 +1102,8 @@ class CinematicPenaltyGame extends FlameGame {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2
-          ..color = const Color(0xFF6DD5FA).withAlpha((80 + pulse * 80).round()),
+          ..color =
+              const Color(0xFF6DD5FA).withAlpha((80 + pulse * 80).round()),
       );
     }
   }
@@ -1053,7 +1111,8 @@ class CinematicPenaltyGame extends FlameGame {
   void _drawFx(Canvas canvas, double w, double h) {
     if (phase == PenaltyPhase.aiming) {
       final goal = _goalRect(w, h);
-      final target = Offset(goal.left + aim.dx * goal.width, goal.top + aim.dy * goal.height);
+      final target = Offset(
+          goal.left + aim.dx * goal.width, goal.top + aim.dy * goal.height);
       final pulse = .5 + .5 * math.sin(ambient * 5);
       canvas.drawCircle(
         target,
@@ -1061,7 +1120,8 @@ class CinematicPenaltyGame extends FlameGame {
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2
-          ..color = const Color(0xFF6DD5FA).withAlpha((110 + pulse * 80).round()),
+          ..color =
+              const Color(0xFF6DD5FA).withAlpha((110 + pulse * 80).round()),
       );
       canvas.drawCircle(target, 2.4, Paint()..color = const Color(0xFF9DEAFF));
     }
@@ -1070,10 +1130,12 @@ class CinematicPenaltyGame extends FlameGame {
       final glow = Paint()
         ..shader = RadialGradient(
           colors: <Color>[
-            (championsMode ? const Color(0xFFFFD166) : const Color(0xFF6DD5FA)).withAlpha(115),
+            (championsMode ? const Color(0xFFFFD166) : const Color(0xFF6DD5FA))
+                .withAlpha(115),
             Colors.transparent,
           ],
-        ).createShader(Rect.fromCircle(center: Offset(w * .5, h * .31), radius: w * .5));
+        ).createShader(
+            Rect.fromCircle(center: Offset(w * .5, h * .31), radius: w * .5));
       canvas.drawRect(Rect.fromLTWH(0, 0, w, h * .62), glow);
     }
   }

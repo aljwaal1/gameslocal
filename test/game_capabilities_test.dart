@@ -4,7 +4,8 @@ import 'package:gameslocal/main.dart';
 
 void main() {
   group('GameCapabilities', () {
-    test('all thirteen games declare honest modes and complete instructions', () {
+    test('all thirteen games declare honest modes and complete instructions',
+        () {
       final games = HomeScreen().games;
 
       expect(games, hasLength(13));
@@ -13,8 +14,7 @@ void main() {
         expect(game.instructions.objective.trim(), isNotEmpty, reason: game.id);
         expect(game.instructions.controls.trim(), isNotEmpty, reason: game.id);
         expect(
-          game.capabilities.hasOfflineMode ||
-              game.capabilities.hasNetworkMode,
+          game.capabilities.hasOfflineMode || game.capabilities.hasNetworkMode,
           isTrue,
           reason: '${game.id} has no playable mode',
         );

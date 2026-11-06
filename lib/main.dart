@@ -61,7 +61,8 @@ class HomeScreen extends StatelessWidget {
       ),
       instructions: GameInstructions(
         objective: 'سجّل ركلات أكثر من منافسك وتصدَّ لتسديداته.',
-        controls: 'اسحب من الكرة نحو الهدف للتسديد، واضغط جهة المرمى عندما تصبح الحارس.',
+        controls:
+            'اسحب من الكرة نحو الهدف للتسديد، واضغط جهة المرمى عندما تصبح الحارس.',
         keyRule: 'القوة تتغير بطول السحب، وتنتقل الأدوار بين التسديد والتصدي.',
       ),
       builder: (_, networkCore) =>
@@ -161,11 +162,13 @@ class HomeScreen extends StatelessWidget {
       id: 'hand51',
       name: 'Hand 51',
       playersText: 'ضد الروبوت',
-      status: '13 ورقة • فتح 51 • جوكران • 3 جولات على الأقل • الشبكة قيد الاستكمال',
+      status:
+          '13 ورقة • فتح 51 • جوكران • 3 جولات على الأقل • الشبكة قيد الاستكمال',
       capabilities: const GameCapabilities(robot: true),
       instructions: GameInstructions(
         objective: 'كوّن مجموعات وتسلسلات وتخلّص من أوراقك بأقل عقوبة.',
-        controls: 'اسحب ورقة، حدّد أوراق المجموعة أو التسلسل، ثم انزلها أو ارمِ ورقة.',
+        controls:
+            'اسحب ورقة، حدّد أوراق المجموعة أو التسلسل، ثم انزلها أو ارمِ ورقة.',
         keyRule: 'يجب أن تبلغ مجموعات فتحك 51 نقطة قبل التركيب على المجموعات.',
       ),
       builder: (_, networkCore) => Hand51GameScreen(networkCore: networkCore),
@@ -803,29 +806,29 @@ class _GameCard extends StatelessWidget {
   final GameDefinition game;
 
   bool get usesGameRoom => const <String>{
-    'football_penalties',
-    'xo',
-    'checkers',
-    'domino',
-    'chess',
-    'cards',
-    'name_animal_object',
-    'sheikh_beard',
-    'dots_boxes',
-    'air_hockey',
-    'fuel_plane',
-    'retro_road',
-  }.contains(game.id);
+        'football_penalties',
+        'xo',
+        'checkers',
+        'domino',
+        'chess',
+        'cards',
+        'name_animal_object',
+        'sheikh_beard',
+        'dots_boxes',
+        'air_hockey',
+        'fuel_plane',
+        'retro_road',
+      }.contains(game.id);
 
   bool get experimental => !const <String>{
-    'xo',
-    'checkers',
-    'domino',
-    'football_penalties',
-    'name_animal_object',
-    'sheikh_beard',
-    'dots_boxes',
-  }.contains(game.id);
+        'xo',
+        'checkers',
+        'domino',
+        'football_penalties',
+        'name_animal_object',
+        'sheikh_beard',
+        'dots_boxes',
+      }.contains(game.id);
 
   String get releaseLabel => experimental ? 'تجريبية' : 'جاهزة';
 

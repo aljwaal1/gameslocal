@@ -48,7 +48,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
   bool get isNetworkGame => widget.networkCore != null;
   bool get isHost => widget.networkCore?.state.mode == LocalNetworkMode.host;
-  bool get isLocalTurn => isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
+  bool get isLocalTurn =>
+      isNetworkGame ? (isHost ? playerTurn : !playerTurn) : playerTurn;
   List<DominoTile> get localHand => isNetworkGame && !isHost ? bot : player;
   List<DominoTile> get remoteHand => isNetworkGame && !isHost ? player : bot;
 
@@ -68,12 +69,14 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   @override
   void initState() {
     super.initState();
-    networkSubscription = widget.networkCore?.messages.listen(_handleNetworkMessage);
+    networkSubscription =
+        widget.networkCore?.messages.listen(_handleNetworkMessage);
     startRound(resetScore: true);
     if (isNetworkGame && isHost) {
       Future<void>.delayed(const Duration(milliseconds: 250), _sendRoundStart);
     } else if (isNetworkGame) {
-      Future<void>.delayed(const Duration(milliseconds: 300), _requestRoundState);
+      Future<void>.delayed(
+          const Duration(milliseconds: 300), _requestRoundState);
     }
   }
 
@@ -100,7 +103,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     playerTurn = selectDominoStartingPlayer(<List<(int, int)>>[
           player.map((t) => (t.left, t.right)).toList(growable: false),
           bot.map((t) => (t.left, t.right)).toList(growable: false),
-        ]) == 0;
+        ]) ==
+        0;
     roundFinished = false;
     if (resetScore) {
       playerScore = 0;
@@ -108,8 +112,12 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     }
     roundNumber = round ?? (resetScore ? 1 : roundNumber);
     message = isNetworkGame
-        ? (isLocalTurn ? 'الجولة $roundNumber: دورك' : 'الجولة $roundNumber: بانتظار اللاعب الآخر')
-        : (playerTurn ? 'الجولة $roundNumber: دورك، اختر قطعة مناسبة' : 'الجولة $roundNumber: الكمبيوتر يبدأ...');
+        ? (isLocalTurn
+            ? 'الجولة $roundNumber: دورك'
+            : 'الجولة $roundNumber: بانتظار اللاعب الآخر')
+        : (playerTurn
+            ? 'الجولة $roundNumber: دورك، اختر قطعة مناسبة'
+            : 'الجولة $roundNumber: الكمبيوتر يبدأ...');
     setState(() {});
     if (!isNetworkGame && !playerTurn) {
       Future<void>.delayed(const Duration(milliseconds: 500), () {
@@ -174,7 +182,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
         (payload['right'] as num).toInt(),
       );
       final hand = isHost ? bot : player;
-      final index = hand.indexWhere((t) => t.left == tile.left && t.right == tile.right);
+      final index =
+          hand.indexWhere((t) => t.left == tile.left && t.right == tile.right);
       if (index < 0 || !canPlay(hand[index])) return;
       placeTile(hand[index], hand);
       GameFeedback.move(GameAudioTheme.domino);
@@ -208,15 +217,22 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     return list;
   }
 
-  int pipsOf(List<DominoTile> hand) => hand.fold(0, (sum, tile) => sum + tile.total);
-  bool canPlay(DominoTile tile) => board.isEmpty || tile.matches(leftEnd!) || tile.matches(rightEnd!);
-  bool get isBlocked => board.isNotEmpty && stock.isEmpty && !player.any(canPlay) && !bot.any(canPlay);
+  int pipsOf(List<DominoTile> hand) =>
+      hand.fold(0, (sum, tile) => sum + tile.total);
+  bool canPlay(DominoTile tile) =>
+      board.isEmpty || tile.matches(leftEnd!) || tile.matches(rightEnd!);
+  bool get isBlocked =>
+      board.isNotEmpty &&
+      stock.isEmpty &&
+      !player.any(canPlay) &&
+      !bot.any(canPlay);
 
   void playPlayerTile(DominoTile tile) {
     if (!isLocalTurn || roundFinished) return;
     if (!canPlay(tile)) {
       GameFeedback.error(GameAudioTheme.domino);
-      setState(() => message = 'هذه القطعة لا تناسب الطرفين: $leftEnd أو $rightEnd');
+      setState(
+          () => message = 'هذه القطعة لا تناسب الطرفين: $leftEnd أو $rightEnd');
       return;
     }
     GameFeedback.move(GameAudioTheme.domino);
@@ -233,7 +249,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     playerTurn = !playerTurn;
     message = isNetworkGame ? 'بانتظار اللاعب الآخر' : 'الكمبيوتر يفكر...';
     setState(() {});
-    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 550), botMove);
+    if (!isNetworkGame)
+      Future<void>.delayed(const Duration(milliseconds: 550), botMove);
   }
 
   void drawTile() {
@@ -246,7 +263,9 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     GameFeedback.tap(GameAudioTheme.domino);
     localHand.add(stock.removeLast());
     _sendDominoAction('draw');
-    message = localHand.any(canPlay) ? 'سحبت قطعة. لديك حركة متاحة' : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
+    message = localHand.any(canPlay)
+        ? 'سحبت قطعة. لديك حركة متاحة'
+        : 'سحبت قطعة، ولا توجد حركة مناسبة بعد';
     setState(() {});
   }
 
@@ -269,9 +288,12 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
     }
     playerTurn = !playerTurn;
     _sendDominoAction('pass');
-    message = isNetworkGame ? 'مررت الدور. بانتظار اللاعب الآخر' : 'مررت الدور. الكمبيوتر يلعب...';
+    message = isNetworkGame
+        ? 'مررت الدور. بانتظار اللاعب الآخر'
+        : 'مررت الدور. الكمبيوتر يلعب...';
     setState(() {});
-    if (!isNetworkGame) Future<void>.delayed(const Duration(milliseconds: 450), botMove);
+    if (!isNetworkGame)
+      Future<void>.delayed(const Duration(milliseconds: 450), botMove);
   }
 
   void botMove() {
@@ -336,9 +358,15 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
   }
 
   int scoreEndsAfterMove(DominoTile tile, int newLeft, int newRight) {
-    final botFuture = bot.where((c) => c != tile && (c.matches(newLeft) || c.matches(newRight))).length;
-    final playerOptions = player.where((c) => c.matches(newLeft) || c.matches(newRight)).length;
-    return tile.total + (tile.isDouble ? 4 : 0) + (botFuture * 3) - (playerOptions * 2);
+    final botFuture = bot
+        .where((c) => c != tile && (c.matches(newLeft) || c.matches(newRight)))
+        .length;
+    final playerOptions =
+        player.where((c) => c.matches(newLeft) || c.matches(newRight)).length;
+    return tile.total +
+        (tile.isDouble ? 4 : 0) +
+        (botFuture * 3) -
+        (playerOptions * 2);
   }
 
   void finishRound({required bool playerWon, required String reason}) {
@@ -349,7 +377,9 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
       GameFeedback.win(GameAudioTheme.domino);
     } else {
       botScore += points;
-      message = isNetworkGame ? '$reason. اللاعب الآخر ربح $points نقطة' : '$reason. الكمبيوتر ربح $points نقطة';
+      message = isNetworkGame
+          ? '$reason. اللاعب الآخر ربح $points نقطة'
+          : '$reason. الكمبيوتر ربح $points نقطة';
       GameFeedback.lose(GameAudioTheme.domino);
     }
     roundFinished = true;
@@ -381,7 +411,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
 
   void nextRound() {
     if (isNetworkGame && !isHost) {
-      setState(() => message = 'انتظر ${widget.networkCore?.hostPlayerName ?? 'الداعي'} لبدء الجولة الجديدة');
+      setState(() => message =
+          'انتظر ${widget.networkCore?.hostPlayerName ?? 'الداعي'} لبدء الجولة الجديدة');
       return;
     }
     GameFeedback.tap(GameAudioTheme.domino);
@@ -442,7 +473,8 @@ class _DominoGameScreenState extends State<DominoGameScreen> {
                 IconButton(
                   tooltip: '4 لاعبين محليًا',
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(builder: (_) => const DominoFourPlayerScreen()),
+                    MaterialPageRoute<void>(
+                        builder: (_) => const DominoFourPlayerScreen()),
                   ),
                   icon: const Icon(Icons.groups_rounded),
                 ),
@@ -559,8 +591,10 @@ class _ScoreHeader extends StatelessWidget {
               border: Border.all(color: const Color(0x32FFFFFF)),
             ),
             child: Column(children: <Widget>[
-              const Icon(Icons.casino_rounded, color: Color(0xFFFFD98B), size: 20),
-              Text('جولة $roundNumber', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+              const Icon(Icons.casino_rounded,
+                  color: Color(0xFFFFD98B), size: 20),
+              Text('جولة $roundNumber',
+                  style: const TextStyle(color: Colors.white70, fontSize: 10)),
             ]),
           ),
           Expanded(
@@ -577,10 +611,13 @@ class _ScoreHeader extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: isLocalTurn ? const Color(0x3319D3A2) : const Color(0x22FFFFFF),
+            color:
+                isLocalTurn ? const Color(0x3319D3A2) : const Color(0x22FFFFFF),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isLocalTurn ? const Color(0x6634D399) : const Color(0x22FFFFFF),
+              color: isLocalTurn
+                  ? const Color(0x6634D399)
+                  : const Color(0x22FFFFFF),
             ),
           ),
           child: Text(
@@ -588,7 +625,8 @@ class _ScoreHeader extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800),
           ),
         ),
       ]),
@@ -625,15 +663,20 @@ class _PlayerSummary extends StatelessWidget {
           name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 2),
         Text(
           '$score',
-          style: const TextStyle(color: Color(0xFFFFE0A3), fontSize: 23, fontWeight: FontWeight.w900),
+          style: const TextStyle(
+              color: Color(0xFFFFE0A3),
+              fontSize: 23,
+              fontWeight: FontWeight.w900),
         ),
         if (tiles != null)
-          Text('$tiles قطع', style: const TextStyle(color: Colors.white54, fontSize: 10)),
+          Text('$tiles قطع',
+              style: const TextStyle(color: Colors.white54, fontSize: 10)),
       ]),
     );
   }
@@ -665,11 +708,16 @@ class _PremiumBoard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: <Color>[Color(0xFF7A4723), Color(0xFF3A1C0C), Color(0xFF9A6233)],
+          colors: <Color>[
+            Color(0xFF7A4723),
+            Color(0xFF3A1C0C),
+            Color(0xFF9A6233)
+          ],
         ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: const <BoxShadow>[
-          BoxShadow(color: Color(0x99000000), blurRadius: 20, offset: Offset(0, 8)),
+          BoxShadow(
+              color: Color(0x99000000), blurRadius: 20, offset: Offset(0, 8)),
         ],
       ),
       child: Container(
@@ -682,12 +730,19 @@ class _PremiumBoard extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: const Color(0x5532D6A0), width: 1.5),
           boxShadow: const <BoxShadow>[
-            BoxShadow(color: Color(0x77000000), blurRadius: 16, spreadRadius: 1),
+            BoxShadow(
+                color: Color(0x77000000), blurRadius: 16, spreadRadius: 1),
           ],
         ),
         child: Stack(children: <Widget>[
-          Positioned(top: 10, left: 10, child: _EndBadge(label: 'يسار', value: leftEnd)),
-          Positioned(top: 10, right: 10, child: _EndBadge(label: 'يمين', value: rightEnd)),
+          Positioned(
+              top: 10,
+              left: 10,
+              child: _EndBadge(label: 'يسار', value: leftEnd)),
+          Positioned(
+              top: 10,
+              right: 10,
+              child: _EndBadge(label: 'يمين', value: rightEnd)),
           Positioned(
             top: 9,
             left: 0,
@@ -697,16 +752,20 @@ class _PremiumBoard extends StatelessWidget {
                 onTap: onDraw,
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0x33000000),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: const Color(0x22FFFFFF)),
                   ),
                   child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    const Icon(Icons.layers_rounded, color: Color(0xFFFFE1A8), size: 16),
+                    const Icon(Icons.layers_rounded,
+                        color: Color(0xFFFFE1A8), size: 16),
                     const SizedBox(width: 5),
-                    Text('$stockCount', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)),
+                    Text('$stockCount',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w900)),
                   ]),
                 ),
               ),
@@ -716,16 +775,23 @@ class _PremiumBoard extends StatelessWidget {
             top: 48,
             child: board.isEmpty
                 ? const Center(
-                    child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                      Icon(Icons.casino_outlined, color: Colors.white38, size: 46),
-                      SizedBox(height: 8),
-                      Text(
-                        'ابدأ بأي قطعة من يدك',
-                        style: TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w800),
-                      ),
-                    ]),
+                    child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          Icon(Icons.casino_outlined,
+                              color: Colors.white38, size: 46),
+                          SizedBox(height: 8),
+                          Text(
+                            'ابدأ بأي قطعة من يدك',
+                            style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800),
+                          ),
+                        ]),
                   )
-                : _GeometricDominoChain(board: board, lastPlayedTile: lastPlayedTile),
+                : _GeometricDominoChain(
+                    board: board, lastPlayedTile: lastPlayedTile),
           ),
         ]),
       ),
@@ -758,7 +824,8 @@ class _ChainLayout {
 }
 
 class _GeometricDominoChain extends StatelessWidget {
-  const _GeometricDominoChain({required this.board, required this.lastPlayedTile});
+  const _GeometricDominoChain(
+      {required this.board, required this.lastPlayedTile});
   final List<DominoTile> board;
   final DominoTile? lastPlayedTile;
 
@@ -842,7 +909,8 @@ class _GeometricDominoChain extends StatelessWidget {
   _ChainLayout _fit(Size size) {
     var multiplier = 1.0;
     var layout = _buildLayout(size, multiplier);
-    while ((layout.bounds.height > size.height - 12 || layout.bounds.width > size.width - 12) &&
+    while ((layout.bounds.height > size.height - 12 ||
+            layout.bounds.width > size.width - 12) &&
         multiplier > .58) {
       multiplier -= .04;
       layout = _buildLayout(size, multiplier);
@@ -864,16 +932,20 @@ class _GeometricDominoChain extends StatelessWidget {
         children: <Widget>[
           for (final placement in layout.placements)
             Positioned(
-              left: placement.center.dx + translated.dx -
+              left: placement.center.dx +
+                  translated.dx -
                   (placement.horizontal ? 54.0 : 29.0) * placement.scale / 2,
-              top: placement.center.dy + translated.dy -
+              top: placement.center.dy +
+                  translated.dy -
                   (placement.horizontal ? 29.0 : 54.0) * placement.scale / 2,
               child: TweenAnimationBuilder<double>(
                 key: ValueKey<String>('${placement.index}-${placement.tile}'),
                 duration: const Duration(milliseconds: 230),
                 curve: Curves.easeOutBack,
                 tween: Tween<double>(
-                  begin: placement.tile.toString() == lastPlayedTile?.toString() ? .82 : 1,
+                  begin: placement.tile.toString() == lastPlayedTile?.toString()
+                      ? .82
+                      : 1,
                   end: 1,
                 ),
                 builder: (context, entryScale, child) => Transform.scale(
@@ -885,7 +957,8 @@ class _GeometricDominoChain extends StatelessWidget {
                   compact: true,
                   horizontal: placement.horizontal,
                   scale: placement.scale,
-                  lastPlayed: placement.tile.toString() == lastPlayedTile?.toString(),
+                  lastPlayed:
+                      placement.tile.toString() == lastPlayedTile?.toString(),
                 ),
               ),
             ),
@@ -908,11 +981,13 @@ class _EndBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 9)),
+          Text(label,
+              style: const TextStyle(color: Colors.white54, fontSize: 9)),
           const SizedBox(width: 5),
           Text(
             value?.toString() ?? '—',
-            style: const TextStyle(color: Color(0xFFFFE0A3), fontWeight: FontWeight.w900),
+            style: const TextStyle(
+                color: Color(0xFFFFE0A3), fontWeight: FontWeight.w900),
           ),
         ]),
       );
@@ -957,7 +1032,9 @@ class _ActionStrip extends StatelessWidget {
               minimumSize: const Size(0, 44),
             ),
             onPressed: roundFinished ? onNextRound : onPass,
-            icon: Icon(roundFinished ? Icons.play_arrow_rounded : Icons.skip_next_rounded),
+            icon: Icon(roundFinished
+                ? Icons.play_arrow_rounded
+                : Icons.skip_next_rounded),
             label: Text(roundFinished ? 'جولة جديدة' : 'تمرير'),
           ),
         ),
@@ -1090,7 +1167,9 @@ class DominoTileView extends StatelessWidget {
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: playable || lastPlayed ? const Color(0x5500D6A0) : const Color(0x66000000),
+            color: playable || lastPlayed
+                ? const Color(0x5500D6A0)
+                : const Color(0x66000000),
             blurRadius: playable || lastPlayed ? 10 : 5,
             offset: const Offset(0, 3),
           ),
@@ -1139,13 +1218,27 @@ class _PipPainter extends CustomPainter {
         points.addAll(<Offset>[Offset(l, t), Offset(cx, cy), Offset(r, b)]);
         break;
       case 4:
-        points.addAll(<Offset>[Offset(l, t), Offset(r, t), Offset(l, b), Offset(r, b)]);
+        points.addAll(
+            <Offset>[Offset(l, t), Offset(r, t), Offset(l, b), Offset(r, b)]);
         break;
       case 5:
-        points.addAll(<Offset>[Offset(l, t), Offset(r, t), Offset(cx, cy), Offset(l, b), Offset(r, b)]);
+        points.addAll(<Offset>[
+          Offset(l, t),
+          Offset(r, t),
+          Offset(cx, cy),
+          Offset(l, b),
+          Offset(r, b)
+        ]);
         break;
       case 6:
-        points.addAll(<Offset>[Offset(l, t), Offset(r, t), Offset(l, cy), Offset(r, cy), Offset(l, b), Offset(r, b)]);
+        points.addAll(<Offset>[
+          Offset(l, t),
+          Offset(r, t),
+          Offset(l, cy),
+          Offset(r, cy),
+          Offset(l, b),
+          Offset(r, b)
+        ]);
         break;
     }
     for (final p in points) {
