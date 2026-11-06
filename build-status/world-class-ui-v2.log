@@ -1,0 +1,546 @@
+COMMIT=90185583a53a0392f00135afab7dd5dafcc7eb62
+RUN_ID=42158416339
+=== CREATE ANDROID ===
+Recreating project ....
+  analysis_options.yaml (created)
+  gameslocal.iml (created)
+  android/app/build.gradle.kts (created)
+  android/app/src/main/kotlin/com/explapp/gameslocal/MainActivity.kt (created)
+  android/gameslocal_android.iml (created)
+  android/build.gradle.kts (created)
+  .idea/libraries/Dart_SDK.xml (created)
+  .idea/libraries/KotlinJavaRuntime.xml (created)
+  .idea/workspace.xml (created)
+  .idea/runConfigurations/main_dart.xml (created)
+  .idea/modules.xml (created)
+  android/app/src/debug/AndroidManifest.xml (created)
+  android/app/src/main/AndroidManifest.xml (created)
+  android/app/src/main/res/mipmap-xhdpi/ic_launcher.png (created)
+  android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png (created)
+  android/app/src/main/res/values/styles.xml (created)
+  android/app/src/main/res/drawable/launch_background.xml (created)
+  android/app/src/main/res/values-night/styles.xml (created)
+  android/app/src/main/res/mipmap-hdpi/ic_launcher.png (created)
+  android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png (created)
+  android/app/src/main/res/drawable-v21/launch_background.xml (created)
+  android/app/src/main/res/mipmap-mdpi/ic_launcher.png (created)
+  android/app/src/profile/AndroidManifest.xml (created)
+  android/gradle.properties (created)
+  android/.gitignore (created)
+  android/settings.gradle.kts (created)
+  android/gradle/wrapper/gradle-wrapper.properties (created)
+  test/widget_test.dart (created)
+Wrote 31 files.
+
+All done!
+You can find general documentation for Flutter at: https://docs.flutter.dev/
+Detailed API documentation is available at: https://api.flutter.dev/
+If you prefer video documentation, consider: https://www.youtube.com/c/flutterdev
+
+In order to run your application, type:
+
+  $ flutter run
+
+Your application code is in ./lib/main.dart.
+
+=== PUB GET ===
+Resolving dependencies...
+Downloading packages...
++ args 2.7.0
++ async 2.13.1
++ audioplayers 6.8.1
++ audioplayers_android 5.3.0
++ audioplayers_darwin 6.5.0
++ audioplayers_linux 4.3.0
++ audioplayers_platform_interface 7.2.0
++ audioplayers_web 5.3.0
++ audioplayers_windows 4.4.1
++ boolean_selector 2.1.2
+  characters 1.4.1 (from direct dependency to transitive dependency)
++ clock 1.1.3
++ code_assets 1.2.1 (2.1.0 available)
+  collection 1.19.1 (from direct dependency to transitive dependency)
++ crypto 3.0.8
++ fake_async 1.3.3
++ ffi 2.2.0
++ file 7.0.1
++ fixnum 1.1.1
++ flame 1.38.2
++ flutter 0.0.0 from sdk flutter
++ flutter_lints 6.0.0
++ flutter_svg 2.3.2
++ flutter_test 0.0.0 from sdk flutter
++ flutter_web_plugins 0.0.0 from sdk flutter
++ hooks 2.0.2 (2.2.0 available)
++ http 1.6.0
++ http_parser 4.1.2
++ jni 1.1.2
++ jni_flutter 1.0.4+1
++ jni_util 1.0.0
++ leak_tracker 11.0.2
++ leak_tracker_flutter_testing 3.0.10
++ leak_tracker_testing 3.0.2
++ lints 6.1.0
++ logging 1.3.0
++ matcher 0.12.20
+  material_color_utilities 0.13.0 (from direct dependency to transitive dependency) (0.13.1 available)
+  meta 1.18.3 (from direct dependency to transitive dependency) (1.19.0 available)
++ objective_c 9.5.0 (9.6.3 available)
++ ordered_set 8.0.1
++ package_config 3.0.0
++ path 1.9.1
++ path_parsing 1.1.0
++ path_provider 2.1.6
++ path_provider_android 2.3.1
++ path_provider_foundation 2.6.0
++ path_provider_linux 2.2.2
++ path_provider_platform_interface 2.1.3
++ path_provider_windows 2.3.0
++ petitparser 7.0.2 (7.1.0 available)
++ platform 3.2.0
++ plugin_platform_interface 2.1.8
++ pub_semver 2.2.1
++ qr 3.0.3 (4.0.1 available)
++ qr_flutter 4.1.0
++ record_use 0.6.0 (1.1.1 available)
++ shared_preferences 2.5.6
++ shared_preferences_android 2.5.4
++ shared_preferences_foundation 2.5.7 (2.6.1 available)
++ shared_preferences_linux 2.4.1
++ shared_preferences_platform_interface 2.4.2
++ shared_preferences_web 2.4.3
++ shared_preferences_windows 2.4.1
++ sky_engine 0.0.0 from sdk flutter
++ source_span 1.10.2
++ stack_trace 1.12.2
++ stream_channel 2.1.4
++ string_scanner 1.4.1
++ synchronized 3.6.1
++ term_glyph 1.2.2
++ test_api 0.7.12 (0.7.15 available)
++ typed_data 1.4.0
++ uuid 4.6.0
++ vector_graphics 1.2.6
++ vector_graphics_codec 1.1.13
++ vector_graphics_compiler 1.3.4
+  vector_math 2.4.0 (from direct dependency to transitive dependency) (2.4.4 available)
++ vm_service 15.4.0
++ web 1.1.2
++ xdg_directories 1.1.0
++ xml 7.0.1 (7.1.0 available)
++ yaml 3.1.4
+Changed 83 dependencies!
+12 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+=== FORMAT ===
+Formatted 95 files (0 changed) in 0.32 seconds.
+=== TEST ===
+
+::group::✅ Passing tests
+✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: XO bot is allowed to place O on the bot turn
+✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: line games provide an offline robot without changing line scoring
+✅ /home/runner/work/gameslocal/gameslocal/test/bot_gameplay_regression_test.dart: Domino starts the bot when the bot owns the opening turn
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard final mover captures any fully shaded line
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard line score equals number of shaded points
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard uses every complete straight line on all three axes
+✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard keeps valid two-point edge lines
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet multiplayer reuses the existing game message contract
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: relay validates rooms and has abuse and lifetime limits
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet option is exposed without replacing LAN discovery
+✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Render blueprint deploys the relay separately from the app
+✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: home keeps the responsive premium navigation contract
+✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: LAN shortcut routes into the production GameRoom flow
+✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: game room exposes offline, difficulty, LAN, Internet and retry choices
+✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: settings no longer exposes unfinished-product messaging
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: shared QR lobby is large and non-scrollable
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: XO uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: checkers uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: both line games use the shared pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: name animal object uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: game room labels browser QR as a pregame action
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_shootout_contract_test.dart: penalty shootout keeps robot, LAN, and allowed-team contract
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(320.0, 640.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(320.0, 640.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText shows a concise four-line summary for a red win
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText reports capture advantage for either side and a true tie
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText uses natural Arabic wording for capture differences
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText uses natural Arabic wording for remaining piece counts
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText uses natural Arabic wording for one- and two-piece differences
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText trims the reason and avoids a dangling separator
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText keeps unfinished matches without a result message
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator blocked boards awards the win to the side with more pieces when neither can move
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator blocked boards keeps a draw only when a blocked board has equal piece counts
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator piece-count normalization clamps impossible counts before returning an active match
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator piece-count normalization treats negative counts as zero when deciding the winner
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(390.0, 844.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(844.0, 390.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(844.0, 390.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: long Hand51 meld stays inside its table at 320
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: all hand51 face identities are legible including joker
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: cycles through four players
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: skips blocked players
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_turn_order_test.dart: validates a reset starting player
+✅ /home/runner/work/gameslocal/gameslocal/test/football_actor_visibility_contract_test.dart: professional football scene keeps full player and goalkeeper artwork
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities all thirteen games declare honest modes and complete instructions
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities hand 51 only advertises modes it really implements
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities air hockey exposes all implemented multiplayer modes
+✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities instructions reject empty objective and gesture
+✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: gameplay does not receive a global pointer click sound
+✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: football routes haptics through GameFeedback only
+✅ /home/runner/work/gameslocal/gameslocal/test/arcade_timing_test.dart: thirty and sixty hertz advance equal simulation time
+✅ /home/runner/work/gameslocal/gameslocal/test/arcade_timing_test.dart: spawn chance scales with elapsed time
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: selects the player holding the highest double
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: falls back to the strongest tile when there are no doubles
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects duplicate tiles even when their pip order is reversed
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects empty hands
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects tiles outside the standard zero-to-six range
+✅ /home/runner/work/gameslocal/gameslocal/test/professional_penalty_visual_contract_test.dart: penalty mode uses the cinematic arena and keeps LAN compatibility
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules forces captures by removing ordinary moves when a capture exists
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules keeps ordinary moves when no capture is available
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules continues a capture chain only from the piece that captured
+✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: card values follow the capture rules
+✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: picture cards score ten while number cards score one
+✅ /home/runner/work/gameslocal/gameslocal/test/cards_rules_test.dart: detects red and black suits
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: selects the player with the lowest remaining points
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: supports tied blocked-round winners
+✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: rejects a blocked result without players
+✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: loads saved gameplay preferences
+✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: stores a separate robot level for each game
+✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: clamps invalid saved indexes safely
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_physics_test.dart: pixel distance respects a tall field aspect ratio
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_physics_test.dart: normalized offset preserves a pixel collision radius
+✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: audio engine exposes a distinct theme for every production game
+✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: competitive games use distinct win and loss cues
+✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: LAN rooms use real player names instead of a host placeholder
+✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: every production game selects its own audio identity
+✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: the beard game uses its new public Arabic name everywhere
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout ends early when trailing side cannot recover
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout continues while trailing side can still recover
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: sudden death waits until both sides have taken the same shots
+✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: all games are listed and the legacy LAN hub retains its rooms
+✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: robot games consume the shared three-level difficulty
+✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: LAN core ignores duplicate transported messages
+✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: name game receives its room directly instead of relying on globals
+✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: large card identities fit at text scale 1.0
+✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: four full cards remain in one touchable row at 320 and 1.0
+✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: large card identities fit at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: four full cards remain in one touchable row at 320 and 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: 20 card geometry exposes readable headers and maps scrolled touch
+✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: 20-card hand selects first, middle, last after real scroll
+✅ /home/runner/work/gameslocal/gameslocal/test/card_readability_test.dart: raised selected card remains selectable in overlapping top strip after scroll
+✅ /home/runner/work/gameslocal/gameslocal/test/playing_card_scale_regression_test.dart: compact 10 keeps its main identity inside the card at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: board games retain their fixed gameplay viewport
+✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: every active native game is connected to the shared audio engine
+✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: browser game clients lock the viewport and expose browser audio
+::endgroup::
+
+🎉 96 tests passed.
+=== ANALYZE ===
+Analyzing gameslocal...                                         
+
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/core/game_definition.dart:44:7 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_help.dart:74:63 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:323:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:335:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:382:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:385:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:515:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:590:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:592:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:660:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:726:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:730:31 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:789:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:797:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:976:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:979:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:990:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:996:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:1047:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:1061:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/graphics/retro_pixels.dart:20:47 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:191:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:199:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:227:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:261:44 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:414:15 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:538:19 • prefer_interpolation_to_compose_strings
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:190:52 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:260:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:288:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:293:11 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:479:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:633:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:735:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:740:38 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/checkers/checkers_game.dart:481:9 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:980:36 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1028:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1033:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1045:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1080:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1083:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1097:41 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:331:45 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:356:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:359:11 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:417:10 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:420:9 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:421:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:425:9 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:430:12 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:432:9 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:437:12 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:448:54 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:477:33 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_premium_game.dart:253:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_premium_game.dart:296:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/elite_penalty_game.dart:423:57 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/elite_penalty_game.dart:438:24 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:690:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:730:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:810:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:848:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:852:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:739:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:782:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:895:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:949:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:954:45 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:139:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:275:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:280:25 • curly_braces_in_flow_control_structures
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_shootout_game.dart:404:15 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:483:25 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_shootout_game.dart:772:47 • deprecated_member_use
+warning • Unused import: 'penalty_shootout_game.dart'. Try removing the import directive • lib/games/football/photo_penalty_game_v3.dart:8:8 • unused_import
+warning • The value of the field '_outcome' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:71:19 • unused_field
+warning • The value of the field '_power' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:74:10 • unused_field
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/photo_penalty_game_v3.dart:470:25 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:173:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:176:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:194:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:198:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:211:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:241:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:368:23 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:369:26 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:380:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:410:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:432:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:333:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:346:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:347:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:369:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:372:44 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:386:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:416:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:475:27 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:488:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:508:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:521:46 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:533:39 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:554:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:579:41 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:589:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:686:23 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:687:23 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:688:26 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:705:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:750:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:761:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:766:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:784:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:855:25 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:864:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:873:43 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:70:7 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:264:15 • prefer_interpolation_to_compose_strings
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:287:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:335:44 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:459:28 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:464:30 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:468:28 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:471:30 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:503:24 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:599:59 • prefer_interpolation_to_compose_strings
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:659:33 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:697:48 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:719:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:732:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:791:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:795:48 • deprecated_member_use
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:797:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_card_layout.dart:54:36 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:50:7 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:50:37 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:166:42 • curly_braces_in_flow_control_structures
+   info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:770:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:1225:30 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/iphone_web_bridge.dart:148:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:213:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:223:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:320:7 • curly_braces_in_flow_control_structures
+   info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/games/name_animal_object/name_animal_object_game.dart:489:26 • use_build_context_synchronously
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:594:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:67:7 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:206:19 • prefer_interpolation_to_compose_strings
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:212:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:288:44 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:353:21 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:387:28 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:391:28 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:393:28 • prefer_interpolation_to_compose_strings
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:501:59 • prefer_interpolation_to_compose_strings
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:577:35 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:653:37 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:699:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:744:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:770:16 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:779:9 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:783:49 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:786:9 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:787:43 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:828:7 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:829:58 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:831:7 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:832:58 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:834:7 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:835:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:843:32 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:845:45 • deprecated_member_use
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:847:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/xo/xo_game.dart:138:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/xo/xo_game.dart:227:23 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/xo/xo_game.dart:406:36 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:373:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:375:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:405:60 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:462:43 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:754:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:756:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:791:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:961:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:966:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:981:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:984:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:1059:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/settings/settings_screen.dart:438:37 • deprecated_member_use
+
+189 issues found. (ran in 9.4s)
+=== BUILD APK ===
+Using production relay URL compiled into the app.
+Running Gradle task 'assembleRelease'...                        
+Loading package information...                                                  
+Loading local repository...                                                     
+[                                       ] 3% Loading local repository...        
+[                                       ] 3% Fetch remote repository...         
+[=                                      ] 3% Fetch remote repository...         
+[=                                      ] 4% Fetch remote repository...         
+[=                                      ] 5% Fetch remote repository...         
+[==                                     ] 5% Fetch remote repository...         
+[==                                     ] 6% Fetch remote repository...         
+[==                                     ] 7% Fetch remote repository...         
+[==                                     ] 7% Computing updates...               
+[===                                    ] 8% Computing updates...               
+[===                                    ] 10% Computing updates...              
+[===                                    ] 10% Installing NDK (Side by side) 28.2
+[===                                    ] 10% Downloading android-ndk-r28c-linux
+[====                                   ] 10% Downloading android-ndk-r28c-linux
+[====                                   ] 11% Downloading android-ndk-r28c-linux
+[====                                   ] 12% Downloading android-ndk-r28c-linux
+[=====                                  ] 13% Downloading android-ndk-r28c-linux
+[=====                                  ] 14% Downloading android-ndk-r28c-linux
+[=====                                  ] 15% Downloading android-ndk-r28c-linux
+[======                                 ] 15% Downloading android-ndk-r28c-linux
+[======                                 ] 16% Downloading android-ndk-r28c-linux
+[======                                 ] 17% Downloading android-ndk-r28c-linux
+[=======                                ] 18% Downloading android-ndk-r28c-linux
+[=======                                ] 19% Downloading android-ndk-r28c-linux
+[=======                                ] 20% Downloading android-ndk-r28c-linux
+[========                               ] 20% Downloading android-ndk-r28c-linux
+[========                               ] 21% Downloading android-ndk-r28c-linux
+[========                               ] 22% Downloading android-ndk-r28c-linux
+[=========                              ] 23% Downloading android-ndk-r28c-linux
+[=========                              ] 24% Downloading android-ndk-r28c-linux
+[=========                              ] 25% Downloading android-ndk-r28c-linux
+[==========                             ] 25% Downloading android-ndk-r28c-linux
+[==========                             ] 26% Downloading android-ndk-r28c-linux
+[==========                             ] 27% Downloading android-ndk-r28c-linux
+[===========                            ] 28% Downloading android-ndk-r28c-linux
+[===========                            ] 29% Downloading android-ndk-r28c-linux
+[===========                            ] 30% Downloading android-ndk-r28c-linux
+[============                           ] 30% Downloading android-ndk-r28c-linux
+[============                           ] 31% Downloading android-ndk-r28c-linux
+[============                           ] 32% Downloading android-ndk-r28c-linux
+[============                           ] 33% Downloading android-ndk-r28c-linux
+[============                           ] 33% Unzipping...                      
+[============                           ] 33% Unzipping... android-ndk-r28c/    
+[============                           ] 33% Unzipping... android-ndk-r28c/READ
+[=============                          ] 33% Unzipping... android-ndk-r28c/READ
+[=============                          ] 33% Unzipping... android-ndk-r28c/meta
+[=============                          ] 33% Unzipping... android-ndk-r28c/shad
+[=============                          ] 33% Unzipping... android-ndk-r28c/ndk-
+[=============                          ] 33% Unzipping... android-ndk-r28c/wrap
+[=============                          ] 33% Unzipping... android-ndk-r28c/ndk-
+[=============                          ] 33% Unzipping... android-ndk-r28c/tool
+[=============                          ] 34% Unzipping... android-ndk-r28c/tool
+[=============                          ] 35% Unzipping... android-ndk-r28c/tool
+[==============                         ] 35% Unzipping... android-ndk-r28c/tool
+[==============                         ] 36% Unzipping... android-ndk-r28c/tool
+[==============                         ] 37% Unzipping... android-ndk-r28c/tool
+[===============                        ] 38% Unzipping... android-ndk-r28c/tool
+[===============                        ] 39% Unzipping... android-ndk-r28c/tool
+[===============                        ] 40% Unzipping... android-ndk-r28c/tool
+[================                       ] 40% Unzipping... android-ndk-r28c/tool
+[================                       ] 41% Unzipping... android-ndk-r28c/tool
+[================                       ] 42% Unzipping... android-ndk-r28c/tool
+[=================                      ] 43% Unzipping... android-ndk-r28c/tool
+[=================                      ] 44% Unzipping... android-ndk-r28c/tool
+[=================                      ] 45% Unzipping... android-ndk-r28c/tool
+[==================                     ] 45% Unzipping... android-ndk-r28c/tool
+[==================                     ] 46% Unzipping... android-ndk-r28c/tool
+[==================                     ] 47% Unzipping... android-ndk-r28c/tool
+[===================                    ] 48% Unzipping... android-ndk-r28c/tool
+[===================                    ] 49% Unzipping... android-ndk-r28c/tool
+[===================                    ] 50% Unzipping... android-ndk-r28c/tool
+[====================                   ] 50% Unzipping... android-ndk-r28c/tool
+[====================                   ] 51% Unzipping... android-ndk-r28c/tool
+[====================                   ] 52% Unzipping... android-ndk-r28c/tool
+[=====================                  ] 53% Unzipping... android-ndk-r28c/tool
+[=====================                  ] 54% Unzipping... android-ndk-r28c/tool
+[=====================                  ] 54% Unzipping... android-ndk-r28c/buil
+[=====================                  ] 54% Unzipping... android-ndk-r28c/sour
+[=====================                  ] 54% Unzipping... android-ndk-r28c/NOTI
+[=====================                  ] 54% Unzipping... android-ndk-r28c/ndk-
+[=====================                  ] 54% Unzipping... android-ndk-r28c/NOTI
+[=====================                  ] 54% Unzipping... android-ndk-r28c/pyth
+[=====================                  ] 54% Unzipping... android-ndk-r28c/preb
+[=====================                  ] 54% Unzipping... android-ndk-r28c/ndk-
+[=====================                  ] 54% Unzipping... android-ndk-r28c/sour
+[=====================                  ] 54% Unzipping... android-ndk-r28c/simp
+[=====================                  ] 55% Unzipping... android-ndk-r28c/simp
+[=====================                  ] 55% Unzipping... android-ndk-r28c/CHAN
+[=======================================] 100% Unzipping... android-ndk-r28c/CHA
+
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 15760 bytes (99.0% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
+License for package CMake 3.22.1 accepted.
+Preparing "Install CMake 3.22.1 v.3.22.1".
+"Install CMake 3.22.1 v.3.22.1" ready.
+Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
+"Install CMake 3.22.1 v.3.22.1" complete.
+"Install CMake 3.22.1 v.3.22.1" finished.
+Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
+Running Gradle task 'assembleRelease'...                          299.2s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (58.5MB)
+CREATE_CODE=0
+MANIFEST_CODE=0
+PUB_CODE=0
+FORMAT_CODE=0
+TEST_CODE=0
+ANALYZE_CODE=0
+BUILD_CODE=0
+RESULT=SUCCESS
