@@ -1,5 +1,5 @@
-COMMIT=2d8b65bd9d373a0a00544e1cf3703c577771eb69
-RUN_ID=42247159253
+COMMIT=14cc240b37951a47b7bdc815c3d3ef5cf721ecfb
+RUN_ID=43077926230
 === CREATE ANDROID ===
 Recreating project ....
   analysis_options.yaml (created)
@@ -46,23 +46,29 @@ Your application code is in ./lib/main.dart.
 === PUB GET ===
 Resolving dependencies...
 Downloading packages...
-  code_assets 1.2.1 (2.1.0 available)
+  code_assets 1.2.1 (2.2.0 available)
+  flutter_svg 2.3.2 (2.3.3 available)
   hooks 2.0.2 (2.2.0 available)
   material_color_utilities 0.13.0 (0.13.1 available)
   meta 1.18.3 (1.19.0 available)
-  objective_c 9.5.0 (9.6.3 available)
+  objective_c 9.5.0 (9.6.4 available)
   petitparser 7.0.2 (7.1.0 available)
   qr 3.0.3 (4.0.1 available)
   record_use 0.6.0 (1.1.1 available)
-  shared_preferences_foundation 2.5.7 (2.6.1 available)
+  shared_preferences_android 2.5.4 (2.5.5 available)
+  shared_preferences_foundation 2.5.7 (2.6.2 available)
+  synchronized 3.6.1 (3.6.1+1 available)
   test_api 0.7.12 (0.7.15 available)
+  vector_graphics 1.2.6 (1.2.7 available)
+  vector_graphics_codec 1.1.13 (1.2.0 available)
+  vector_graphics_compiler 1.3.4 (1.3.5 available)
   vector_math 2.4.0 (2.4.4 available)
   xml 7.0.1 (7.1.0 available)
 Got dependencies!
-12 packages have newer versions incompatible with dependency constraints.
+18 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 === FORMAT ===
-Formatted 117 files (0 changed) in 0.29 seconds.
+Formatted 125 files (0 changed) in 0.29 seconds.
 === TEST ===
 
 ::group::✅ Passing tests
@@ -70,6 +76,11 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities hand 51 only advertises modes it really implements
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities air hockey exposes all implemented multiplayer modes
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_capabilities_test.dart: GameCapabilities instructions reject empty objective and gesture
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_scene_geometry_test.dart: projected flight stays aligned with collision and touch at Size(320.0, 640.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_scene_geometry_test.dart: projected flight stays aligned with collision and touch at Size(390.0, 844.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_scene_geometry_test.dart: projected flight stays aligned with collision and touch at Size(640.0, 320.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_scene_geometry_test.dart: invalid and far offscreen positions are finite and bounded
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_scene_geometry_test.dart: bank is symmetric, monotonic and capped for a large drag
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_local_behavior_test.dart: paused game rejects shooting and keeper input before resume
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_local_behavior_test.dart: actual game contacts once, scores at arrival, and completes landing
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_local_behavior_test.dart: pause/resume cancels active shot without late cues or score
@@ -79,9 +90,9 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: game room exposes offline, difficulty, LAN, Internet and retry choices
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: settings no longer exposes unfinished-product messaging
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_shootout_contract_test.dart: penalty shootout keeps robot, LAN, and allowed-team contract
-✅ /home/runner/work/gameslocal/gameslocal/test/road_painter_behavior_test.dart: vector cars retain visible contact centers every weather Size(300.0, 480.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: gameplay does not receive a global pointer click sound
 ✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: football routes haptics through GameFeedback only
+✅ /home/runner/work/gameslocal/gameslocal/test/road_painter_behavior_test.dart: vector cars retain visible contact centers every weather Size(300.0, 480.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_painter_behavior_test.dart: vector cars retain visible contact centers every weather Size(370.0, 684.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_painter_behavior_test.dart: vector cars retain visible contact centers every weather Size(620.0, 172.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(320.0, 640.0) and scale1.3
@@ -95,12 +106,12 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: network pause discards old pointer; release before resume=true
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {tx: 0.2}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: 0.5}
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: 0}
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {kx: 100}
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ky: -10}
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules forces captures by removing ordinary moves when a capture exists
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: 0}
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules keeps ordinary moves when no capture is available
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules continues a capture chain only from the piece that captured
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {kx: 100}
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ky: -10}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {power: -1}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {curve: 2}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {tx: NaN}
@@ -127,21 +138,24 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired short drag preserves the preceding edge aim on the wire
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: actual network painter keeps ball fixed through contact then launches it
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: removing a received animation prevents late score and feedback
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=false / NetworkConnectionKind.local
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(320.0, 640.0) scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=false / NetworkConnectionKind.local
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(390.0, 844.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=true / NetworkConnectionKind.local
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=false / NetworkConnectionKind.internet
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(390.0, 844.0) scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(640.0, 320.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=true / NetworkConnectionKind.internet
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local local shot is sent at start with no early impact
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(640.0, 320.0) scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local received shot scores at arrival and reset cancels late work
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet local shot is sent at start with no early impact
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: real collision thresholds and pass/day scoring remain unchanged
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live host collision stops race at the unchanged contact plane
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet received shot scores at arrival and reset cancels late work
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local received shot scores at arrival and reset cancels late work
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: host broadcasts original complete start state
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet local shot is sent at start with no early impact
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet received shot scores at arrival and reset cancels late work
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: client start request and crash mapping retain wire semantics
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(296.0, 446.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(366.0, 650.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(446.0, 248.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText shows a concise four-line summary for a red win
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText reports capture advantage for either side and a true tie
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText uses natural Arabic wording for capture differences
@@ -155,6 +169,12 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator piece-count normalization treats negative counts as zero when deciding the winner
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: selection feedback preserves haptic-only input even with sound enabled
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: GameFeedback kick haptic is immediate while backend stop is blocked
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: shared QR lobby is large and non-scrollable
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: XO uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: checkers uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: both line games use the shared pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: name animal object uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: game room labels browser QR as a pregame action
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: outcome/match cue cancellation during preparation never resumes audio: Closure: ([GameAudioTheme, GameFeedbackCancellation?]) => Future<void> from Function 'win': static.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: outcome/match cue cancellation during preparation never resumes audio: Closure: ([GameAudioTheme, GameFeedbackCancellation?]) => Future<void> from Function 'lose': static.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: outcome/match cue cancellation during preparation never resumes audio: Closure: ([GameAudioTheme, GameFeedbackCancellation?]) => Future<void> from Function 'error': static.
@@ -162,12 +182,6 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: actual game pause/resume cancels pending audio before it can start
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: pre-cancelled win lose error and outcome cues are silent
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: existing no-token feedback calls still prepare and play audio
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: shared QR lobby is large and non-scrollable
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: XO uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: checkers uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: both line games use the shared pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: name animal object uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: game room labels browser QR as a pregame action
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: audio engine exposes a distinct theme for every production game
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: competitive games use distinct win and loss cues
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: LAN rooms use real player names instead of a host placeholder
@@ -190,6 +204,15 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_cancellation_test.dart: stale cancellation never stops a newer owner on a reused player
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_cancellation_test.dart: old cancellation stop completing after reuse cannot stop the new sound
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_cancellation_test.dart: reuse while old resume awaits serializes old completion before new sound
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: lobby, live low-fuel HUD and controls fit Size(320.0, 640.0) at 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: lobby, live low-fuel HUD and controls fit Size(390.0, 844.0) at 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: lobby, live low-fuel HUD and controls fit Size(640.0, 320.0) at 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: guest start and player mapping keep original local protocol
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: guest start and player mapping keep original internet protocol
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: host start packet, scaled steps, shots, fuel and scoring
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: host sends the final versus result on an odd simulation tick
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: live collision preserves fuel gain, hit score, level, and co-op authority
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_visual_capture_test.dart: live screen renders aircraft and low fuel together
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: selects the player with the lowest remaining points
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: supports tied blocked-round winners
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: rejects a blocked result without players
@@ -199,9 +222,9 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: name game receives its room directly instead of relying on globals
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(320.0, 640.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(320.0, 640.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: selects the player holding the highest double
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: falls back to the strongest tile when there are no doubles
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects duplicate tiles even when their pip order is reversed
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects empty hands
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects tiles outside the standard zero-to-six range
@@ -211,8 +234,9 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: long Hand51 meld stays inside its table at 320
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: all hand51 face identities are legible including joker
 ✅ /home/runner/work/gameslocal/gameslocal/test/football_actor_visibility_contract_test.dart: professional football scene keeps full player and goalkeeper artwork
-✅ /home/runner/work/gameslocal/gameslocal/test/professional_penalty_visual_contract_test.dart: penalty mode uses the cinematic arena and keeps LAN compatibility
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_speed_regression_test.dart: the live field caps pixel speed even before any paddle contact
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_lobby_layout_test.dart: landscape lobby and flight view share usable space at 1.3 text
+✅ /home/runner/work/gameslocal/gameslocal/test/professional_penalty_visual_contract_test.dart: penalty mode uses the cinematic arena and keeps LAN compatibility
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: stationary paddle returns 90 percent of normal speed without tangential gain
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: moving paddle transfers only 65 percent of its normal speed
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: separating and repeated contacts never inject another impulse
@@ -260,10 +284,10 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: lifecycle pause discards old local pointer; release before resume=true
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: restart and removing the actual game widget cancel an active shot safely
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(320.0, 640.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_motion_timeline_test.dart: contact and arrival bound the flight while the actors keep moving
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(640.0, 320.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(844.0, 390.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_motion_timeline_test.dart: contact and arrival bound the flight while the actors keep moving
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: board games retain their fixed gameplay viewport
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: every active native game is connected to the shared audio engine
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_screen_quality_contract_test.dart: browser game clients lock the viewport and expose browser audio
@@ -290,7 +314,7 @@ Formatted 117 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/playing_card_scale_regression_test.dart: compact 10 keeps its main identity inside the card at text scale 1.3
 ::endgroup::
 
-🎉 222 tests passed.
+🎉 240 tests passed.
 === ANALYZE ===
 Analyzing gameslocal...                                         
 
@@ -406,23 +430,9 @@ warning • The value of the field '_power' isn't used. Try removing the field, 
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:855:25 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:864:32 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:873:43 • deprecated_member_use
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:70:7 • curly_braces_in_flow_control_structures
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:264:15 • prefer_interpolation_to_compose_strings
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:287:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:335:44 • curly_braces_in_flow_control_structures
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:459:28 • prefer_interpolation_to_compose_strings
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:464:30 • prefer_interpolation_to_compose_strings
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:468:28 • prefer_interpolation_to_compose_strings
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:471:30 • prefer_interpolation_to_compose_strings
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:503:24 • prefer_interpolation_to_compose_strings
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:599:59 • prefer_interpolation_to_compose_strings
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:659:33 • curly_braces_in_flow_control_structures
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:697:48 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:719:45 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:732:52 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:791:60 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:795:48 • deprecated_member_use
-   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:797:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:73:7 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:277:15 • prefer_interpolation_to_compose_strings
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:354:44 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_card_layout.dart:54:36 • curly_braces_in_flow_control_structures
    info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:50:7 • curly_braces_in_flow_control_structures
    info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:50:37 • curly_braces_in_flow_control_structures
@@ -458,7 +468,7 @@ warning • The value of the field '_power' isn't used. Try removing the field, 
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/settings/settings_screen.dart:438:37 • deprecated_member_use
 
-163 issues found. (ran in 8.9s)
+149 issues found. (ran in 7.8s)
 === BUILD APK ===
 Using production relay URL compiled into the app.
 Running Gradle task 'assembleRelease'...                        
@@ -554,7 +564,7 @@ Loading local repository...
 [=====================                  ] 55% Unzipping... android-ndk-r28c/CHAN
 [=======================================] 100% Unzipping... android-ndk-r28c/CHA
 
-Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 15760 bytes (99.0% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 15664 bytes (99.0% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
 Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
 License for package CMake 3.22.1 accepted.
 Preparing "Install CMake 3.22.1 v.3.22.1".
@@ -563,8 +573,8 @@ Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
 Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          234.7s
-✓ Built build/app/outputs/flutter-apk/app-release.apk (58.6MB)
+Running Gradle task 'assembleRelease'...                          247.1s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (58.7MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
