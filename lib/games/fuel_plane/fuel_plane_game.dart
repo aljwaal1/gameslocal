@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
-import '../../core/graphics/retro_pixels.dart';
 import '../arcade/arcade_timing.dart';
+import 'plane_scene_geometry.dart';
+import 'plane_scene_motion.dart';
+import 'plane_scene_painter.dart';
 
 class FuelPlaneGameScreen extends StatefulWidget {
   const FuelPlaneGameScreen({super.key, this.networkCore});
@@ -14,8 +16,6 @@ class FuelPlaneGameScreen extends StatefulWidget {
   State<FuelPlaneGameScreen> createState() => _FuelPlaneGameScreenState();
 }
 
-enum _ObjType { fuel, rock, enemy }
-
 class _Obj {
   _Obj(
       {required this.x,
@@ -23,7 +23,7 @@ class _Obj {
       required this.type,
       required this.size});
   double x, y;
-  final _ObjType type;
+  final PlaneObstacleKind type;
   final double size;
 }
 
@@ -33,9 +33,12 @@ class _Bullet {
   final bool remote;
 }
 
-class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
+class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
+    with SingleTickerProviderStateMixin {
   final Random rnd = Random();
   Timer? timer;
+  Timer? _effectTimer;
+  late final PlaneSceneMotion _motion;
   double planeX = .5, remoteX = .5, fuel = 100, remoteFuel = 100, speed = .0065;
   int score = 0,
       remoteScore = 0,
@@ -46,7 +49,6 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
       remoteFireCooldown = 0,
       scoreTick = 0;
   bool running = false, gameOver = false, alive = true, remoteAlive = true;
-  bool lowFuelPulse = false;
   int networkMode = 0; // 0 مواجهة، 1 تعاون
   String resultText = '';
   String effectText = '';
@@ -66,6 +68,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
   @override
   void initState() {
     super.initState();
+    _motion = PlaneSceneMotion(this);
     if (isNetworkGame)
       networkSub = widget.networkCore!.messages.listen(_onNetworkMessage);
   }
@@ -75,6 +78,8 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
     networkSub?.cancel();
     timer?.cancel();
     simulationClock.stop();
+    _effectTimer?.cancel();
+    _motion.dispose();
     super.dispose();
   }
 
@@ -86,6 +91,8 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
       return;
     }
     timer?.cancel();
+    _effectTimer?.cancel();
+    _motion.reset();
     simulationClock
       ..reset()
       ..start();
@@ -109,6 +116,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
       alive = true;
       remoteAlive = true;
       resultText = '';
+      effectVisible = false;
       objects.clear();
       bullets.clear();
     });
@@ -144,6 +152,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
     if (alive) {
       if (fireCooldown <= 0) {
         bullets.add(_Bullet(planeX, .745));
+        _motion.fire();
         fireCooldown = max(7, 14 - min(5, level ~/ 2));
         event = 1;
       } else {
@@ -153,6 +162,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
     if (isNetworkGame && remoteAlive) {
       if (remoteFireCooldown <= 0) {
         bullets.add(_Bullet(remoteX, .745, remote: true));
+        _motion.fire(remote: true);
         remoteFireCooldown = max(7, 14 - min(5, level ~/ 2));
       } else {
         remoteFireCooldown -= wholeTicks;
@@ -164,13 +174,13 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
     if (rnd.nextDouble() < ArcadeTiming.scaledProbability(spawn, step)) {
       final roll = rnd.nextDouble();
       final type = roll < .25
-          ? _ObjType.fuel
-          : (roll < .78 ? _ObjType.rock : _ObjType.enemy);
+          ? PlaneObstacleKind.fuel
+          : (roll < .78 ? PlaneObstacleKind.rock : PlaneObstacleKind.enemy);
       objects.add(_Obj(
         x: .12 + rnd.nextDouble() * .76,
         y: -.08,
         type: type,
-        size: type == _ObjType.fuel ? .052 : .066,
+        size: type == PlaneObstacleKind.fuel ? .052 : .066,
       ));
     }
 
@@ -186,12 +196,13 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
     final hitObjects = <_Obj>[], hitBullets = <_Bullet>[];
     for (final b in bullets) {
       for (final o in objects) {
-        if (o.type != _ObjType.fuel &&
+        if (o.type != PlaneObstacleKind.fuel &&
             !hitObjects.contains(o) &&
             (b.x - o.x).abs() < o.size &&
             (b.y - o.y).abs() < o.size) {
           hitObjects.add(o);
           hitBullets.add(b);
+          _motion.burst(o.x, o.y);
           if (b.remote) {
             remoteScore += 75;
           } else {
@@ -205,11 +216,12 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
     objects.removeWhere(hitObjects.contains);
     bullets.removeWhere(hitBullets.contains);
 
+    final wasAlive = alive, wasRemoteAlive = remoteAlive;
     for (final o in List<_Obj>.of(objects)) {
       if (alive &&
           (planeX - o.x).abs() < o.size * .92 &&
           (.82 - o.y).abs() < o.size * .92) {
-        if (o.type == _ObjType.fuel) {
+        if (o.type == PlaneObstacleKind.fuel) {
           fuel = min(100, fuel + 22);
           score += 120;
           objects.remove(o);
@@ -223,7 +235,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
           remoteAlive &&
           (remoteX - o.x).abs() < o.size * .92 &&
           (.82 - o.y).abs() < o.size * .92) {
-        if (o.type == _ObjType.fuel) {
+        if (o.type == PlaneObstacleKind.fuel) {
           remoteFuel = min(100, remoteFuel + 22);
           remoteScore += 120;
           objects.remove(o);
@@ -236,7 +248,6 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
       }
     }
 
-    lowFuelPulse = alive && fuel < 25;
     if (alive && fuel <= 0) {
       fuel = 0;
       alive = false;
@@ -247,6 +258,8 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
       remoteAlive = false;
       event = 4;
     }
+
+    _showCrashes(wasAlive: wasAlive, wasRemoteAlive: wasRemoteAlive);
 
     final shouldEnd = isNetworkGame
         ? (networkMode == 0
@@ -267,30 +280,36 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
                 ? 'تعادل'
                 : (!alive ? 'فاز اللاعب الآخر' : 'فزت بالمواجهة'));
       }
-      _showEffect('💥 انتهت الجولة');
+      _showEffect('انتهت الجولة');
       if (isNetworkGame && networkMode == 0 && alive && !remoteAlive) {
         GameFeedback.win(GameAudioTheme.plane);
       } else {
         GameFeedback.lose(GameAudioTheme.plane);
       }
     } else if (event == 2) {
-      _showEffect('💥 إصابة!');
+      _showEffect('إصابة!');
       GameFeedback.capture(GameAudioTheme.plane);
     } else if (event == 3) {
-      _showEffect('⛽ + وقود');
+      _showEffect('وقود إضافي');
       GameFeedback.tap(GameAudioTheme.plane);
     } else if (event == 1 && distance % 90 == 0) {
       GameFeedback.move(GameAudioTheme.plane);
     }
 
-    if (isNetworkGame && isHost && ++syncTick % 2 == 0)
+    if (isNetworkGame && isHost && (++syncTick % 2 == 0 || shouldEnd)) {
       _sendState('plane_state');
+    }
     if (mounted) setState(() {});
   }
 
   void setPlane(double dx, double width) {
     if (!running || width <= 0 || !alive) return;
-    setState(() => planeX = (dx / width).clamp(.08, .92));
+    _moveLocalPlane(PlaneSceneGeometry(Size(width, 1)).worldXForTouch(dx));
+  }
+
+  void _moveLocalPlane(double x) {
+    _motion.turn(x - planeX);
+    setState(() => planeX = x);
     if (isNetworkGame && !isHost) {
       widget.networkCore?.sendMove(
           <String, dynamic>{'action': 'plane_control', 'x': planeX},
@@ -341,8 +360,9 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
     if (action == 'plane_control' && isHost) {
       final x = (m.payload['x'] as num?)?.toDouble();
       if (x != null) {
-        remoteX = x.clamp(.08, .92);
-        setState(() {});
+        final next = x.clamp(.08, .92).toDouble();
+        _motion.turn(next - remoteX, remote: true);
+        setState(() => remoteX = next);
       }
       return;
     }
@@ -356,7 +376,17 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
       final rawBullets = m.payload['bullets'] as List<dynamic>? ?? const [];
       final oldScore = score;
       final oldFuel = fuel;
-      final wasAlive = alive;
+      final oldRemoteScore = remoteScore;
+      final oldPlaneX = planeX, oldRemoteX = remoteX;
+      final wasAlive = alive, wasRemoteAlive = remoteAlive;
+      final previousBullets = List<_Bullet>.of(bullets);
+      final previousObjects = List<_Obj>.of(objects);
+      final roundStarted =
+          action == 'plane_start' || (!running && m.payload['running'] == true);
+      if (roundStarted) {
+        _effectTimer?.cancel();
+        _motion.reset();
+      }
       final wasGameOver = gameOver;
       setState(() {
         networkMode =
@@ -372,6 +402,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
         distance = (m.payload['distance'] as num?)?.toInt() ?? distance;
         level = (m.payload['level'] as num?)?.toInt() ?? level;
         running = m.payload['running'] == true;
+        if (roundStarted) effectVisible = false;
         gameOver = m.payload['gameOver'] == true;
         alive = m.payload['remoteAlive'] != false;
         remoteAlive = m.payload['alive'] != false;
@@ -386,9 +417,9 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
           ..addAll(rawObjects.whereType<Map>().map((e) => _Obj(
               x: (e['x'] as num).toDouble(),
               y: (e['y'] as num).toDouble(),
-              type: _ObjType.values[(e['type'] as num)
+              type: PlaneObstacleKind.values[(e['type'] as num)
                   .toInt()
-                  .clamp(0, _ObjType.values.length - 1)],
+                  .clamp(0, PlaneObstacleKind.values.length - 1)],
               size: (e['size'] as num).toDouble())));
         bullets
           ..clear()
@@ -396,21 +427,31 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
               (e['x'] as num).toDouble(), (e['y'] as num).toDouble(),
               remote: e['remote'] != true)));
       });
+      if (!roundStarted) {
+        _motion.turn(planeX - oldPlaneX);
+        _motion.turn(remoteX - oldRemoteX, remote: true);
+      }
+      _showSnapshotShots(previousBullets);
+      if (!roundStarted &&
+          (score - oldScore >= 75 || remoteScore - oldRemoteScore >= 75)) {
+        _showSnapshotHits(previousObjects, previousBullets);
+      }
+      _showCrashes(wasAlive: wasAlive, wasRemoteAlive: wasRemoteAlive);
       if (wasAlive && !alive) {
-        _showEffect('💥 طائرتك تحطمت');
+        _showEffect('طائرتك تحطمت');
         GameFeedback.lose(GameAudioTheme.plane);
       } else if (!wasGameOver && gameOver) {
-        _showEffect(resultText.isEmpty ? '🏁 انتهت الجولة' : resultText);
+        _showEffect(resultText.isEmpty ? 'انتهت الجولة' : resultText);
         if (resultText == 'فزت بالمواجهة') {
           GameFeedback.win(GameAudioTheme.plane);
         } else {
           GameFeedback.lose(GameAudioTheme.plane);
         }
       } else if (fuel > oldFuel + 5) {
-        _showEffect('⛽ + وقود');
+        _showEffect('وقود إضافي');
         GameFeedback.tap(GameAudioTheme.plane);
       } else if (score >= oldScore + 75) {
-        _showEffect('💥 إصابة!');
+        _showEffect('إصابة!');
         GameFeedback.capture(GameAudioTheme.plane);
       }
     }
@@ -432,395 +473,389 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen> {
       effectText = text;
       effectVisible = true;
     });
-    Future<void>.delayed(const Duration(milliseconds: 420), () {
+    _effectTimer?.cancel();
+    _effectTimer = Timer(const Duration(milliseconds: 420), () {
       if (mounted) setState(() => effectVisible = false);
     });
   }
 
+  void _showCrashes({required bool wasAlive, required bool wasRemoteAlive}) {
+    if (wasAlive && !alive) {
+      _motion.burst(planeX, PlaneSceneGeometry.playerY, crash: true);
+    }
+    if (wasRemoteAlive && !remoteAlive) {
+      _motion.burst(remoteX, PlaneSceneGeometry.playerY, crash: true);
+    }
+  }
+
+  void _showSnapshotShots(List<_Bullet> previous) {
+    for (final bullet in bullets) {
+      if (bullet.y < .50) continue;
+      final seen = previous.any((old) =>
+          old.remote == bullet.remote &&
+          old.x == bullet.x &&
+          old.y >= bullet.y &&
+          old.y - bullet.y <= .25);
+      if (!seen) _motion.fire(remote: bullet.remote);
+    }
+  }
+
+  void _showSnapshotHits(List<_Obj> previous, List<_Bullet> previousBullets) {
+    // A hit is visualized from the existing snapshots. Scoring and collision
+    // remain authoritative on the host.
+    for (final obstacle in previous) {
+      if (obstacle.type == PlaneObstacleKind.fuel) continue;
+      final remained = objects.any((current) =>
+          current.x == obstacle.x &&
+          current.type == obstacle.type &&
+          current.y >= obstacle.y);
+      if (remained) continue;
+      final crossed = previousBullets.any((bullet) =>
+          (bullet.x - obstacle.x).abs() < obstacle.size &&
+          bullet.y >= obstacle.y - obstacle.size &&
+          bullet.y <= obstacle.y + obstacle.size + .26);
+      if (crossed) _motion.burst(obstacle.x, obstacle.y);
+    }
+  }
+
+  bool get _lowFuel => fuel < 25;
+
   @override
-  Widget build(BuildContext context) {
-    final fuelColor = fuel > 50
-        ? Colors.greenAccent
-        : (fuel > 25 ? Colors.orangeAccent : Colors.redAccent);
-    return Scaffold(
-        backgroundColor: const Color(0xFF050D1A),
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: const Color(0xff0a202c),
         appBar: AppBar(
-            title: const Text('طائرة الوقود'),
-            backgroundColor: const Color(0xFF050D1A),
-            foregroundColor: Colors.white),
+          title: const Text('طائرة الوقود'),
+          backgroundColor: const Color(0xff0a202c),
+          foregroundColor: Colors.white,
+        ),
         body: SafeArea(
-            child: Column(children: [
-          Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Column(children: [
-                Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text('نقاطك: ' + score.toString(),
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold)),
-                      if (isNetworkGame)
-                        Text('الآخر: ' + remoteScore.toString(),
-                            style: const TextStyle(
-                                color: Color(0xFFFF8A3D),
-                                fontWeight: FontWeight.bold)),
-                      Text('المرحلة: ' + level.toString(),
-                          style: const TextStyle(color: Colors.white70)),
-                      if (!isNetworkGame)
-                        Text('الأفضل: ' + best.toString(),
-                            style: const TextStyle(
-                                color: Colors.amber,
-                                fontWeight: FontWeight.bold))
-                    ]),
-                if (isNetworkGame && !running)
-                  Padding(
-                      padding: const EdgeInsets.only(top: 7),
-                      child: SegmentedButton<int>(segments: const [
-                        ButtonSegment(value: 0, label: Text('مواجهة')),
-                        ButtonSegment(value: 1, label: Text('تعاون'))
-                      ], selected: {
-                        networkMode
-                      }, onSelectionChanged: (v) => setNetworkMode(v.first))),
-                const SizedBox(height: 8),
-                Row(children: [
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 10),
+            child: LayoutBuilder(builder: (context, constraints) {
+              final field = _buildField();
+              final hud = _buildHud();
+              final control = _buildControl();
+              final wide = constraints.maxWidth >= 470 &&
+                  constraints.maxWidth > constraints.maxHeight * 1.5;
+              if (wide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: field),
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 194,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: SingleChildScrollView(child: hud)),
+                          const SizedBox(height: 8),
+                          control,
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  hud,
+                  const SizedBox(height: 8),
+                  Expanded(child: field),
+                  const SizedBox(height: 8),
+                  control,
+                ],
+              );
+            }),
+          ),
+        ),
+      );
+
+  Widget _buildHud() {
+    final color = _lowFuel
+        ? const Color(0xffffad96)
+        : fuel <= 50
+            ? const Color(0xffffc879)
+            : const Color(0xff9af5bd);
+    final percentage = '${fuel.clamp(0, 100).round()}%';
+    const dataStyle = TextStyle(color: Color(0xffecf8ff), fontSize: 13);
+    return DecoratedBox(
+      decoration: _panel(),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 3,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                Text('نقاطك: $score',
+                    style: dataStyle.copyWith(fontWeight: FontWeight.w800)),
+                if (isNetworkGame)
+                  Text('الآخر: $remoteScore',
+                      style:
+                          dataStyle.copyWith(color: const Color(0xffffc366))),
+                Text('المرحلة: $level', style: dataStyle),
+                if (!isNetworkGame)
+                  Text('الأفضل: $best',
+                      style:
+                          dataStyle.copyWith(color: const Color(0xffb4dce8))),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Semantics(
+              label: _lowFuel ? 'وقود منخفض' : 'الوقود',
+              value: percentage,
+              excludeSemantics: true,
+              child: Row(
+                children: [
                   Icon(
-                      fuel < 25
-                          ? Icons.warning_amber_rounded
-                          : Icons.local_gas_station_rounded,
-                      color: fuelColor,
-                      size: 20),
-                  const SizedBox(width: 7),
+                    _lowFuel
+                        ? Icons.warning_amber_rounded
+                        : Icons.local_gas_station_rounded,
+                    color: color,
+                    size: 16,
+                  ),
+                  if (_lowFuel)
+                    Flexible(
+                      flex: 3,
+                      child: Padding(
+                        padding: const EdgeInsetsDirectional.only(start: 4),
+                        child: Text(
+                          'وقود منخفض',
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 6),
                   Expanded(
-                      child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: LinearProgressIndicator(
-                              value: (fuel.clamp(0, 100)) / 100,
-                              minHeight: 12,
-                              valueColor: AlwaysStoppedAnimation(fuelColor),
-                              backgroundColor: Colors.white12))),
-                  const SizedBox(width: 8),
-                  Text(fuel.round().toString() + '%',
-                      style: TextStyle(
-                          color: fuelColor, fontWeight: FontWeight.w900))
-                ])
-              ])),
-          Expanded(
-              child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: Colors.white12)),
-                  child: LayoutBuilder(
-                      builder: (context, c) => GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onPanDown: (d) =>
-                              setPlane(d.localPosition.dx, c.maxWidth),
-                          onPanUpdate: (d) =>
-                              setPlane(d.localPosition.dx, c.maxWidth),
-                          child: Stack(children: [
-                            CustomPaint(
-                                size: Size.infinite,
-                                painter: _PlanePainter(
-                                    planeX: planeX,
-                                    remoteX: isNetworkGame ? remoteX : null,
-                                    objects: objects,
-                                    bullets: bullets,
-                                    level: level,
-                                    distance: distance)),
-                            Positioned.fill(
-                                child: IgnorePointer(
-                                    child: AnimatedOpacity(
-                              opacity: lowFuelPulse ? 1 : 0,
-                              duration: const Duration(milliseconds: 220),
-                              child: Container(
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(
-                                          color:
-                                              Colors.redAccent.withAlpha(170),
-                                          width: 4),
-                                      gradient: const RadialGradient(colors: [
-                                        Colors.transparent,
-                                        Color(0x22FF1744)
-                                      ], radius: 1.0))),
-                            ))),
-                            Positioned.fill(
-                                child: IgnorePointer(
-                                    child: AnimatedOpacity(
-                              opacity: effectVisible ? 1 : 0,
-                              duration: const Duration(milliseconds: 120),
-                              child: Center(
-                                  child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 10),
-                                decoration: BoxDecoration(
-                                    color: Colors.black.withAlpha(150),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(color: Colors.white24)),
-                                child: Text(effectText,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        shadows: [
-                                          Shadow(
-                                              color: Colors.black,
-                                              blurRadius: 10)
-                                        ])),
-                              )),
-                            ))),
-                            if (!running)
-                              Center(
-                                  child: Container(
-                                      padding: const EdgeInsets.all(22),
-                                      decoration: BoxDecoration(
-                                          color: Colors.black.withAlpha(180),
-                                          borderRadius:
-                                              BorderRadius.circular(22)),
-                                      child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                                gameOver
-                                                    ? 'انتهت الجولة'
-                                                    : 'جاهز للطيران؟',
-                                                style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 27,
-                                                    fontWeight:
-                                                        FontWeight.w900)),
-                                            const SizedBox(height: 7),
-                                            Text(
-                                                gameOver
-                                                    ? (isNetworkGame
-                                                        ? resultText
-                                                        : 'نقاطك: ' +
-                                                            score.toString())
-                                                    : (isNetworkGame
-                                                        ? (networkMode == 0
-                                                            ? 'مواجهة: آخر طائرة تبقى تفوز'
-                                                            : 'تعاون: اجمعا النقاط وابقيا معًا')
-                                                        : 'حرّك الطائرة بإصبعك — الإطلاق تلقائي'),
-                                                textAlign: TextAlign.center,
-                                                style: const TextStyle(
-                                                    color: Colors.white70)),
-                                            const SizedBox(height: 14),
-                                            FilledButton.icon(
-                                                onPressed: start,
-                                                icon: const Icon(
-                                                    Icons.play_arrow_rounded),
-                                                label: Text(gameOver
-                                                    ? 'إعادة اللعب'
-                                                    : 'ابدأ'))
-                                          ])))
-                          ]))))),
-          Container(
-              margin: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(55),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: Colors.white12)),
-              child: Column(children: [
-                Row(children: [
-                  const Icon(Icons.mouse_rounded,
-                      size: 20, color: Colors.white70),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child: Text(
-                          running
-                              ? 'حرّك المقبض مثل الماوس'
-                              : 'اضغط ابدأ ثم استخدم شريط التحكم',
-                          style: const TextStyle(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.bold)))
-                ]),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                      trackHeight: 12,
-                      thumbShape:
-                          const RoundSliderThumbShape(enabledThumbRadius: 18),
-                      overlayShape:
-                          const RoundSliderOverlayShape(overlayRadius: 26),
-                      activeTrackColor: Colors.lightBlueAccent,
-                      inactiveTrackColor: Colors.white24,
-                      thumbColor: Colors.white,
-                      overlayColor: Colors.lightBlueAccent.withAlpha(45)),
-                  child: Slider(
-                      value: planeX.clamp(.08, .92),
-                      min: .08,
-                      max: .92,
-                      onChanged: running
-                          ? (v) {
-                              setState(() => planeX = v);
-                              if (isNetworkGame && !isHost)
-                                widget.networkCore?.sendMove(<String, dynamic>{
-                                  'action': 'plane_control',
-                                  'x': planeX
-                                }, senderId: localPlayerId);
-                            }
-                          : null),
-                )
-              ]))
-        ])));
+                    flex: 2,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(5),
+                      child: LinearProgressIndicator(
+                        value: fuel.clamp(0, 100) / 100,
+                        minHeight: 6,
+                        color: color,
+                        backgroundColor: const Color(0xff365561),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    percentage,
+                    style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ),
+            if (isNetworkGame && !running)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(value: 0, label: Text('مواجهة')),
+                    ButtonSegment(value: 1, label: Text('تعاون')),
+                  ],
+                  selected: {networkMode},
+                  showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(
+                    foregroundColor: const Color(0xffecf8ff),
+                    selectedForegroundColor: const Color(0xff0a202c),
+                    selectedBackgroundColor: const Color(0xffa3e7f1),
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onSelectionChanged: (value) => setNetworkMode(value.first),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
-}
 
-class _PlanePainter extends CustomPainter {
-  const _PlanePainter(
-      {required this.planeX,
-      this.remoteX,
-      required this.objects,
-      required this.bullets,
-      required this.level,
-      required this.distance});
-  final double planeX;
-  final double? remoteX;
-  final List<_Obj> objects;
-  final List<_Bullet> bullets;
-  final int level, distance;
+  BoxDecoration _panel() => BoxDecoration(
+        color: const Color(0xff123442),
+        border: Border.all(color: const Color(0xff2b4f5e)),
+        borderRadius: BorderRadius.circular(14),
+      );
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height, bg = Offset.zero & size;
-    canvas.drawRect(
-        bg,
-        Paint()
-          ..shader = const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xff061022), Color(0xff0a2e4f), Color(0xff061022)],
-          ).createShader(bg));
-
-    final star = Paint()..color = Colors.white.withOpacity(.55);
-    for (var i = 0; i < 48; i++) {
-      final x = ((i * 73 + level * 17) % w).toDouble();
-      final y = ((i * 41 + level * 13) % (h * .45)).toDouble();
-      canvas.drawRect(
-          Rect.fromLTWH(x, y, i % 6 == 0 ? 3 : 2, i % 6 == 0 ? 3 : 2), star);
-    }
-
-    final river = Path()
-      ..moveTo(w * .22, 0)
-      ..quadraticBezierTo(w * .13, h * .26, w * .28, h * .50)
-      ..quadraticBezierTo(w * .42, h * .72, w * .16, h)
-      ..lineTo(w * .84, h)
-      ..quadraticBezierTo(w * .58, h * .72, w * .72, h * .50)
-      ..quadraticBezierTo(w * .87, h * .26, w * .78, 0)
-      ..close();
-    canvas.drawPath(river, Paint()..color = const Color(0xff145d87));
-    canvas.drawPath(
-        river,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..color = const Color(0xff7dd3fc).withOpacity(.35));
-
-    final bank = Paint()..color = const Color(0xff0f3b1d);
-    for (var i = 0; i < 14; i++) {
-      final y = ((i * 64 + level * 9) % (h + 80)).toDouble() - 40;
-      canvas.drawRect(Rect.fromLTWH(0, y, w * .12, 18), bank);
-      canvas.drawRect(Rect.fromLTWH(w * .88, y + 28, w * .12, 18), bank);
-    }
-
-    for (final b in bullets) {
-      canvas.drawCircle(Offset(b.x * w, b.y * h), 5,
-          Paint()..color = const Color(0xfffff176));
-      canvas.drawCircle(Offset(b.x * w, b.y * h), 11,
-          Paint()..color = const Color(0xfffff176).withOpacity(.16));
-    }
-
-    for (final o in objects) {
-      final p = Offset(o.x * w, o.y * h);
-      final px = max(2.2, o.size * w / 9);
-      if (o.type == _ObjType.fuel) {
-        RetroPixels.draw(
-            canvas,
-            p,
-            px,
-            const [
-              '..GG..',
-              '..YY..',
-              '.YYYY.',
-              '.YRR.',
-              '.YRR.',
-              '.YYYY.',
-              '..GG..'
+  Widget _buildControl() => DecoratedBox(
+        decoration: _panel(),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 5, 8, 0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'التحكم بالطائرة',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xffd2e8ef),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 5,
+                  thumbShape:
+                      const RoundSliderThumbShape(enabledThumbRadius: 10),
+                  activeTrackColor: const Color(0xff81e8f5),
+                  inactiveTrackColor: const Color(0xff466270),
+                  thumbColor: const Color(0xffd8faff),
+                ),
+                child: Slider(
+                  value: planeX.clamp(.08, .92),
+                  min: .08,
+                  max: .92,
+                  onChanged: running ? _moveLocalPlane : null,
+                ),
+              ),
             ],
-            {
-              'G': const Color(0xff22c55e),
-              'Y': const Color(0xffffd166),
-              'R': const Color(0xffef4444)
-            },
-            shadow: 3);
-      } else if (o.type == _ObjType.enemy) {
-        RetroPixels.draw(
-            canvas,
-            p,
-            px,
-            const [
-              '...R...',
-              '..RRR..',
-              '.RBRBR.',
-              'RRBBB R',
-              '..BBB..',
-              '.B...B.'
-            ],
-            {'R': const Color(0xffef4444), 'B': const Color(0xff374151)},
-            shadow: 3);
-      } else {
-        RetroPixels.draw(
-            canvas,
-            p,
-            px,
-            const ['..SS..', '.SSSS.', 'SSSSSS', 'SDSDSS', '.SSSS.', '..SS..'],
-            {'S': const Color(0xff94a3b8), 'D': const Color(0xff334155)},
-            shadow: 3);
-      }
-    }
+          ),
+        ),
+      );
 
-    final pc = Offset(planeX * w, h * .82);
-    _plane(canvas, pc, max(3, w * .012), const Color(0xff38bdf8));
-    if (remoteX != null) {
-      _plane(canvas, Offset(remoteX! * w, h * .82), max(3, w * .012),
-          const Color(0xffff8a3d));
-    }
+  Widget _buildField() => ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: LayoutBuilder(builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onPanDown: (details) => setPlane(details.localPosition.dx, width),
+            onPanUpdate: (details) => setPlane(details.localPosition.dx, width),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                RepaintBoundary(
+                  child: CustomPaint(
+                    key: const ValueKey('plane-scene'),
+                    painter: PlaneScenePainter(
+                      localX: planeX,
+                      remoteX: isNetworkGame ? remoteX : null,
+                      localAlive: alive,
+                      remoteAlive: remoteAlive,
+                      obstacles: [
+                        for (final object in objects)
+                          PlaneObstacle(
+                              object.x, object.y, object.size, object.type),
+                      ],
+                      projectiles: [
+                        for (final bullet in bullets)
+                          PlaneProjectile(bullet.x, bullet.y,
+                              remote: bullet.remote),
+                      ],
+                      distance: distance,
+                      motion: _motion,
+                    ),
+                  ),
+                ),
+                IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: running && alive && _lowFuel ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                            color: const Color(0xfffc927f), width: 2),
+                      ),
+                    ),
+                  ),
+                ),
+                if (running)
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: IgnorePointer(
+                      child: AnimatedOpacity(
+                        opacity: effectVisible ? 1 : 0,
+                        duration: const Duration(milliseconds: 120),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: DecoratedBox(
+                            decoration: _panel(),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 5),
+                              child: Text(
+                                effectText,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (!running) _buildRoundCard(),
+              ],
+            ),
+          );
+        }),
+      );
 
-    final flame = Paint()..color = const Color(0xffff7a18).withOpacity(.75);
-    canvas.drawCircle(
-        Offset(pc.dx, pc.dy + 38), 8 + (level % 3).toDouble(), flame);
-
-    final scan = Paint()..color = Colors.black.withOpacity(.12);
-    for (double y = 0; y < h; y += 5)
-      canvas.drawRect(Rect.fromLTWH(0, y, w, 1), scan);
-  }
-
-  void _plane(Canvas c, Offset center, double px, Color bodyColor) {
-    RetroPixels.draw(
-        c,
-        center,
-        px,
-        const [
-          '.....C.....',
-          '....CCC....',
-          '....YYY....',
-          'B..YYYYY..B',
-          'BBYYYYYYYBB',
-          '..RYYYR..',
-          '...Y.Y...',
-          '..B...B..',
-        ],
-        {
-          'C': const Color(0xffe0f2fe),
-          'Y': bodyColor,
-          'B': const Color(0xff2563eb),
-          'R': const Color(0xffef4444)
-        },
-        shadow: 4);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PlanePainter old) => true;
+  Widget _buildRoundCard() => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(10),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 290),
+            child: DecoratedBox(
+              decoration: _panel().copyWith(color: const Color(0xf0102c39)),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      gameOver ? 'انتهت الجولة' : 'جاهز للطيران؟',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      gameOver
+                          ? (isNetworkGame ? resultText : 'نقاطك: $score')
+                          : (isNetworkGame
+                              ? (networkMode == 0
+                                  ? 'مواجهة: آخر طائرة تبقى تفوز'
+                                  : 'تعاون: اجمعا النقاط وابقيا معًا')
+                              : 'حرّك الطائرة بإصبعك. الإطلاق تلقائي.'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Color(0xffd2e8ef), fontSize: 13),
+                    ),
+                    const SizedBox(height: 4),
+                    FilledButton.icon(
+                      onPressed: start,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xffa3e7f1),
+                        foregroundColor: const Color(0xff0a202c),
+                      ),
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: Text(gameOver ? 'إعادة اللعب' : 'ابدأ'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 }
