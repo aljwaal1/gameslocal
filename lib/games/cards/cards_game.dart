@@ -75,8 +75,6 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   bool roundFinished = false;
   int playerScore = 0;
   int botScore = 0;
-  int playerBasra = 0;
-  int botBasra = 0;
   int playerSteals = 0;
   int botSteals = 0;
   LastCollector? lastCollector;
@@ -159,8 +157,6 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     if (resetScore) {
       playerScore = 0;
       botScore = 0;
-      playerBasra = 0;
-      botBasra = 0;
       playerSteals = 0;
       botSteals = 0;
     }
@@ -361,15 +357,12 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       ownPile.addAll(collection);
       lastCollector = isPlayer ? LastCollector.player : LastCollector.bot;
 
-      final madeBasra = tableMatches.isNotEmpty && table.isEmpty;
-      final gained = scoreOfCards(collection) + (madeBasra ? 10 : 0);
+      final gained = scoreOfCards(collection);
       if (isPlayer) {
         playerScore += gained;
-        if (madeBasra) playerBasra++;
         if (stolen.isNotEmpty) playerSteals++;
       } else {
         botScore += gained;
-        if (madeBasra) botBasra++;
         if (stolen.isNotEmpty) botSteals++;
       }
       final localPlay = isNetworkGame ? isPlayer == isHost : isPlayer;
@@ -377,20 +370,12 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       if (stolen.isNotEmpty) {
         message =
             localPlay ? 'سرقت آخر رزمة للمنافس' : '$rival سرق آخر رزمة لك';
-        if (madeBasra) message += ' • بسرا +10';
-      } else if (madeBasra) {
-        message =
-            localPlay ? 'بسرا! التقطت كل الأرض +10' : '$rival عمل بسرا +10';
       } else {
         message = localPlay
             ? 'التقطت أوراقًا وربحت $gained نقطة'
             : '$rival التقط أوراقًا';
       }
-      if (madeBasra) {
-        GameFeedback.win(GameAudioTheme.cards);
-      } else {
-        GameFeedback.capture(GameAudioTheme.cards);
-      }
+      GameFeedback.capture(GameAudioTheme.cards);
     }
 
     if (playerHand.isEmpty && botHand.isEmpty && deck.isNotEmpty) {
@@ -478,8 +463,6 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                     botScore: botScore,
                     deckCount: deck.length,
                     tableCount: table.length,
-                    playerBasra: playerBasra,
-                    botBasra: botBasra,
                     playerSteals: playerSteals,
                     botSteals: botSteals,
                     botLevel: settings.botDifficultyTextFor('cards'),
@@ -558,8 +541,6 @@ class _StatusCard extends StatelessWidget {
     required this.botScore,
     required this.deckCount,
     required this.tableCount,
-    required this.playerBasra,
-    required this.botBasra,
     required this.playerSteals,
     required this.botSteals,
     required this.botLevel,
@@ -570,8 +551,6 @@ class _StatusCard extends StatelessWidget {
   final int botScore;
   final int deckCount;
   final int tableCount;
-  final int playerBasra;
-  final int botBasra;
   final int playerSteals;
   final int botSteals;
   final String botLevel;
@@ -607,10 +586,6 @@ class _StatusCard extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                Expanded(
-                    child: Text('بسرا لك / له: $playerBasra / $botBasra',
-                        maxLines: 2, style: const TextStyle(fontSize: 10))),
-                const SizedBox(width: 8),
                 Expanded(
                     child: Text('سرقاتك / له: $playerSteals / $botSteals',
                         maxLines: 2, style: const TextStyle(fontSize: 10))),

@@ -91,8 +91,8 @@ void main() {
     expect(state.table, isEmpty);
     expect(state.playerPile, [jack, seven, queen]);
     expect(state.botPile, [otherJack]);
-    expect(state.playerScore, 31);
-    expect(state.playerBasra, 1);
+    expect(state.playerScore, 21);
+    expect(find.textContaining('بسرا'), findsNothing);
     await tester.pump(const Duration(milliseconds: 550));
   });
 
@@ -122,7 +122,7 @@ void main() {
     expect(state.playerPile, [jack, rivalJack, queen]);
     expect(state.botPile, [rivalSeven, seven]);
     expect(state.playerSteals, 1);
-    expect(state.playerBasra, 0);
+
     await tester.pump(const Duration(milliseconds: 550));
   });
 
@@ -153,7 +153,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 550));
   });
 
-  testWidgets('Sarraqa robot takes an available Basra ahead of a partial match',
+  testWidgets('Sarraqa robot clears matching cards without a clearing bonus',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: CardsGameScreen()));
     final dynamic state = tester.state(find.byType(CardsGameScreen));
@@ -169,10 +169,10 @@ void main() {
     expect(state.table, isEmpty);
     expect(state.botPile, containsAll([first, second]));
     expect(state.playerPile, contains(opponentKing));
-    expect(state.botBasra, 1);
-    expect(state.botScore, 13);
+
+    expect(state.botScore, 3);
     await tester.pump();
-    expect(find.textContaining('الكمبيوتر عمل بسرا'), findsOneWidget);
+    expect(find.textContaining('بسرا'), findsNothing);
   });
 
   testWidgets('a stopped hockey puck stays put without paddle contact',
