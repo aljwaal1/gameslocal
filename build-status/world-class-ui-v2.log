@@ -1,5 +1,5 @@
-COMMIT=14cc240b37951a47b7bdc815c3d3ef5cf721ecfb
-RUN_ID=43077926230
+COMMIT=38d28e471cf519ce74255ac9d0a0daa43a6ccf15
+RUN_ID=43343832377
 === CREATE ANDROID ===
 Recreating project ....
   analysis_options.yaml (created)
@@ -47,10 +47,11 @@ Your application code is in ./lib/main.dart.
 Resolving dependencies...
 Downloading packages...
   code_assets 1.2.1 (2.2.0 available)
-  flutter_svg 2.3.2 (2.3.3 available)
+  flutter_svg 2.3.2 (2.4.0 available)
   hooks 2.0.2 (2.2.0 available)
++ listen 1.0.1
   material_color_utilities 0.13.0 (0.13.1 available)
-  meta 1.18.3 (1.19.0 available)
+> meta 1.19.0 (was 1.18.3)
   objective_c 9.5.0 (9.6.4 available)
   petitparser 7.0.2 (7.1.0 available)
   qr 3.0.3 (4.0.1 available)
@@ -58,17 +59,17 @@ Downloading packages...
   shared_preferences_android 2.5.4 (2.5.5 available)
   shared_preferences_foundation 2.5.7 (2.6.2 available)
   synchronized 3.6.1 (3.6.1+1 available)
-  test_api 0.7.12 (0.7.15 available)
-  vector_graphics 1.2.6 (1.2.7 available)
+> test_api 0.7.14 (was 0.7.12) (0.7.15 available)
+  vector_graphics 1.2.6 (1.3.1 available)
   vector_graphics_codec 1.1.13 (1.2.0 available)
-  vector_graphics_compiler 1.3.4 (1.3.5 available)
-  vector_math 2.4.0 (2.4.4 available)
+  vector_graphics_compiler 1.3.4 (1.3.6 available)
+> vector_math 2.4.4 (was 2.4.0)
   xml 7.0.1 (7.1.0 available)
-Got dependencies!
-18 packages have newer versions incompatible with dependency constraints.
+Changed 4 dependencies!
+16 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 === FORMAT ===
-Formatted 125 files (0 changed) in 0.29 seconds.
+Formatted 126 files (0 changed) in 0.53 seconds.
 === TEST ===
 
 ::group::✅ Passing tests
@@ -90,14 +91,25 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: game room exposes offline, difficulty, LAN, Internet and retry choices
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: settings no longer exposes unfinished-product messaging
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_shootout_contract_test.dart: penalty shootout keeps robot, LAN, and allowed-team contract
-✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: gameplay does not receive a global pointer click sound
-✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: football routes haptics through GameFeedback only
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_painter_behavior_test.dart: vector cars retain visible contact centers every weather Size(300.0, 480.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_painter_behavior_test.dart: vector cars retain visible contact centers every weather Size(370.0, 684.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_painter_behavior_test.dart: vector cars retain visible contact centers every weather Size(620.0, 172.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: gameplay does not receive a global pointer click sound
+✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: football routes haptics through GameFeedback only
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: Hand 51 can throw onto an empty pile after drawing its last card
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: Hand 51 can select several cards for a meld
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: Sarraqa robot takes an available Basra ahead of a partial match
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(320.0, 640.0) and scale1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(390.0, 844.0) and scale1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(640.0, 320.0) and scale1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: a stopped hockey puck stays put without paddle contact
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: the lower paddle can reach a stationary puck near midfield
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: tapping directly on the hockey puck does not displace it
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: a fast paddle swipe strikes a puck crossed between touch events
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: hockey reset waits for contact and a shot keeps its pace
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules forces captures by removing ordinary moves when a capture exists
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules keeps ordinary moves when no capture is available
+✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules continues a capture chain only from the piece that captured
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: host rejects an unsolicited remote shot for its own turn
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: wrong-role future turn cannot block the one legitimate peer reply
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: disconnect is terminal across lifecycle resume and new incoming moves
@@ -106,10 +118,7 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: network pause discards old pointer; release before resume=true
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {tx: 0.2}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: 0.5}
-✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules forces captures by removing ordinary moves when a capture exists
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: 0}
-✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules keeps ordinary moves when no capture is available
-✅ /home/runner/work/gameslocal/gameslocal/test/checkers_move_rules_test.dart: CheckersMoveRules continues a capture chain only from the piece that captured
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {kx: 100}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ky: -10}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {power: -1}
@@ -120,6 +129,7 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ky: true}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {power: []}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {curve: {}}
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(320.0, 640.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {outcome: 42}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {outcome: unknown}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: -1}
@@ -127,35 +137,34 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {tx: -0.117}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {tx: 1.117}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ty: -0.089}
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(390.0, 844.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ty: 1.069}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: valid producer boundary remains accepted {tx: -0.1165, ty: -0.0885, kx: 0.06, ky: 0.08, power: 1.0, curve: -1.0}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: valid producer boundary remains accepted {tx: 1.1165, ty: 1.0685, kx: 0.94, ky: 0.88, power: 1.0, curve: 1.0}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: valid producer boundary remains accepted {tx: 0.1, ty: 0.1, kx: 0.1, ky: 0.12, power: 0.42, curve: 0.0}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: premature peer turn cannot preempt the local opener
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(640.0, 320.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: invalid queued packet cannot block the valid next peer turn
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: real collision thresholds and pass/day scoring remain unchanged
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live host collision stops race at the unchanged contact plane
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: host broadcasts original complete start state
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: finished match rejects all further remote turns
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: client start request and crash mapping retain wire semantics
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: elite keeper discards old suspended drag and accepts a fresh dive
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired short drag preserves the preceding edge aim on the wire
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: actual network painter keeps ball fixed through contact then launches it
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: removing a received animation prevents late score and feedback
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(320.0, 640.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=false / NetworkConnectionKind.local
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(390.0, 844.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=true / NetworkConnectionKind.local
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=false / NetworkConnectionKind.internet
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(640.0, 320.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=true / NetworkConnectionKind.internet
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local local shot is sent at start with no early impact
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: real collision thresholds and pass/day scoring remain unchanged
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live host collision stops race at the unchanged contact plane
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local received shot scores at arrival and reset cancels late work
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: host broadcasts original complete start state
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet local shot is sent at start with no early impact
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet received shot scores at arrival and reset cancels late work
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: client start request and crash mapping retain wire semantics
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(296.0, 446.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local received shot scores at arrival and reset cancels late work
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(366.0, 650.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet local shot is sent at start with no early impact
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(446.0, 248.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet received shot scores at arrival and reset cancels late work
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText shows a concise four-line summary for a red win
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText reports capture advantage for either side and a true tie
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText uses natural Arabic wording for capture differences
@@ -169,12 +178,6 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchEvaluator piece-count normalization treats negative counts as zero when deciding the winner
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: selection feedback preserves haptic-only input even with sound enabled
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: GameFeedback kick haptic is immediate while backend stop is blocked
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: shared QR lobby is large and non-scrollable
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: XO uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: checkers uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: both line games use the shared pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: name animal object uses pregame QR lobby
-✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: game room labels browser QR as a pregame action
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: outcome/match cue cancellation during preparation never resumes audio: Closure: ([GameAudioTheme, GameFeedbackCancellation?]) => Future<void> from Function 'win': static.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: outcome/match cue cancellation during preparation never resumes audio: Closure: ([GameAudioTheme, GameFeedbackCancellation?]) => Future<void> from Function 'lose': static.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: outcome/match cue cancellation during preparation never resumes audio: Closure: ([GameAudioTheme, GameFeedbackCancellation?]) => Future<void> from Function 'error': static.
@@ -182,16 +185,22 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: actual game pause/resume cancels pending audio before it can start
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: pre-cancelled win lose error and outcome cues are silent
 ✅ /home/runner/work/gameslocal/gameslocal/test/game_feedback_integration_test.dart: existing no-token feedback calls still prepare and play audio
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: shared QR lobby is large and non-scrollable
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: XO uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: checkers uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: both line games use the shared pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: name animal object uses pregame QR lobby
+✅ /home/runner/work/gameslocal/gameslocal/test/pregame_qr_all_browser_games_test.dart: game room labels browser QR as a pregame action
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: audio engine exposes a distinct theme for every production game
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: competitive games use distinct win and loss cues
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: LAN rooms use real player names instead of a host placeholder
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: every production game selects its own audio identity
 ✅ /home/runner/work/gameslocal/gameslocal/test/per_game_audio_contract_test.dart: the beard game uses its new public Arabic name everywhere
-✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: friend mode resets bot state and both paddles remain controllable
 ✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet multiplayer reuses the existing game message contract
 ✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: relay validates rooms and has abuse and lifetime limits
 ✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Internet option is exposed without replacing LAN discovery
 ✅ /home/runner/work/gameslocal/gameslocal/test/internet_multiplayer_contract_test.dart: Render blueprint deploys the relay separately from the app
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: friend mode resets bot state and both paddles remain controllable
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: fifth goal still ends the match and resets bot lifetime
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: LAN host publishes the fifth goal with unchanged state payload keys
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_screen_behavior_test.dart: NetworkConnectionKind.local client preserves mirrored score and authoritative state
@@ -212,28 +221,28 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: host start packet, scaled steps, shots, fuel and scoring
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: host sends the final versus result on an odd simulation tick
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: live collision preserves fuel gain, hit score, level, and co-op authority
-✅ /home/runner/work/gameslocal/gameslocal/test/plane_visual_capture_test.dart: live screen renders aircraft and low fuel together
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: selects the player with the lowest remaining points
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: supports tied blocked-round winners
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: rejects a blocked result without players
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_visual_capture_test.dart: live screen renders aircraft and low fuel together
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: all games are listed and the legacy LAN hub retains its rooms
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: robot games consume the shared three-level difficulty
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: LAN core ignores duplicate transported messages
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: name game receives its room directly instead of relying on globals
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(320.0, 640.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(320.0, 640.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: selects the player holding the highest double
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: falls back to the strongest tile when there are no doubles
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects duplicate tiles even when their pip order is reversed
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects empty hands
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_starting_player_test.dart: rejects tiles outside the standard zero-to-six range
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(320.0, 640.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(320.0, 640.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(844.0, 390.0) at text scale 1.3
+✅ /home/runner/work/gameslocal/gameslocal/test/football_actor_visibility_contract_test.dart: professional football scene keeps full player and goalkeeper artwork
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(844.0, 390.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: long Hand51 meld stays inside its table at 320
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: all hand51 face identities are legible including joker
-✅ /home/runner/work/gameslocal/gameslocal/test/football_actor_visibility_contract_test.dart: professional football scene keeps full player and goalkeeper artwork
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_speed_regression_test.dart: the live field caps pixel speed even before any paddle contact
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_lobby_layout_test.dart: landscape lobby and flight view share usable space at 1.3 text
 ✅ /home/runner/work/gameslocal/gameslocal/test/professional_penalty_visual_contract_test.dart: penalty mode uses the cinematic arena and keeps LAN compatibility
@@ -256,7 +265,8 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.hard holds target until its reaction interval
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: BotDifficulty.hard never exceeds pixel speed or acceleration
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: a distant puck returns the robot to a natural defensive position
-✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: attack requires a slow reachable puck inside the attacking half
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: attack requires a slow puck inside the attacking half and intercepts moving shots only when reachable
+✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: the robot approaches a stopped puck on its own side
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: pixel acceleration is independent of field dimensions
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: prediction reflects approaching trajectories with difficulty accuracy
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_bot_controller_test.dart: invalid time does nothing and large time advances at most one safe step
@@ -282,9 +292,9 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: live rotation preserves the same game element and match progress both ways
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: lifecycle pause discards old local pointer; release before resume=false
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: lifecycle pause discards old local pointer; release before resume=true
+✅ /home/runner/work/gameslocal/gameslocal/test/penalty_motion_timeline_test.dart: contact and arrival bound the flight while the actors keep moving
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: restart and removing the actual game widget cancel an active shot safely
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(320.0, 640.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/penalty_motion_timeline_test.dart: contact and arrival bound the flight while the actors keep moving
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(640.0, 320.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_screen_layout_test.dart: actors stay visible above instruction card Size(844.0, 390.0) at text scale 1.3
@@ -299,11 +309,11 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout ends early when trailing side cannot recover
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout continues while trailing side can still recover
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: sudden death waits until both sides have taken the same shots
-✅ /home/runner/work/gameslocal/gameslocal/test/road_visual_capture_test.dart: integrated road raster stays readable all weather and required viewports
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard final mover captures any fully shaded line
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard line score equals number of shaded points
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard uses every complete straight line on all three axes
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard keeps valid two-point edge lines
+✅ /home/runner/work/gameslocal/gameslocal/test/road_visual_capture_test.dart: integrated road raster stays readable all weather and required viewports
 ✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: loads saved gameplay preferences
 ✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: stores a separate robot level for each game
 ✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: clamps invalid saved indexes safely
@@ -314,12 +324,14 @@ Formatted 125 files (0 changed) in 0.29 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/playing_card_scale_regression_test.dart: compact 10 keeps its main identity inside the card at text scale 1.3
 ::endgroup::
 
-🎉 240 tests passed.
+🎉 249 tests passed.
 === ANALYZE ===
 Analyzing gameslocal...                                         
 
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/core/game_definition.dart:44:7 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/core/game_help.dart:1:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_help.dart:74:63 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:3:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:323:54 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:335:38 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:382:35 • deprecated_member_use
@@ -338,17 +350,25 @@ Analyzing gameslocal...
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:996:44 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:1047:53 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/game_room.dart:1061:53 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/core/graphics/retro_pixels.dart:1:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/core/graphics/retro_pixels.dart:20:47 • deprecated_member_use
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:241:44 • curly_braces_in_flow_control_structures
-   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:560:19 • prefer_interpolation_to_compose_strings
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/core/pregame_qr_lobby.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/design/app_theme.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/air_hockey/air_hockey_game.dart:3:1 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:225:44 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/air_hockey/air_hockey_game.dart:338:33 • curly_braces_in_flow_control_structures
+   info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:577:19 • prefer_interpolation_to_compose_strings
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/cards/card_table_viewport.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:6:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:190:52 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:260:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:288:11 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:293:11 • curly_braces_in_flow_control_structures
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:479:61 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:633:38 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:735:61 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:740:38 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:294:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:299:11 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:485:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:639:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:741:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:746:38 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/checkers/checkers_game.dart:481:9 • curly_braces_in_flow_control_structures
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:980:36 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1028:34 • deprecated_member_use
@@ -357,6 +377,7 @@ Analyzing gameslocal...
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1080:33 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1083:48 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:1097:41 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/chess/chess_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:331:45 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:356:11 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:359:11 • curly_braces_in_flow_control_structures
@@ -369,8 +390,12 @@ Analyzing gameslocal...
    info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:437:12 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:448:54 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/chess/chess_game.dart:477:33 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_four_player_game.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_placeholder.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/domino/domino_premium_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_premium_game.dart:253:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/domino/domino_premium_game.dart:296:7 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/elite_penalty_game.dart:423:57 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/elite_penalty_game.dart:438:24 • curly_braces_in_flow_control_structures
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:690:30 • deprecated_member_use
@@ -378,21 +403,28 @@ Analyzing gameslocal...
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:810:28 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:848:30 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game.dart:852:41 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:4:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:993:34 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:1037:32 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:1095:32 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:1152:34 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/elite_penalty_game_v2.dart:1157:45 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_actor_painter.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_shootout_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:139:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:275:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:280:25 • curly_braces_in_flow_control_structures
    info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_shootout_game.dart:404:15 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/penalty_shootout_game.dart:483:25 • curly_braces_in_flow_control_structures
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/penalty_shootout_game.dart:772:47 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/photo_penalty_game_v3.dart:3:1 • deprecated_member_use
 warning • Unused import: 'penalty_shootout_game.dart'. Try removing the import directive • lib/games/football/photo_penalty_game_v3.dart:8:8 • unused_import
 warning • The value of the field '_outcome' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:71:19 • unused_field
 warning • The value of the field '_power' isn't used. Try removing the field, or using it • lib/games/football/photo_penalty_game_v3.dart:74:10 • unused_field
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/football/photo_penalty_game_v3.dart:470:25 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/professional_penalty_scene.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_football_sprite.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:3:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:173:39 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:176:39 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:194:48 • deprecated_member_use
@@ -404,6 +436,7 @@ warning • The value of the field '_power' isn't used. Try removing the field, 
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:380:39 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:410:45 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/realistic_penalty_scene.dart:432:34 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:3:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:333:30 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:346:41 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:347:41 • deprecated_member_use
@@ -430,45 +463,79 @@ warning • The value of the field '_power' isn't used. Try removing the field, 
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:855:25 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:864:32 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/football/stable_penalty_scene.dart:873:43 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/world_class_penalty_game.dart:4:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/football/world_class_penalty_game_v2.dart:5:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/fuel_plane_game.dart:3:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:73:7 • curly_braces_in_flow_control_structures
    info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/fuel_plane/fuel_plane_game.dart:277:15 • prefer_interpolation_to_compose_strings
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/fuel_plane/fuel_plane_game.dart:354:44 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/fuel_plane/plane_scene_painter.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/hand51/hand51_card_face.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/hand51/hand51_card_layout.dart:3:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_card_layout.dart:54:36 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/hand51/hand51_game.dart:5:1 • deprecated_member_use
    info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:50:7 • curly_braces_in_flow_control_structures
    info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:50:37 • curly_braces_in_flow_control_structures
-   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:166:42 • curly_braces_in_flow_control_structures
+   info • Statements in a for should be enclosed in a block. Try wrapping the statement in a block • lib/games/hand51/hand51_game.dart:143:42 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:6:1 • deprecated_member_use
    info • 'value' is deprecated and shouldn't be used. Use component accessors like .r or .g, or toARGB32 for an explicit conversion. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:770:51 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/line_games/line_games.dart:1225:30 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/iphone_web_bridge.dart:148:11 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/name_animal_object/name_animal_object_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:213:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:223:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:320:7 • curly_braces_in_flow_control_structures
    info • Don't use 'BuildContext's across async gaps. Try rewriting the code to not use the 'BuildContext', or guard the use with a 'mounted' check • lib/games/name_animal_object/name_animal_object_game.dart:489:26 • use_build_context_synchronously
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/name_animal_object/name_animal_object_game.dart:594:7 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/retro_road_game.dart:3:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:68:7 • curly_braces_in_flow_control_structures
    info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:207:19 • prefer_interpolation_to_compose_strings
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:213:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/retro_road/retro_road_game.dart:289:44 • curly_braces_in_flow_control_structures
    info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/retro_road/retro_road_game.dart:354:21 • prefer_interpolation_to_compose_strings
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/retro_road/road_scene_painter.dart:2:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/xo/xo_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/xo/xo_game.dart:138:7 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/xo/xo_game.dart:227:23 • curly_braces_in_flow_control_structures
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/xo/xo_game.dart:406:36 • curly_braces_in_flow_control_structures
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:1:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:373:35 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:375:54 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:405:60 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/lan/screens/lan_home_screen.dart:462:43 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:754:35 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:756:54 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:791:33 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:961:56 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:966:42 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:981:45 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:984:47 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:1059:38 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/main.dart:1:1 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:755:35 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:757:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:792:33 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:962:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:967:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:982:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:985:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/main.dart:1060:38 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:1:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/network/wifi_lobby_screen.dart:66:50 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/settings/settings_screen.dart:1:1 • deprecated_member_use
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/settings/settings_screen.dart:438:37 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/card_readability_test.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/card_screen_layout_test.dart:4:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/followup_gameplay_test.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/hockey_field_layout_test.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/hockey_physics_test.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/hockey_screen_behavior_test.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/hockey_speed_regression_test.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/penalty_actor_geometry_test.dart:2:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/penalty_network_behavior_test.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/penalty_screen_layout_test.dart:2:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/plane_lobby_layout_test.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/plane_painter_behavior_test.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/plane_screen_behavior_test.dart:3:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/plane_visual_capture_test.dart:4:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/playing_card_scale_regression_test.dart:1:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/road_painter_behavior_test.dart:2:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/road_screen_behavior_test.dart:2:1 • deprecated_member_use
+   info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • test/road_visual_capture_test.dart:3:1 • deprecated_member_use
 
-149 issues found. (ran in 7.8s)
+206 issues found. (ran in 7.2s)
 === BUILD APK ===
 Using production relay URL compiled into the app.
 Running Gradle task 'assembleRelease'...                        
@@ -565,6 +632,7 @@ Loading local repository...
 [=======================================] 100% Unzipping... android-ndk-r28c/CHA
 
 Font asset "MaterialIcons-Regular.otf" was tree-shaken, reducing it from 1645184 to 15664 bytes (99.0% reduction). Tree-shaking can be disabled by providing the --no-tree-shake-icons flag when building your app.
+Caught exception: Already watching path: /opt/hostedtoolcache/flutter/stable-3.50.0-x64/flutter/packages/flutter_tools/gradle
 Checking the license for package CMake 3.22.1 in /usr/local/lib/android/sdk/licenses
 License for package CMake 3.22.1 accepted.
 Preparing "Install CMake 3.22.1 v.3.22.1".
@@ -572,9 +640,8 @@ Preparing "Install CMake 3.22.1 v.3.22.1".
 Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
-Caught exception: Already watching path: /home/runner/work/gameslocal/gameslocal/android
-Running Gradle task 'assembleRelease'...                          247.1s
-✓ Built build/app/outputs/flutter-apk/app-release.apk (58.7MB)
+Running Gradle task 'assembleRelease'...                          279.8s
+✓ Built build/app/outputs/flutter-apk/app-release.apk (57.9MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
 PUB_CODE=0
