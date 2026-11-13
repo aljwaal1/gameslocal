@@ -1,5 +1,5 @@
-COMMIT=38d28e471cf519ce74255ac9d0a0daa43a6ccf15
-RUN_ID=43343832377
+COMMIT=da92433f7100c5f6a9ea5407662edcc55ff651be
+RUN_ID=43356971818
 === CREATE ANDROID ===
 Recreating project ....
   analysis_options.yaml (created)
@@ -69,7 +69,7 @@ Changed 4 dependencies!
 16 packages have newer versions incompatible with dependency constraints.
 Try `flutter pub outdated` for more information.
 === FORMAT ===
-Formatted 126 files (0 changed) in 0.53 seconds.
+Formatted 126 files (0 changed) in 0.42 seconds.
 === TEST ===
 
 ::group::✅ Passing tests
@@ -84,9 +84,9 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_scene_geometry_test.dart: bank is symmetric, monotonic and capped for a large drag
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_local_behavior_test.dart: paused game rejects shooting and keeper input before resume
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_local_behavior_test.dart: actual game contacts once, scores at arrival, and completes landing
+✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: home keeps the responsive premium navigation contract
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_local_behavior_test.dart: pause/resume cancels active shot without late cues or score
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_local_behavior_test.dart: removal cancels active shot without late cues or score
-✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: home keeps the responsive premium navigation contract
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: LAN shortcut routes into the production GameRoom flow
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: game room exposes offline, difficulty, LAN, Internet and retry choices
 ✅ /home/runner/work/gameslocal/gameslocal/test/navigation_quality_contract_test.dart: settings no longer exposes unfinished-product messaging
@@ -98,6 +98,9 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/audio_feedback_behavior_test.dart: football routes haptics through GameFeedback only
 ✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: Hand 51 can throw onto an empty pile after drawing its last card
 ✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: Hand 51 can select several cards for a meld
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: playing a Jack collects every rank on the Sarraqa floor
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: an exposed Jack and its entire last collection can be stolen
+✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: a newer collection covers the previous Jack collection
 ✅ /home/runner/work/gameslocal/gameslocal/test/followup_gameplay_test.dart: Sarraqa robot takes an available Basra ahead of a partial match
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(320.0, 640.0) and scale1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_field_layout_test.dart: actual hockey field contains complete paddles at Size(390.0, 844.0) and scale1.3
@@ -129,28 +132,28 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ky: true}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {power: []}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {curve: {}}
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(320.0, 640.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {outcome: 42}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {outcome: unknown}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: -1}
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(320.0, 640.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {turn: Infinity}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {tx: -0.117}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {tx: 1.117}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ty: -0.089}
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(390.0, 844.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: malformed network shot is ignored without cast or paint exceptions {ty: 1.069}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: valid producer boundary remains accepted {tx: -0.1165, ty: -0.0885, kx: 0.06, ky: 0.08, power: 1.0, curve: -1.0}
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(390.0, 844.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: valid producer boundary remains accepted {tx: 1.1165, ty: 1.0685, kx: 0.94, ky: 0.88, power: 1.0, curve: 1.0}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: valid producer boundary remains accepted {tx: 0.1, ty: 0.1, kx: 0.1, ky: 0.12, power: 0.42, curve: 0.0}
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: premature peer turn cannot preempt the local opener
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(640.0, 320.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: invalid queued packet cannot block the valid next peer turn
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live field and HUD remain usable all weather at Size(640.0, 320.0) scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: real collision thresholds and pass/day scoring remain unchanged
 ✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: live host collision stops race at the unchanged contact plane
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: host broadcasts original complete start state
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: finished match rejects all further remote turns
-✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: client start request and crash mapping retain wire semantics
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: host broadcasts original complete start state
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: elite keeper discards old suspended drag and accepts a fresh dive
+✅ /home/runner/work/gameslocal/gameslocal/test/road_screen_behavior_test.dart: client start request and crash mapping retain wire semantics
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired short drag preserves the preceding edge aim on the wire
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: actual network painter keeps ball fixed through contact then launches it
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: removing a received animation prevents late score and feedback
@@ -159,10 +162,10 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=false / NetworkConnectionKind.internet
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: paired peers preserve turn across pause, incoming-before-resume=true / NetworkConnectionKind.internet
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local local shot is sent at start with no early impact
-✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(296.0, 446.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.local received shot scores at arrival and reset cancels late work
-✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(366.0, 650.0)
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(296.0, 446.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet local shot is sent at start with no early impact
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(366.0, 650.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_painter_behavior_test.dart: aerial canvas and distinct aircraft render at Size(446.0, 248.0)
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_network_behavior_test.dart: NetworkConnectionKind.internet received shot scores at arrival and reset cancels late work
 ✅ /home/runner/work/gameslocal/gameslocal/test/checkers_match_status_test.dart: CheckersMatchStatus resultText shows a concise four-line summary for a red win
@@ -221,10 +224,10 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: host start packet, scaled steps, shots, fuel and scoring
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: host sends the final versus result on an odd simulation tick
 ✅ /home/runner/work/gameslocal/gameslocal/test/plane_screen_behavior_test.dart: live collision preserves fuel gain, hit score, level, and co-op authority
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_visual_capture_test.dart: live screen renders aircraft and low fuel together
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: selects the player with the lowest remaining points
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: supports tied blocked-round winners
 ✅ /home/runner/work/gameslocal/gameslocal/test/domino_blocked_result_test.dart: rejects a blocked result without players
-✅ /home/runner/work/gameslocal/gameslocal/test/plane_visual_capture_test.dart: live screen renders aircraft and low fuel together
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: all games are listed and the legacy LAN hub retains its rooms
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: robot games consume the shared three-level difficulty
 ✅ /home/runner/work/gameslocal/gameslocal/test/all_games_modes_contract_test.dart: LAN core ignores duplicate transported messages
@@ -238,14 +241,14 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(320.0, 640.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(390.0, 844.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(390.0, 844.0) at text scale 1.3
-✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(844.0, 390.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/football_actor_visibility_contract_test.dart: professional football scene keeps full player and goalkeeper artwork
+✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: cards fits Size(844.0, 390.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: hand51 fits Size(844.0, 390.0) at text scale 1.3
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: long Hand51 meld stays inside its table at 320
 ✅ /home/runner/work/gameslocal/gameslocal/test/card_screen_layout_test.dart: all hand51 face identities are legible including joker
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_speed_regression_test.dart: the live field caps pixel speed even before any paddle contact
-✅ /home/runner/work/gameslocal/gameslocal/test/plane_lobby_layout_test.dart: landscape lobby and flight view share usable space at 1.3 text
 ✅ /home/runner/work/gameslocal/gameslocal/test/professional_penalty_visual_contract_test.dart: penalty mode uses the cinematic arena and keeps LAN compatibility
+✅ /home/runner/work/gameslocal/gameslocal/test/plane_lobby_layout_test.dart: landscape lobby and flight view share usable space at 1.3 text
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: stationary paddle returns 90 percent of normal speed without tangential gain
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: moving paddle transfers only 65 percent of its normal speed
 ✅ /home/runner/work/gameslocal/gameslocal/test/hockey_collision_behavior_test.dart: separating and repeated contacts never inject another impulse
@@ -309,11 +312,11 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout ends early when trailing side cannot recover
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: shootout continues while trailing side can still recover
 ✅ /home/runner/work/gameslocal/gameslocal/test/penalty_rules_test.dart: sudden death waits until both sides have taken the same shots
+✅ /home/runner/work/gameslocal/gameslocal/test/road_visual_capture_test.dart: integrated road raster stays readable all weather and required viewports
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard final mover captures any fully shaded line
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard line score equals number of shaded points
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard uses every complete straight line on all three axes
 ✅ /home/runner/work/gameslocal/gameslocal/test/sheikh_beard_scoring_contract_test.dart: Sheikh Beard keeps valid two-point edge lines
-✅ /home/runner/work/gameslocal/gameslocal/test/road_visual_capture_test.dart: integrated road raster stays readable all weather and required viewports
 ✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: loads saved gameplay preferences
 ✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: stores a separate robot level for each game
 ✅ /home/runner/work/gameslocal/gameslocal/test/app_settings_test.dart: clamps invalid saved indexes safely
@@ -324,7 +327,7 @@ Formatted 126 files (0 changed) in 0.53 seconds.
 ✅ /home/runner/work/gameslocal/gameslocal/test/playing_card_scale_regression_test.dart: compact 10 keeps its main identity inside the card at text scale 1.3
 ::endgroup::
 
-🎉 249 tests passed.
+🎉 252 tests passed.
 === ANALYZE ===
 Analyzing gameslocal...                                         
 
@@ -360,14 +363,14 @@ Analyzing gameslocal...
    info • Use interpolation to compose strings and values. Try using string interpolation to build the composite string • lib/games/air_hockey/air_hockey_game.dart:577:19 • prefer_interpolation_to_compose_strings
    info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/cards/card_table_viewport.dart:3:1 • deprecated_member_use
    info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:6:1 • deprecated_member_use
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:190:52 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:260:7 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:294:11 • curly_braces_in_flow_control_structures
-   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:299:11 • curly_braces_in_flow_control_structures
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:485:61 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:639:38 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:741:61 • deprecated_member_use
-   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:746:38 • deprecated_member_use
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:204:52 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:274:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:305:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/cards/cards_game.dart:310:11 • curly_braces_in_flow_control_structures
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:508:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:684:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:786:61 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/cards/cards_game.dart:791:38 • deprecated_member_use
    info • 'package:flutter/material.dart' is deprecated and shouldn't be used. Use package:material_ui/material_ui.dart instead. This feature was deprecated after v3.47.0-0.0.pre. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:4:1 • deprecated_member_use
    info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/games/checkers/checkers_game.dart:481:9 • curly_braces_in_flow_control_structures
    info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement • lib/games/checkers/checkers_game.dart:980:36 • deprecated_member_use
@@ -640,7 +643,7 @@ Preparing "Install CMake 3.22.1 v.3.22.1".
 Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
 "Install CMake 3.22.1 v.3.22.1" complete.
 "Install CMake 3.22.1 v.3.22.1" finished.
-Running Gradle task 'assembleRelease'...                          279.8s
+Running Gradle task 'assembleRelease'...                          278.5s
 ✓ Built build/app/outputs/flutter-apk/app-release.apk (57.9MB)
 CREATE_CODE=0
 MANIFEST_CODE=0
