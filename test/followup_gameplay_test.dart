@@ -74,6 +74,28 @@ void main() {
     expect(state.picks, hasLength(2));
   });
 
+  testWidgets('playing a Jack collects every rank on the Sarraqa floor',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CardsGameScreen()));
+    final dynamic state = tester.state(find.byType(CardsGameScreen));
+    const jack = PlayingCardModel(rank: 'J', suit: '♥');
+    const seven = PlayingCardModel(rank: '7', suit: '♣');
+    const queen = PlayingCardModel(rank: 'Q', suit: '♦');
+    const otherJack = PlayingCardModel(rank: 'J', suit: '♠');
+    state.playerHand = <PlayingCardModel>[jack];
+    state.table = <PlayingCardModel>[seven, queen];
+    state.botPile = <PlayingCardModel>[];
+    expect(state.canCaptureOrSteal(jack), isTrue);
+    state.botPile.add(otherJack);
+    state.playPlayerCard(jack);
+    expect(state.table, isEmpty);
+    expect(state.playerPile, [jack, seven, queen]);
+    expect(state.botPile, [otherJack]);
+    expect(state.playerScore, 31);
+    expect(state.playerBasra, 1);
+    await tester.pump(const Duration(milliseconds: 550));
+  });
+
   testWidgets('Sarraqa robot takes an available Basra ahead of a partial match',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: CardsGameScreen()));

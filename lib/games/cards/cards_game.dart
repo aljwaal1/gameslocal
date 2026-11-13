@@ -276,13 +276,10 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   PlayingCardModel? chooseBotCard() {
     if (botHand.isEmpty) return null;
 
-    final tablePlayable = botHand
-        .where((card) => table.any((t) => t.value == card.value))
-        .toList();
-    // A matching play on a single-rank floor clears it and earns Basra.
-    if (tablePlayable.isNotEmpty &&
-        table.every((card) => card.value == table.first.value)) {
-      return tablePlayable.first;
+    final tablePlayable =
+        botHand.where((card) => table.any(_floorMatchFor(card))).toList();
+    for (final card in tablePlayable) {
+      if (table.every(_floorMatchFor(card))) return card;
     }
     final stealPlayable = botHand
         .where((card) => playerPile.any((p) => p.value == card.value))
@@ -311,6 +308,9 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     }
   }
 
+  bool Function(PlayingCardModel) _floorMatchFor(PlayingCardModel played) =>
+      (floorCard) => played.rank == 'J' || floorCard.value == played.value;
+
   int scorePotential(PlayingCardModel card, List<PlayingCardModel> source) {
     final matches = source.where((x) => x.value == card.value).toList();
     return card.scoreValue + scoreOfCards(matches);
@@ -325,11 +325,12 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   }) {
     hand.remove(card);
 
-    final tableMatches = table.where((t) => t.value == card.value).toList();
+    final floorMatch = _floorMatchFor(card);
+    final tableMatches = table.where(floorMatch).toList();
     if (tableMatches.isNotEmpty) {
       ownPile.add(card);
       ownPile.addAll(tableMatches);
-      table.removeWhere((t) => t.value == card.value);
+      table.removeWhere(floorMatch);
       lastCollector = isPlayer ? LastCollector.player : LastCollector.bot;
 
       final gained = card.scoreValue + scoreOfCards(tableMatches);
@@ -423,8 +424,9 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   }
 
   bool canCaptureOrSteal(PlayingCardModel card) {
-    return table.any((t) => t.value == card.value) ||
-        botPile.any((p) => p.value == card.value);
+    final opponentPile = isNetworkGame && !isHost ? playerPile : botPile;
+    return table.any(_floorMatchFor(card)) ||
+        opponentPile.any((p) => p.value == card.value);
   }
 
   Color get tableColor {
