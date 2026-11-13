@@ -86,44 +86,21 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
     setState(() => message = 'أخذت آخر ورقة مرمية');
   }
 
-  void toggle(_C c) {
-    if (!myTurn || !drew || finished) return;
-    setState(() => selected.add(c.id) ? null : selected.remove(c.id));
-  }
-
   List<_C> get picks => me.where((c) => selected.contains(c.id)).toList();
 
   void _selectHandCard(int index) {
     if (!myTurn || !drew || finished || index < 0 || index >= me.length) return;
     final card = me[index];
     setState(() {
-      if (selected.contains(card.id)) {
-        selected.remove(card.id);
-      } else {
-        selected
-          ..clear()
-          ..add(card.id);
-      }
-      message = selected.contains(card.id)
-          ? 'محددة للرمي: ${card.label}${card.joker ? ' ★' : ' ${card.suit}'}'
-          : 'اختر ورقة للرمي أو مجموعة للنزول';
+      if (!selected.add(card.id)) selected.remove(card.id);
+      final chosen = picks;
+      message = switch (chosen.length) {
+        0 => 'اختر ورقة للرمي أو مجموعة للنزول',
+        1 => 'محددة للرمي: ${chosen.single.label} ${chosen.single.suit}',
+        _ => '${chosen.length} أوراق محددة للنزول • للرمي اختر ورقة واحدة',
+      };
     });
     GameFeedback.tap(GameAudioTheme.cards);
-  }
-
-  void _discardSelectedFromPile() {
-    if (!myTurn || !drew || finished) return;
-    if (pendingOpening.isNotEmpty) {
-      GameFeedback.error(GameAudioTheme.cards);
-      setState(() => message = 'أكد أو ألغِ مجموعات الفتح قبل رمي ورقة');
-      return;
-    }
-    if (picks.length != 1) {
-      GameFeedback.error(GameAudioTheme.cards);
-      setState(() => message = 'اختر ورقة واحدة فقط ثم ارمِها');
-      return;
-    }
-    throwSelected();
   }
 
   int get pendingOpeningPoints =>
@@ -543,11 +520,11 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
                           deckButton('الرزمة\n${deck.length}', drawDeck),
                           const SizedBox(width: 12),
                           InkWell(
-                            onTap: () => drew
-                                ? _discardSelectedFromPile()
-                                : drawDiscard(),
+                            onTap: myTurn && !finished
+                                ? (drew ? throwSelected : drawDiscard)
+                                : null,
                             child: top == null
-                                ? deckButton('الرمي', drawDiscard)
+                                ? deckSlot('الرمي')
                                 : Stack(alignment: Alignment.center, children: [
                                     card(top, small: true),
                                     if (drew && picks.length == 1)
@@ -656,8 +633,13 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                       child: FilledButton.tonalIcon(
-                          onPressed:
-                              myTurn && drew ? _discardSelectedFromPile : null,
+                          onPressed: myTurn &&
+                                  drew &&
+                                  picks.length == 1 &&
+                                  pendingOpening.isEmpty &&
+                                  !finished
+                              ? throwSelected
+                              : null,
                           style: FilledButton.styleFrom(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 8),
@@ -667,7 +649,7 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
                           label: Text(
                               picks.length == 1
                                   ? 'ارمِ ${picks.first.label}${picks.first.joker ? ' ★' : ' ${picks.first.suit}'}'
-                                  : 'ورقة للرمي',
+                                  : 'اختر ورقة للرمي',
                               maxLines: 2,
                               textAlign: TextAlign.center)))
                 ]),
@@ -722,20 +704,21 @@ class _Hand51GameScreenState extends State<Hand51GameScreen> {
                 fontWeight: FontWeight.w900)),
         Text(a, style: const TextStyle(color: Colors.white60, fontSize: 10))
       ]));
-  Widget deckButton(String t, VoidCallback f) => InkWell(
-      onTap: f,
-      child: Container(
-          width: 62,
-          height: 82,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-              color: const Color(0xFF173D31),
-              borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: Colors.white24)),
-          child: Text(t,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w800))));
+  Widget deckButton(String t, VoidCallback f) =>
+      InkWell(onTap: f, child: deckSlot(t));
+
+  Widget deckSlot(String t) => Container(
+      width: 62,
+      height: 82,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+          color: const Color(0xFF173D31),
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: Colors.white24)),
+      child: Text(t,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w800)));
   Widget backCard({bool small = false}) => Container(
         width: small ? 20 : 46,
         height: small ? 30 : 70,

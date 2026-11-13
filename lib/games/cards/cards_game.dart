@@ -261,15 +261,16 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   }
 
   void botMove() {
-    if (roundFinished) return;
+    if (!mounted || roundFinished) return;
     final chosen = chooseBotCard();
     if (chosen != null) {
       playCard(chosen, botHand, botPile, playerPile, isPlayer: false);
     }
     if (checkRoundEnd()) return;
-    playerTurn = true;
-    message = 'دورك: اختر ورقة متشابهة للالتقاط أو السرقة';
-    setState(() {});
+    setState(() {
+      playerTurn = true;
+      message = '$message • دورك';
+    });
   }
 
   PlayingCardModel? chooseBotCard() {
@@ -278,6 +279,11 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     final tablePlayable = botHand
         .where((card) => table.any((t) => t.value == card.value))
         .toList();
+    // A matching play on a single-rank floor clears it and earns Basra.
+    if (tablePlayable.isNotEmpty &&
+        table.every((card) => card.value == table.first.value)) {
+      return tablePlayable.first;
+    }
     final stealPlayable = botHand
         .where((card) => playerPile.any((p) => p.value == card.value))
         .toList();

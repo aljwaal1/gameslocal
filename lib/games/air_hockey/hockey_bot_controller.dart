@@ -128,12 +128,14 @@ class HockeyBotController {
     if (remaining <= 1e-10) {
       remaining = profile.reactionInterval;
       decisions++;
-      final nearby = (puckPosition - state.position).distance <=
-          profile.maxSpeed * profile.attackReachSeconds;
+      final speed = puckVelocity.distance;
+      final nearby = speed < 15 ||
+          (puckPosition - state.position).distance <=
+              profile.maxSpeed * profile.attackReachSeconds;
       attacking = puckPosition.dy >= bounds.top &&
           puckPosition.dy <= bounds.bottom &&
           nearby &&
-          puckVelocity.distance <= profile.attackSpeedLimit;
+          speed <= profile.attackSpeedLimit;
       if (puckPosition.dy > field.height * .64) {
         target = defense;
       } else {

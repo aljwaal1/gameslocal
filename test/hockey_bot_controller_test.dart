@@ -112,7 +112,9 @@ void main() {
     }
     expect((state.position - const Offset(180, 115.2)).distance, lessThan(1));
   });
-  test('attack requires a slow reachable puck inside the attacking half', () {
+  test(
+      'attack requires a slow puck inside the attacking half and intercepts moving shots only when reachable',
+      () {
     final bot = HockeyBotController(
       HockeyBotProfile.forDifficulty(BotDifficulty.normal),
     );
@@ -131,8 +133,26 @@ void main() {
       decide(const Offset(180, 180), const Offset(800, 0)).attacking,
       isFalse,
     );
-    expect(decide(const Offset(320, 300), Offset.zero).attacking, isFalse);
+    expect(decide(const Offset(320, 300), const Offset(30, 20)).attacking,
+        isFalse);
     expect(decide(const Offset(180, 500), Offset.zero).attacking, isFalse);
+  });
+  test('the robot approaches a stopped puck on its own side', () {
+    final bot = HockeyBotController(profiles.first);
+    final puck = Offset(field.width / 2, field.height * .39);
+    var state =
+        HockeyBotState.initial(Offset(field.width / 2, field.height * .16));
+    for (var frame = 0; frame < 180; frame++) {
+      state = bot.step(
+        state: state,
+        puckPosition: puck,
+        puckVelocity: Offset.zero,
+        field: field,
+        dt: .016,
+      );
+      if ((puck - state.position).distance < field.width * .10) break;
+    }
+    expect((puck - state.position).distance, lessThan(field.width * .10));
   });
   test('pixel acceleration is independent of field dimensions', () {
     final bot = HockeyBotController(

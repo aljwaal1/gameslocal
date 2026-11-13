@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 class HockeyGeometry {
@@ -63,6 +65,27 @@ class HockeyPhysics {
       position: position + safeVelocity * elapsed,
       velocity: safeVelocity
     );
+  }
+
+  /// Finds the first overlap along a paddle swipe, including swipes whose
+  /// endpoints are both outside the puck's contact radius.
+  static double? paddleContactTime({
+    required Offset start,
+    required Offset motion,
+    required Offset puck,
+    required double radius,
+  }) {
+    final delta = start - puck;
+    final distance = motion.distanceSquared;
+    final approach = _dot(delta, motion);
+    if (distance == 0 || approach >= 0) return null;
+    final edge = delta.distanceSquared - radius * radius;
+    if (edge <= 0) return 0;
+    final discriminant = approach * approach - distance * edge;
+    if (discriminant <= 0) return null;
+    // Step a fraction of a pixel into contact to avoid rounding off the edge.
+    final time = (-approach - math.sqrt(discriminant)) / distance;
+    return time > 1 ? null : math.min(1.0, time + .01 / math.sqrt(distance));
   }
 
   static HockeyCollisionResult resolvePaddleCollision({

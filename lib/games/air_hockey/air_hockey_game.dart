@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../../core/audio_feedback.dart';
 import '../../core/app_settings.dart';
 import '../../core/network/local_network_core.dart';
@@ -17,17 +18,16 @@ class AirHockeyGameScreen extends StatefulWidget {
 
 class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController clock;
+  late final Ticker clock;
   final settings = AppSettingsController.instance;
-  final Stopwatch physicsClock = Stopwatch();
   final Map<int, _PointerSample> pointerSamples = {};
   final Map<int, bool> pointerLower = {};
 
-  Offset puck = const Offset(.5, .5), velocity = const Offset(.24, .34);
+  Offset puck = const Offset(.5, .5), velocity = Offset.zero;
   Offset bottom = const Offset(.5, .84), top = const Offset(.5, .16);
   Offset bottomVelocity = Offset.zero, topVelocity = Offset.zero;
-  int bottomScore = 0, topScore = 0, lastMicros = 0;
-  double slowTime = 0;
+  int bottomScore = 0, topScore = 0;
+  int? lastMicros;
   bool botMode = true,
       playing = true,
       bottomContact = false,
@@ -66,38 +66,30 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
       botMode = false;
       networkSub = widget.networkCore!.messages.listen(_onNetworkMessage);
     }
-    physicsClock.start();
-    clock =
-        AnimationController(vsync: this, duration: const Duration(seconds: 1))
-          ..addListener(_tick)
-          ..repeat();
+    clock = createTicker(_tick)..start();
   }
 
   @override
   void dispose() {
     networkSub?.cancel();
     clock.dispose();
-    physicsClock.stop();
     super.dispose();
   }
 
   Offset _limit(Offset v, double max) =>
       v.distance > max ? v / v.distance * max : v;
 
-  void _tick() {
-    if (!mounted || !playing) return;
-    if (isNetworkGame && !isHost) return;
-    final now = physicsClock.elapsedMicroseconds;
-    if (lastMicros == 0) {
-      lastMicros = now;
-      return;
-    }
-    final dt = ((now - lastMicros) / 1000000).clamp(.001, .034).toDouble();
+  void _tick(Duration elapsed) {
+    if (!mounted || !playing || (isNetworkGame && !isHost)) return;
+    final now = elapsed.inMicroseconds;
+    final previous = lastMicros;
     lastMicros = now;
+    if (previous == null || now <= previous) return;
+    final dt = min((now - previous) / 1000000, .034);
     final advanced = HockeyPhysics.advancePuck(
         position: _pixels(puck), velocity: _pixels(velocity), dt: dt);
     var p = _normalized(advanced.position);
-    var v = _normalized(advanced.velocity * pow(.985, dt * 60).toDouble());
+    var v = _normalized(advanced.velocity * pow(.997, dt * 60).toDouble());
 
     if (botMode) {
       final difficulty = settings.botDifficultyFor('air_hockey');
@@ -158,8 +150,10 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     p = upper.position;
     v = upper.velocity;
     topContact = upper.contact;
-    bottomVelocity *= pow(.08, dt).toDouble();
-    if (!botMode) topVelocity *= pow(.08, dt).toDouble();
+    // Apply human input from this frame once. An idle paddle cannot carry
+    // momentum from an older gesture or network packet.
+    bottomVelocity = Offset.zero;
+    if (!botMode) topVelocity = Offset.zero;
 
     if (p.dy < -.05 && inGoal) {
       bottomScore++;
@@ -172,16 +166,6 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
       return;
     }
 
-    if (v.distance < .075) {
-      slowTime += dt;
-    } else {
-      slowTime = 0;
-    }
-    if (slowTime > .85) {
-      final dir = p.dy < .5 ? 1.0 : -1.0;
-      v = Offset((.5 - p.dx) * .45, dir * .30);
-      slowTime = 0;
-    }
     setState(() {
       puck = p;
       velocity = _limitPuck(v);
@@ -243,10 +227,11 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     if (action == 'hockey_control' && isHost) {
       final x = (m.payload['x'] as num?)?.toDouble();
       final y = (m.payload['y'] as num?)?.toDouble();
-      if (x == null || y == null) return;
+      if (x == null || y == null || !x.isFinite || !y.isFinite) return;
       final old = top;
-      top = Offset(x.clamp(.10, .90), (1 - y).clamp(.08, .44));
-      topVelocity = (top - old) * 18;
+      top = _paddlePosition(Offset(x.clamp(.10, .90), 1 - y), false);
+      topVelocity = _normalized(_limit(_pixels(top - old) * 30, 1350));
+      _sweepPaddle(old, top, topVelocity, false);
       setState(() {});
       return;
     }
@@ -299,11 +284,12 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     });
     if (bottomScore >= 5 || topScore >= 5) playing = false;
     setState(() {
-      puck = const Offset(.5, .5);
-      velocity = Offset((Random().nextDouble() - .5) * .32, human ? .34 : -.34);
+      puck = Offset(.5, human ? .35 : .65);
+      velocity = Offset.zero;
+      bottomVelocity = Offset.zero;
+      topVelocity = Offset.zero;
       bottomContact = false;
       topContact = false;
-      slowTime = 0;
       _resetBot();
     });
     // The fifth goal stops ticking, so broadcast it before the next frame.
@@ -321,15 +307,14 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
       topScore = 0;
       playing = true;
       puck = const Offset(.5, .5);
-      velocity = const Offset(.24, .34);
+      velocity = Offset.zero;
       bottom = const Offset(.5, .84);
       top = const Offset(.5, .16);
       bottomVelocity = Offset.zero;
       topVelocity = Offset.zero;
       bottomContact = false;
       topContact = false;
-      slowTime = 0;
-      lastMicros = physicsClock.elapsedMicroseconds;
+      lastMicros = null;
       pointerSamples.clear();
       pointerLower.clear();
       _resetBot();
@@ -345,12 +330,17 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
     if (isNetworkGame && !lower) return;
     if (!lower && botMode) return;
     pointerLower[e.pointer] = lower;
-    pointerSamples[e.pointer] = _PointerSample(pos, e.timeStamp);
+    final next = _paddlePosition(pos, lower);
+    pointerSamples[e.pointer] = _PointerSample(next, e.timeStamp);
+    // Tapping can reposition a paddle in free space, but it must not teleport
+    // into the puck and displace it through overlap correction.
+    if (HockeyGeometry.pixelDelta(next, puck, fieldSize).distance <
+        fieldSize.width * .108) return;
     if (lower) {
-      bottom = Offset(pos.dx, pos.dy.clamp(.56, .92));
+      bottom = next;
       bottomVelocity = Offset.zero;
     } else {
-      top = Offset(pos.dx, pos.dy.clamp(.08, .44));
+      top = next;
       topVelocity = Offset.zero;
     }
     setState(() {});
@@ -359,29 +349,56 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
   void _move(PointerMoveEvent e, BoxConstraints c) {
     final lower = pointerLower[e.pointer], sample = pointerSamples[e.pointer];
     if (lower == null || sample == null) return;
-    final raw = _norm(e, c);
-    final next = lower
-        ? Offset(raw.dx, raw.dy.clamp(.56, .92))
-        : Offset(raw.dx, raw.dy.clamp(.08, .44));
-    final dt = (e.timeStamp - sample.time).inMicroseconds / 1000000;
-    if (dt <= 0) return;
-    final instant = _limit((next - sample.position) / dt, 3.2);
+    final next = _paddlePosition(_norm(e, c), lower);
+    final dt = max((e.timeStamp - sample.time).inMicroseconds / 1000000, .001);
+    final instant =
+        _normalized(_limit(_pixels(next - sample.position) / dt, 1350));
     if (lower) {
       bottomVelocity = bottomVelocity * .28 + instant * .72;
-      bottom = next;
-      if (isNetworkGame && !isHost) {
-        widget.networkCore?.sendMove(<String, dynamic>{
-          'action': 'hockey_control',
-          'x': bottom.dx,
-          'y': bottom.dy
-        }, senderId: localPlayerId);
+      if (!isNetworkGame || isHost) {
+        _sweepPaddle(bottom, next, bottomVelocity, true);
       }
+      bottom = next;
+      _sendGuestPaddle();
     } else {
       topVelocity = topVelocity * .28 + instant * .72;
+      _sweepPaddle(top, next, topVelocity, false);
       top = next;
     }
     pointerSamples[e.pointer] = _PointerSample(next, e.timeStamp);
     setState(() {});
+  }
+
+  void _sweepPaddle(Offset from, Offset to, Offset speed, bool lower) {
+    if (!playing || (lower ? bottomContact : topContact)) return;
+    final start = _pixels(from);
+    final motion = _pixels(to - from);
+    final puckPosition = _pixels(puck);
+    final radius = fieldSize.width * .108;
+    final time = HockeyPhysics.paddleContactTime(
+        start: start, motion: motion, puck: puckPosition, radius: radius);
+    if (time == null) return;
+    final hit = _collide(
+        _normalized(start + motion * time), puck, speed, false, velocity);
+    puck = hit.position;
+    velocity = hit.velocity;
+    if (lower) {
+      bottomContact = hit.contact;
+    } else {
+      topContact = hit.contact;
+    }
+  }
+
+  Offset _paddlePosition(Offset pos, bool lower) =>
+      Offset(pos.dx, lower ? pos.dy.clamp(.51, .92) : pos.dy.clamp(.08, .49));
+
+  void _sendGuestPaddle() {
+    if (!isNetworkGame || isHost) return;
+    widget.networkCore?.sendMove(<String, dynamic>{
+      'action': 'hockey_control',
+      'x': bottom.dx,
+      'y': bottom.dy,
+    }, senderId: localPlayerId);
   }
 
   void _up(PointerEvent e) {
@@ -495,7 +512,7 @@ class _AirHockeyGameScreenState extends State<AirHockeyGameScreen>
   @override
   Widget build(BuildContext context) {
     final subtitle = playing
-        ? 'الأول الذي يسجل 5 أهداف يفوز'
+        ? 'حرّك المضرب واضرب القرص • الفوز بـ5 أهداف'
         : (bottomScore > topScore
             ? 'فاز اللاعب 1 🎉'
             : 'فاز ${botMode ? 'الروبوت' : 'اللاعب 2'} 🎉');

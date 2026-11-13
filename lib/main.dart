@@ -154,7 +154,8 @@ class HomeScreen extends StatelessWidget {
       instructions: GameInstructions(
         objective: 'اجمع الأوراق المتشابهة وحقق نقاطًا أكثر.',
         controls: 'اضغط ورقة من يدك للعبها أو التقاط المتشابه من الأرض.',
-        keyRule: 'تنظيف الأرض يحقق بسرا، والأوراق المتبقية تذهب لآخر جامع.',
+        keyRule:
+            'تلتقط كل الأوراق المطابقة فقط. إذا فرغت الأرض تحصل على بسرا، والأوراق المتبقية في نهاية الجولة تذهب لآخر جامع.',
       ),
       builder: (_, networkCore) => CardsGameScreen(networkCore: networkCore),
     ),
