@@ -59,6 +59,18 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   List<PlayingCardModel> botHand = [];
   List<PlayingCardModel> playerPile = [];
   List<PlayingCardModel> botPile = [];
+  final _playerCollections = <List<PlayingCardModel>>[];
+  final _botCollections = <List<PlayingCardModel>>[];
+
+  List<List<PlayingCardModel>> get _opponentCollections =>
+      isNetworkGame && !isHost ? _playerCollections : _botCollections;
+
+  List<PlayingCardModel> _stealable(
+          PlayingCardModel card, List<List<PlayingCardModel>> collections) =>
+      collections.isNotEmpty && collections.last.first.value == card.value
+          ? collections.last
+          : const [];
+
   bool playerTurn = true;
   bool roundFinished = false;
   int playerScore = 0;
@@ -139,6 +151,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     botHand = [];
     playerPile = [];
     botPile = [];
+    _playerCollections.clear();
+    _botCollections.clear();
     playerTurn = true;
     roundFinished = false;
     lastCollector = null;
@@ -210,7 +224,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
         isPlayer: !isHost);
     if (checkRoundEnd()) return;
     playerTurn = !playerTurn;
-    message = isLocalTurn ? 'دورك: اختر ورقة' : 'بانتظار اللاعب الآخر';
+    message += isLocalTurn ? ' • دورك' : ' • بانتظار اللاعب الآخر';
     setState(() {});
   }
 
@@ -282,7 +296,7 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       if (table.every(_floorMatchFor(card))) return card;
     }
     final stealPlayable = botHand
-        .where((card) => playerPile.any((p) => p.value == card.value))
+        .where((card) => _stealable(card, _playerCollections).isNotEmpty)
         .toList();
 
     switch (settings.botDifficultyFor('cards')) {
@@ -298,10 +312,8 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
       case BotDifficulty.hard:
         final allGood = [...tablePlayable, ...stealPlayable];
         if (allGood.isNotEmpty) {
-          allGood.sort((a, b) => max(
-                  scorePotential(b, table), scorePotential(b, playerPile))
-              .compareTo(max(
-                  scorePotential(a, table), scorePotential(a, playerPile))));
+          allGood.sort(
+              (a, b) => _botCaptureScore(b).compareTo(_botCaptureScore(a)));
           return allGood.first;
         }
         return botHand[random.nextInt(botHand.length)];
@@ -311,10 +323,12 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   bool Function(PlayingCardModel) _floorMatchFor(PlayingCardModel played) =>
       (floorCard) => played.rank == 'J' || floorCard.value == played.value;
 
-  int scorePotential(PlayingCardModel card, List<PlayingCardModel> source) {
-    final matches = source.where((x) => x.value == card.value).toList();
-    return card.scoreValue + scoreOfCards(matches);
-  }
+  int _botCaptureScore(PlayingCardModel card) =>
+      card.scoreValue +
+      table
+          .where(_floorMatchFor(card))
+          .fold<int>(0, (score, c) => score + c.scoreValue) +
+      scoreOfCards(_stealable(card, _playerCollections));
 
   void playCard(
     PlayingCardModel card,
@@ -325,60 +339,57 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
   }) {
     hand.remove(card);
 
+    final ownCollections = isPlayer ? _playerCollections : _botCollections;
+    final opponentCollections = isPlayer ? _botCollections : _playerCollections;
     final floorMatch = _floorMatchFor(card);
     final tableMatches = table.where(floorMatch).toList();
-    if (tableMatches.isNotEmpty) {
-      ownPile.add(card);
-      ownPile.addAll(tableMatches);
+    final stolen = _stealable(card, opponentCollections);
+    if (tableMatches.isEmpty && stolen.isEmpty) {
+      table.add(card);
+      message = isPlayer
+          ? 'لا يوجد متشابه، وضعت الورقة على الأرض'
+          : 'المنافس وضع ورقة على الأرض';
+    } else {
       table.removeWhere(floorMatch);
+      if (stolen.isNotEmpty) {
+        opponentCollections.removeLast();
+        opponentPile.removeWhere(stolen.contains);
+      }
+
+      final collection = [card, ...tableMatches, ...stolen];
+      ownCollections.add(collection);
+      ownPile.addAll(collection);
       lastCollector = isPlayer ? LastCollector.player : LastCollector.bot;
 
-      final gained = card.scoreValue + scoreOfCards(tableMatches);
-      final madeBasra = table.isEmpty;
-      final basraBonus = madeBasra ? 10 : 0;
-
+      final madeBasra = tableMatches.isNotEmpty && table.isEmpty;
+      final gained = scoreOfCards(collection) + (madeBasra ? 10 : 0);
       if (isPlayer) {
-        playerScore += gained + basraBonus;
+        playerScore += gained;
         if (madeBasra) playerBasra++;
-        message = madeBasra
-            ? 'بسرا! التقطت كل الأرض +10'
-            : 'التقطت أوراقًا متشابهة وربحت $gained نقطة';
+        if (stolen.isNotEmpty) playerSteals++;
       } else {
-        botScore += gained + basraBonus;
+        botScore += gained;
         if (madeBasra) botBasra++;
-        message = madeBasra
-            ? 'الكمبيوتر عمل بسرا +10'
-            : 'الكمبيوتر التقط أوراقًا متشابهة وربح $gained نقطة';
+        if (stolen.isNotEmpty) botSteals++;
+      }
+      final localPlay = isNetworkGame ? isPlayer == isHost : isPlayer;
+      final rival = isNetworkGame ? 'المنافس' : 'الكمبيوتر';
+      if (stolen.isNotEmpty) {
+        message =
+            localPlay ? 'سرقت آخر رزمة للمنافس' : '$rival سرق آخر رزمة لك';
+        if (madeBasra) message += ' • بسرا +10';
+      } else if (madeBasra) {
+        message =
+            localPlay ? 'بسرا! التقطت كل الأرض +10' : '$rival عمل بسرا +10';
+      } else {
+        message = localPlay
+            ? 'التقطت أوراقًا وربحت $gained نقطة'
+            : '$rival التقط أوراقًا';
       }
       if (madeBasra) {
         GameFeedback.win(GameAudioTheme.cards);
       } else {
         GameFeedback.capture(GameAudioTheme.cards);
-      }
-    } else {
-      final stolen = opponentPile.where((p) => p.value == card.value).toList();
-      if (stolen.isNotEmpty) {
-        opponentPile.removeWhere((p) => p.value == card.value);
-        ownPile.add(card);
-        ownPile.addAll(stolen);
-        lastCollector = isPlayer ? LastCollector.player : LastCollector.bot;
-        final gained = card.scoreValue + scoreOfCards(stolen);
-
-        if (isPlayer) {
-          playerScore += gained;
-          playerSteals++;
-          message = 'سرقت متشابهات من الكمبيوتر وربحت $gained نقطة';
-        } else {
-          botScore += gained;
-          botSteals++;
-          message = 'الكمبيوتر سرق متشابهات منك وربح $gained نقطة';
-        }
-        GameFeedback.capture(GameAudioTheme.cards);
-      } else {
-        table.add(card);
-        message = isPlayer
-            ? 'لا يوجد متشابه، وضعت الورقة على الأرض'
-            : 'الكمبيوتر وضع ورقة على الأرض';
       }
     }
 
@@ -423,11 +434,9 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
     return false;
   }
 
-  bool canCaptureOrSteal(PlayingCardModel card) {
-    final opponentPile = isNetworkGame && !isHost ? playerPile : botPile;
-    return table.any(_floorMatchFor(card)) ||
-        opponentPile.any((p) => p.value == card.value);
-  }
+  bool canCaptureOrSteal(PlayingCardModel card) =>
+      table.any(_floorMatchFor(card)) ||
+      _stealable(card, _opponentCollections).isNotEmpty;
 
   Color get tableColor {
     switch (settings.tableColorIndex) {
@@ -476,7 +485,19 @@ class _CardsGameScreenState extends State<CardsGameScreen> {
                     botLevel: settings.botDifficultyTextFor('cards'),
                   ),
                   const SizedBox(height: 8),
-                  _OpponentPanel(count: botHand.length, pile: botPile.length),
+                  _OpponentPanel(
+                    count: (isNetworkGame && !isHost ? playerHand : botHand)
+                        .length,
+                    pile: (isNetworkGame && !isHost ? playerPile : botPile)
+                        .length,
+                    name: isNetworkGame ? 'المنافس' : 'الكمبيوتر',
+                    exposed: _opponentCollections.isEmpty
+                        ? null
+                        : _opponentCollections.last.first,
+                    exposedCount: _opponentCollections.isEmpty
+                        ? 0
+                        : _opponentCollections.last.length,
+                  ),
                   const SizedBox(height: 8),
                   Expanded(
                     child: Container(
@@ -603,9 +624,18 @@ class _StatusCard extends StatelessWidget {
 }
 
 class _OpponentPanel extends StatelessWidget {
-  const _OpponentPanel({required this.count, required this.pile});
+  const _OpponentPanel({
+    required this.count,
+    required this.pile,
+    required this.name,
+    required this.exposed,
+    required this.exposedCount,
+  });
   final int count;
   final int pile;
+  final String name;
+  final PlayingCardModel? exposed;
+  final int exposedCount;
 
   @override
   Widget build(BuildContext context) {
@@ -618,8 +648,21 @@ class _OpponentPanel extends StatelessWidget {
           const Icon(Icons.smart_toy, color: AppColors.primary),
           const SizedBox(width: 8),
           Expanded(
-              child: Text('الكمبيوتر: $count ورقات • رصيد السرقة: $pile',
+              child: Text('$name: $count ورقات • المجموع: $pile',
                   maxLines: 2, style: const TextStyle(fontSize: 12))),
+          if (exposed case final card?) ...[
+            const SizedBox(width: 8),
+            Text(
+              'آخر لمّة\n${card.rank}${card.suit} · $exposedCount',
+              key: const ValueKey('cards-opponent-exposed'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: card.red ? const Color(0xffb01025) : Colors.black,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ],
       ),
     );

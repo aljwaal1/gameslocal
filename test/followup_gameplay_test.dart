@@ -96,6 +96,63 @@ void main() {
     await tester.pump(const Duration(milliseconds: 550));
   });
 
+  testWidgets('an exposed Jack and its entire last collection can be stolen',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CardsGameScreen()));
+    final dynamic state = tester.state(find.byType(CardsGameScreen));
+    const jack = PlayingCardModel(rank: 'J', suit: '♥');
+    const rivalJack = PlayingCardModel(rank: 'J', suit: '♣');
+    const seven = PlayingCardModel(rank: '7', suit: '♦');
+    const rivalSeven = PlayingCardModel(rank: '7', suit: '♠');
+    const queen = PlayingCardModel(rank: 'Q', suit: '♥');
+    state.botHand = <PlayingCardModel>[rivalSeven, rivalJack];
+    state.table = <PlayingCardModel>[seven, queen];
+    state.playCard(rivalSeven, state.botHand, state.botPile, state.playerPile,
+        isPlayer: false);
+    state.playCard(rivalJack, state.botHand, state.botPile, state.playerPile,
+        isPlayer: false);
+    state.botMove();
+    await tester.pump();
+    expect(
+        find.byKey(const ValueKey('cards-opponent-exposed')), findsOneWidget);
+    expect(state.canCaptureOrSteal(jack), isTrue);
+    expect(state.canCaptureOrSteal(seven), isFalse);
+    state.playerHand = <PlayingCardModel>[jack];
+    state.playPlayerCard(jack);
+    expect(state.playerPile, [jack, rivalJack, queen]);
+    expect(state.botPile, [rivalSeven, seven]);
+    expect(state.playerSteals, 1);
+    expect(state.playerBasra, 0);
+    await tester.pump(const Duration(milliseconds: 550));
+  });
+
+  testWidgets('a newer collection covers the previous Jack collection',
+      (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CardsGameScreen()));
+    final dynamic state = tester.state(find.byType(CardsGameScreen));
+    const jack = PlayingCardModel(rank: 'J', suit: '♥');
+    const rivalJack = PlayingCardModel(rank: 'J', suit: '♣');
+    const seven = PlayingCardModel(rank: '7', suit: '♦');
+    const rivalSeven = PlayingCardModel(rank: '7', suit: '♠');
+    const floorSeven = PlayingCardModel(rank: '7', suit: '♣');
+    const queen = PlayingCardModel(rank: 'Q', suit: '♥');
+    state.botHand = <PlayingCardModel>[rivalJack, rivalSeven];
+    state.table = <PlayingCardModel>[queen];
+    state.playCard(rivalJack, state.botHand, state.botPile, state.playerPile,
+        isPlayer: false);
+    state.table.add(floorSeven);
+    state.playCard(rivalSeven, state.botHand, state.botPile, state.playerPile,
+        isPlayer: false);
+    expect(state.canCaptureOrSteal(jack), isFalse);
+    expect(state.canCaptureOrSteal(seven), isTrue);
+    state.playerHand = <PlayingCardModel>[seven];
+    state.playPlayerCard(seven);
+    expect(state.playerPile, [seven, rivalSeven, floorSeven]);
+    expect(state.botPile, [rivalJack, queen]);
+    expect(state.canCaptureOrSteal(jack), isTrue);
+    await tester.pump(const Duration(milliseconds: 550));
+  });
+
   testWidgets('Sarraqa robot takes an available Basra ahead of a partial match',
       (tester) async {
     await tester.pumpWidget(const MaterialApp(home: CardsGameScreen()));
