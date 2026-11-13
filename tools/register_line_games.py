@@ -9,7 +9,7 @@ marker = "    GameDefinition(\n      id: 'name_animal_object',"
 if "id: 'sheikh_beard'" not in text:
     block = """    GameDefinition(
       id: 'sheikh_beard',
-      name: 'لحية الشيخ',
+      name: 'لعبة اللحية',
       playersText: '2 إلى 4 لاعبين',
       status: 'تظليل نقاط وخطوط تلقائية عبر أندرويد والآيفون',
       builder: (_, networkCore) => LineGameScreen(

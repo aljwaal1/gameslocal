@@ -86,7 +86,7 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
   void _play(_Tile tile) {
     if (gameFinished) return;
     if (!_legal(tile)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(() => message = 'هذه القطعة لا تناسب طرفي السلسلة');
       return;
     }
@@ -113,19 +113,19 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       if (hands[turns.currentPlayer].isEmpty) {
         gameFinished = true;
         message = 'فاز اللاعب ${turns.currentPlayer + 1}!';
-        GameFeedback.win();
+        GameFeedback.win(GameAudioTheme.domino);
         return;
       }
       turns.next();
       message = 'دور اللاعب ${turns.currentPlayer + 1}';
-      GameFeedback.move();
+      GameFeedback.move(GameAudioTheme.domino);
     });
   }
 
   void _pass() {
     if (gameFinished) return;
     if (hands[turns.currentPlayer].any(_legal)) {
-      GameFeedback.error();
+      GameFeedback.error(GameAudioTheme.domino);
       setState(() => message = 'لديك قطعة صالحة، لا يمكنك التمرير');
       return;
     }
@@ -137,7 +137,7 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
       }
       turns.next();
       message = 'تم التمرير — دور اللاعب ${turns.currentPlayer + 1}';
-      GameFeedback.tap();
+      GameFeedback.tap(GameAudioTheme.domino);
     });
   }
 
@@ -184,7 +184,8 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
               Expanded(
                 flex: 5,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -195,7 +196,10 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
                       ),
                       borderRadius: BorderRadius.circular(22),
                       boxShadow: const <BoxShadow>[
-                        BoxShadow(color: Color(0x330F172A), blurRadius: 14, offset: Offset(0, 6)),
+                        BoxShadow(
+                            color: Color(0x330F172A),
+                            blurRadius: 14,
+                            offset: Offset(0, 6)),
                       ],
                     ),
                     child: LayoutBuilder(
@@ -210,7 +214,8 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
                               spacing: 2,
                               runSpacing: 2,
                               children: <Widget>[
-                                for (final tile in board) _tile(tile, false, compact: true),
+                                for (final tile in board)
+                                  _tile(tile, false, compact: true),
                               ],
                             ),
                           ),
@@ -221,7 +226,9 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
                 ),
               ),
               Text(
-                gameFinished ? 'انتهت اللعبة' : 'قطع اللاعب ${turns.currentPlayer + 1}',
+                gameFinished
+                    ? 'انتهت اللعبة'
+                    : 'قطع اللاعب ${turns.currentPlayer + 1}',
                 style: const TextStyle(fontWeight: FontWeight.w900),
               ),
               Expanded(
@@ -234,7 +241,8 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
                           for (final tile in hands[turns.currentPlayer])
-                            _tile(tile, !gameFinished, compact: constraints.maxWidth < 390),
+                            _tile(tile, !gameFinished,
+                                compact: constraints.maxWidth < 390),
                         ],
                       ),
                     ),
@@ -290,12 +298,18 @@ class _DominoFourPlayerScreenState extends State<DominoFourPlayerScreen> {
               children: [
                 Text(
                   '${tile.a}',
-                  style: TextStyle(fontSize: compact ? 16 : 22, color: const Color(0xFF0F172A), fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                      fontSize: compact ? 16 : 22,
+                      color: const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w900),
                 ),
                 const Divider(height: 2, color: Colors.black),
                 Text(
                   '${tile.b}',
-                  style: TextStyle(fontSize: compact ? 16 : 22, color: const Color(0xFF0F172A), fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                      fontSize: compact ? 16 : 22,
+                      color: const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w900),
                 ),
               ],
             ),
