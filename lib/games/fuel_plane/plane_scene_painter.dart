@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'plane_scene_geometry.dart';
 import 'plane_scene_motion.dart';
 
-enum PlaneObstacleKind { fuel, rock, enemy }
+// Keep wire indices: fuel=0, ship (formerly rock)=1, enemy=2.
+enum PlaneObstacleKind { fuel, ship, enemy }
 
 class PlaneObstacle {
   const PlaneObstacle(this.x, this.y, this.size, this.kind);
@@ -260,8 +261,8 @@ class PlaneScenePainter extends CustomPainter {
     switch (obstacle.kind) {
       case PlaneObstacleKind.enemy:
         _paintAircraft(canvas, center, scale * .83, _Aircraft.enemy);
-      case PlaneObstacleKind.rock:
-        _paintRock(canvas, center, scale.width * .78);
+      case PlaneObstacleKind.ship:
+        _paintShip(canvas, center, scale.width * .78);
       case PlaneObstacleKind.fuel:
         _paintFuel(canvas, center, scale.width * .70);
     }
@@ -312,51 +313,67 @@ class PlaneScenePainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _paintRock(Canvas canvas, Offset center, double size) {
+  void _paintShip(Canvas canvas, Offset center, double size) {
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.scale(size / 36);
-    canvas.drawOval(
-      const Rect.fromLTWH(-16, -8, 37, 25),
-      Paint()..color = const Color(0x850b2533),
-    );
-    final outline = Path()
-      ..moveTo(-17, 3)
-      ..quadraticBezierTo(-18, 0, -15, -5)
-      ..lineTo(-8, -12)
-      ..quadraticBezierTo(-4, -15, 0, -14)
-      ..lineTo(10, -12)
-      ..quadraticBezierTo(13, -12, 15, -8)
-      ..lineTo(18, 2)
-      ..quadraticBezierTo(19, 5, 15, 8)
-      ..lineTo(6, 13)
-      ..lineTo(-9, 12)
-      ..quadraticBezierTo(-15, 10, -17, 3)
+    final paint = Paint();
+    // Curved wake distinguishes surface vessels from aircraft overhead.
+    for (final side in [-1.0, 1.0]) {
+      final wake = Path()
+        ..moveTo(side * 6, -18)
+        ..quadraticBezierTo(side * 13, 7, side * 21, 23);
+      canvas.drawPath(
+          wake,
+          paint
+            ..color = const Color(0x99b6f2f2)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.2);
+    }
+    paint.style = PaintingStyle.fill;
+    canvas.drawOval(const Rect.fromLTWH(-15, -18, 34, 43),
+        paint..color = const Color(0x60052433));
+    final hull = Path()
+      ..moveTo(0, -24)
+      ..cubicTo(-8, -19, -14, -10, -14, 4)
+      ..lineTo(-11, 21)
+      ..quadraticBezierTo(0, 25, 11, 21)
+      ..lineTo(14, 4)
+      ..cubicTo(14, -10, 8, -19, 0, -24)
       ..close();
     canvas.drawPath(
-      outline,
-      Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xffd5d0c1), Color(0xffa2a49d), Color(0xff555c61)],
-        ).createShader(outline.getBounds()),
-    );
-    final face = Path()
-      ..moveTo(-7, -11)
-      ..lineTo(4, -8)
-      ..lineTo(11, -2)
-      ..lineTo(5, 5)
-      ..lineTo(-9, 8)
-      ..lineTo(-4, 0);
-    canvas.drawPath(face, Paint()..color = const Color(0x56808283));
-    final facet = Path()
-      ..moveTo(11, -2)
-      ..lineTo(16, 5)
-      ..lineTo(6, 12)
-      ..lineTo(5, 5)
-      ..close();
-    canvas.drawPath(facet, Paint()..color = const Color(0x74434a50));
+        hull,
+        paint
+          ..shader = const LinearGradient(
+            colors: [Color(0xff263e56), Color(0xffa2bec9), Color(0xff426077)],
+            stops: [0, .42, 1],
+          ).createShader(hull.getBounds()));
+    paint.shader = null;
+    final deck = RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-8, -12, 16, 29), const Radius.circular(4));
+    canvas.drawRRect(deck, paint..color = const Color(0xffd0d9cb));
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            const Rect.fromLTWH(-6, -1, 12, 7), const Radius.circular(1.5)),
+        paint..color = const Color(0xffffad55));
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(
+            const Rect.fromLTWH(-6, -9, 12, 7), const Radius.circular(2)),
+        paint..color = const Color(0xff264859));
+    canvas.drawLine(
+        const Offset(-4, -7),
+        const Offset(4, -7),
+        paint
+          ..color = const Color(0xff9ee6f2)
+          ..strokeWidth = 1.7);
+    canvas.drawCircle(
+        const Offset(0, 12), 4, paint..color = const Color(0xff647f90));
+    canvas.drawLine(
+        const Offset(0, 12),
+        const Offset(0, 20),
+        paint
+          ..color = const Color(0xffe4eeee)
+          ..strokeWidth = 2);
     canvas.restore();
   }
 

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/audio_feedback.dart';
+import '../../core/app_settings.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
 import '../arcade/arcade_timing.dart';
@@ -34,8 +35,36 @@ class _Bullet {
 }
 
 class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final Random rnd = Random();
+  late final GameFlightEngine _engine;
+  GameFeedbackCancellation _feedback = GameFeedbackCancellation();
+  bool _foreground = true;
+
+  void _newFeedbackLifetime() {
+    _feedback.cancel();
+    _feedback = GameFeedbackCancellation();
+    if (!_foreground) _feedback.cancel();
+  }
+
+  void _syncEngine() => _engine.setFlying(_foreground && running && alive);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    _newFeedbackLifetime();
+    if (!_foreground) {
+      timer?.cancel();
+      simulationClock.stop();
+    } else if (running && (!isNetworkGame || isHost)) {
+      simulationClock.start();
+      lastSimulationMicros = simulationClock.elapsedMicroseconds;
+      timer?.cancel();
+      timer = Timer.periodic(const Duration(milliseconds: 30), (_) => tick());
+    }
+    _syncEngine();
+  }
+
   Timer? timer;
   Timer? _effectTimer;
   late final PlaneSceneMotion _motion;
@@ -69,12 +98,19 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
   void initState() {
     super.initState();
     _motion = PlaneSceneMotion(this);
+    _engine = GameFlightEngine();
+    WidgetsBinding.instance.addObserver(this);
+    AppSettingsController.instance.addListener(_newFeedbackLifetime);
     if (isNetworkGame)
       networkSub = widget.networkCore!.messages.listen(_onNetworkMessage);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    AppSettingsController.instance.removeListener(_newFeedbackLifetime);
+    _feedback.cancel();
+    _engine.dispose();
     networkSub?.cancel();
     timer?.cancel();
     simulationClock.stop();
@@ -90,6 +126,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
           senderId: localPlayerId);
       return;
     }
+    _newFeedbackLifetime();
     timer?.cancel();
     _effectTimer?.cancel();
     _motion.reset();
@@ -121,11 +158,12 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
       bullets.clear();
     });
     timer = Timer.periodic(const Duration(milliseconds: 30), (_) => tick());
+    _syncEngine();
     if (isNetworkGame && isHost) _sendState('plane_start');
   }
 
   void tick() {
-    if (!running) return;
+    if (!running || !_foreground) return;
     if (isNetworkGame && !isHost) return;
     final now = simulationClock.elapsedMicroseconds;
     final elapsed = lastSimulationMicros == 0
@@ -136,7 +174,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
     tickCarry += step;
     final wholeTicks = tickCarry.floor();
     tickCarry -= wholeTicks;
-    var event = 0;
+    var fired = false, hit = false, refueled = false;
     distance += wholeTicks;
     scoreTick += wholeTicks;
     while (scoreTick >= 12) {
@@ -154,7 +192,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
         bullets.add(_Bullet(planeX, .745));
         _motion.fire();
         fireCooldown = max(7, 14 - min(5, level ~/ 2));
-        event = 1;
+        fired = true;
       } else {
         fireCooldown -= wholeTicks;
       }
@@ -175,7 +213,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
       final roll = rnd.nextDouble();
       final type = roll < .25
           ? PlaneObstacleKind.fuel
-          : (roll < .78 ? PlaneObstacleKind.rock : PlaneObstacleKind.enemy);
+          : (roll < .78 ? PlaneObstacleKind.ship : PlaneObstacleKind.enemy);
       objects.add(_Obj(
         x: .12 + rnd.nextDouble() * .76,
         y: -.08,
@@ -208,7 +246,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
           } else {
             score += 75;
           }
-          event = 2;
+          hit = true;
           break;
         }
       }
@@ -225,11 +263,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
           fuel = min(100, fuel + 22);
           score += 120;
           objects.remove(o);
-          event = 3;
+          refueled = true;
         } else {
           fuel = 0;
           alive = false;
-          event = 4;
         }
       } else if (isNetworkGame &&
           remoteAlive &&
@@ -239,11 +276,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
           remoteFuel = min(100, remoteFuel + 22);
           remoteScore += 120;
           objects.remove(o);
-          event = 3;
+          refueled = true;
         } else {
           remoteFuel = 0;
           remoteAlive = false;
-          event = 4;
         }
       }
     }
@@ -251,12 +287,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
     if (alive && fuel <= 0) {
       fuel = 0;
       alive = false;
-      event = 4;
     }
     if (isNetworkGame && remoteAlive && remoteFuel <= 0) {
       remoteFuel = 0;
       remoteAlive = false;
-      event = 4;
     }
 
     _showCrashes(wasAlive: wasAlive, wasRemoteAlive: wasRemoteAlive);
@@ -281,20 +315,24 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
                 : (!alive ? 'فاز اللاعب الآخر' : 'فزت بالمواجهة'));
       }
       _showEffect('انتهت الجولة');
-      if (isNetworkGame && networkMode == 0 && alive && !remoteAlive) {
-        GameFeedback.win(GameAudioTheme.plane);
-      } else {
-        GameFeedback.lose(GameAudioTheme.plane);
-      }
-    } else if (event == 2) {
-      _showEffect('إصابة!');
-      GameFeedback.capture(GameAudioTheme.plane);
-    } else if (event == 3) {
-      _showEffect('وقود إضافي');
-      GameFeedback.tap(GameAudioTheme.plane);
-    } else if (event == 1 && distance % 90 == 0) {
-      GameFeedback.move(GameAudioTheme.plane);
     }
+    if (fired) GameFeedback.planeShot(_feedback);
+    final crashed = (wasAlive && !alive) || (wasRemoteAlive && !remoteAlive);
+    if (hit || crashed) GameFeedback.planeExplosion(_feedback);
+    if (refueled) GameFeedback.planeRefuel(_feedback);
+    if (shouldEnd &&
+        isNetworkGame &&
+        networkMode == 0 &&
+        alive &&
+        !remoteAlive) {
+      GameFeedback.win(GameAudioTheme.plane, _feedback);
+    }
+    if (!shouldEnd) {
+      if (refueled)
+        _showEffect('وقود إضافي');
+      else if (hit) _showEffect('إصابة!');
+    }
+    _syncEngine();
 
     if (isNetworkGame && isHost && (++syncTick % 2 == 0 || shouldEnd)) {
       _sendState('plane_state');
@@ -375,7 +413,9 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
       final rawObjects = m.payload['objects'] as List<dynamic>? ?? const [];
       final rawBullets = m.payload['bullets'] as List<dynamic>? ?? const [];
       final oldScore = score;
+      final oldDistance = distance;
       final oldFuel = fuel;
+      final oldRemoteFuel = remoteFuel;
       final oldRemoteScore = remoteScore;
       final oldPlaneX = planeX, oldRemoteX = remoteX;
       final wasAlive = alive, wasRemoteAlive = remoteAlive;
@@ -384,6 +424,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
       final roundStarted =
           action == 'plane_start' || (!running && m.payload['running'] == true);
       if (roundStarted) {
+        _newFeedbackLifetime();
         _effectTimer?.cancel();
         _motion.reset();
       }
@@ -437,24 +478,45 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
         _showSnapshotHits(previousObjects, previousBullets);
       }
       _showCrashes(wasAlive: wasAlive, wasRemoteAlive: wasRemoteAlive);
-      if (wasAlive && !alive) {
-        _showEffect('طائرتك تحطمت');
-        GameFeedback.lose(GameAudioTheme.plane);
-      } else if (!wasGameOver && gameOver) {
+      final passive = max(0, distance ~/ 12 - oldDistance ~/ 12);
+      final localEvents = _snapshotEvents(
+          score - oldScore - (wasAlive ? passive : 0), fuel - oldFuel);
+      final remoteEvents = _snapshotEvents(
+          remoteScore - oldRemoteScore - (wasRemoteAlive ? passive : 0),
+          remoteFuel - oldRemoteFuel);
+      final refueled = !roundStarted && localEvents.refueled;
+      final crashed = !roundStarted &&
+          ((wasAlive && !alive) || (wasRemoteAlive && !remoteAlive));
+      final hit = !roundStarted && (localEvents.hit || remoteEvents.hit);
+      if (crashed || hit) GameFeedback.planeExplosion(_feedback);
+      if (refueled) GameFeedback.planeRefuel(_feedback);
+      if (!wasGameOver && gameOver) {
         _showEffect(resultText.isEmpty ? 'انتهت الجولة' : resultText);
-        if (resultText == 'فزت بالمواجهة') {
-          GameFeedback.win(GameAudioTheme.plane);
-        } else {
-          GameFeedback.lose(GameAudioTheme.plane);
-        }
-      } else if (fuel > oldFuel + 5) {
+        if (resultText == 'فزت بالمواجهة')
+          GameFeedback.win(GameAudioTheme.plane, _feedback);
+      } else if (wasAlive && !alive) {
+        _showEffect('طائرتك تحطمت');
+      } else if (refueled) {
         _showEffect('وقود إضافي');
-        GameFeedback.tap(GameAudioTheme.plane);
-      } else if (score >= oldScore + 75) {
+      } else if (hit) {
         _showEffect('إصابة!');
-        GameFeedback.capture(GameAudioTheme.plane);
       }
+      _syncEngine();
     }
+  }
+
+  // Existing snapshots carry scores rather than event IDs. Passive points are
+  // removed before decoding pickup=120 and impact=75. For normal two-tick
+  // snapshots there can be fewer than five pickups; their distinct remainder
+  // distinguishes even capped refills from hits without changing the protocol.
+  ({bool refueled, bool hit}) _snapshotEvents(int scoreGain, double fuelGain) {
+    final units = max(0, scoreGain) ~/ 15;
+    final pickups = (units * 2) % 5;
+    final valid = units >= pickups * 8;
+    return (
+      refueled: fuelGain > .5 || (valid && pickups > 0),
+      hit: valid && units - pickups * 8 >= 5,
+    );
   }
 
   void setNetworkMode(int mode) {
@@ -496,7 +558,10 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
           old.x == bullet.x &&
           old.y >= bullet.y &&
           old.y - bullet.y <= .25);
-      if (!seen) _motion.fire(remote: bullet.remote);
+      if (!seen) {
+        _motion.fire(remote: bullet.remote);
+        if (!bullet.remote) GameFeedback.planeShot(_feedback);
+      }
     }
   }
 
@@ -534,7 +599,8 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
             child: LayoutBuilder(builder: (context, constraints) {
               final field = _buildField();
               final hud = _buildHud();
-              final control = _buildControl();
+              final control =
+                  running ? _buildControl() : const SizedBox.shrink();
               final wide = constraints.maxWidth >= 470 &&
                   constraints.maxWidth > constraints.maxHeight * 1.5;
               if (wide) {
@@ -587,25 +653,13 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Wrap(
-              spacing: 12,
-              runSpacing: 3,
-              alignment: WrapAlignment.spaceBetween,
-              children: [
-                Text('نقاطك: $score',
-                    style: dataStyle.copyWith(fontWeight: FontWeight.w800)),
-                if (isNetworkGame)
-                  Text('الآخر: $remoteScore',
-                      style:
-                          dataStyle.copyWith(color: const Color(0xffffc366))),
-                Text('المرحلة: $level', style: dataStyle),
-                if (!isNetworkGame)
-                  Text('الأفضل: $best',
-                      style:
-                          dataStyle.copyWith(color: const Color(0xffb4dce8))),
-              ],
-            ),
             const SizedBox(height: 7),
+            const Text('الوقود المتبقي',
+                style: TextStyle(
+                    color: Color(0xffecf8ff),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
             Semantics(
               label: _lowFuel ? 'وقود منخفض' : 'الوقود',
               value: percentage,
@@ -640,7 +694,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
                       borderRadius: BorderRadius.circular(5),
                       child: LinearProgressIndicator(
                         value: fuel.clamp(0, 100) / 100,
-                        minHeight: 6,
+                        minHeight: 12,
                         color: color,
                         backgroundColor: const Color(0xff365561),
                       ),
@@ -651,11 +705,30 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
                     percentage,
                     style: TextStyle(
                         color: color,
-                        fontSize: 12,
+                        fontSize: 16,
                         fontWeight: FontWeight.w800),
                   ),
                 ],
               ),
+            ),
+            const SizedBox(height: 7),
+            Wrap(
+              spacing: 12,
+              runSpacing: 3,
+              alignment: WrapAlignment.spaceBetween,
+              children: [
+                Text('نقاطك: $score',
+                    style: dataStyle.copyWith(fontWeight: FontWeight.w800)),
+                if (isNetworkGame)
+                  Text('الآخر: $remoteScore',
+                      style:
+                          dataStyle.copyWith(color: const Color(0xffffc366))),
+                Text('المرحلة: $level', style: dataStyle),
+                if (!isNetworkGame)
+                  Text('الأفضل: $best',
+                      style:
+                          dataStyle.copyWith(color: const Color(0xffb4dce8))),
+              ],
             ),
             if (isNetworkGame && !running)
               Padding(

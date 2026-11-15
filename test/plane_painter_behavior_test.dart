@@ -22,7 +22,7 @@ void main() {
         obstacles: const [
           PlaneObstacle(.4, .42, .052, PlaneObstacleKind.fuel),
           PlaneObstacle(.62, .28, .066, PlaneObstacleKind.enemy),
-          PlaneObstacle(.78, .56, .066, PlaneObstacleKind.rock),
+          PlaneObstacle(.78, .56, .066, PlaneObstacleKind.ship),
         ],
         projectiles: const [
           PlaneProjectile(.3, .56),
@@ -79,9 +79,9 @@ void main() {
         );
         expect(
           hasColor(geometry.project(.78, .56), 8,
-              (p) => p[0] > 120 && (p[0] - p[1]).abs() < 30),
+              (p) => p[0] > 210 && p[1] > 90 && p[1] < 200 && p[2] < 100),
           isTrue,
-          reason: 'stone-colored rock',
+          reason: 'orange ship deck at the collision center',
         );
 
         var water = 0;

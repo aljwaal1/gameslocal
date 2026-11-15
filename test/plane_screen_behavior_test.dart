@@ -112,6 +112,11 @@ void main() {
       expect(tester.getSize(scene).height, greaterThan(140));
       expect(lowFuel.hitTestable(), findsOneWidget);
       expect(find.text('21%'), findsOneWidget);
+      expect(find.text('الوقود المتبقي').hitTestable(), findsOneWidget);
+      final gauge = tester.widget<LinearProgressIndicator>(
+          find.byType(LinearProgressIndicator));
+      expect(gauge.value, .21);
+      expect(gauge.minHeight, greaterThanOrEqualTo(10));
       expect(find.textContaining('99'), findsOneWidget);
       expect(painter(tester).localX, .5);
       expect(painter(tester).remoteX, .72);

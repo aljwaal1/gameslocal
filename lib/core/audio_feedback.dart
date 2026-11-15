@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -95,6 +96,28 @@ class GameFeedback {
         haptic: HapticFeedback.mediumImpact,
         volume: .64,
       );
+
+  /// Short plane cues follow simulation events, with an owned round lifetime.
+  static Future<void> planeShot(GameFeedbackCancellation lifetime) =>
+      _emit(GameSound.move,
+          theme: GameAudioTheme.plane,
+          cancellation: lifetime,
+          vibration: false,
+          volume: .42);
+
+  static Future<void> planeExplosion(GameFeedbackCancellation lifetime) =>
+      _emit(GameSound.capture,
+          theme: GameAudioTheme.plane,
+          cancellation: lifetime,
+          haptic: HapticFeedback.mediumImpact,
+          volume: .70);
+
+  static Future<void> planeRefuel(GameFeedbackCancellation lifetime) =>
+      _emit(GameSound.tap,
+          theme: GameAudioTheme.plane,
+          cancellation: lifetime,
+          haptic: HapticFeedback.selectionClick,
+          volume: .64);
 
   static Future<void> win(
           [GameAudioTheme theme = GameAudioTheme.system,
@@ -259,7 +282,11 @@ class GameFeedback {
       GameAudioTheme.plane => 420.0,
       GameAudioTheme.road => 160.0,
     };
-    final duration = baseDuration * durationScale;
+    final duration = theme == GameAudioTheme.plane && sound == GameSound.tap
+        ? .38
+        : theme == GameAudioTheme.plane && sound == GameSound.capture
+            ? .34
+            : baseDuration * durationScale;
     final sampleCount = (sampleRate * duration).round();
     final pcm = Int16List(sampleCount);
     final random = math.Random(sound.index * 7919 + theme.index * 104729 + 17);
@@ -357,8 +384,17 @@ class GameFeedback {
                 envelope *
                 .72;
             break;
+          case GameSound.tap:
+            final segment = duration / 3;
+            final index = math.min(2, (t / segment).floor());
+            value = note(t - index * segment, [660.0, 880.0, 1320.0][index],
+                    segment) *
+                .78;
+            break;
           case GameSound.capture:
-            value = transient(t, 0, .045, .90) + note(t, 210, duration) * .42;
+            final noise = random.nextDouble() * 2 - 1;
+            value = transient(t, 0, .045, .65) +
+                (noise * .48 + note(t, 105, duration) * .7) * envelope;
             break;
           case GameSound.win:
             value = note(t, 880, duration) * .52 +
@@ -507,6 +543,28 @@ class GameFeedback {
       }
     }
 
+    return _encodeWav(pcm, sampleRate);
+  }
+
+  static Uint8List _engineWav() {
+    const rate = 22050;
+    final pcm = Int16List(rate);
+    // Whole-cycle harmonics make the one-second motor/wind loop seamless.
+    for (var i = 0; i < rate; i++) {
+      final t = i / rate;
+      final pulse = .78 + .22 * math.cos(2 * math.pi * 18 * t);
+      final motor = math.sin(2 * math.pi * 90 * t) * .42 +
+          math.sin(2 * math.pi * 180 * t) * .23 +
+          math.sin(2 * math.pi * 360 * t) * .10;
+      final wind = math.sin(
+              2 * math.pi * 733 * t + .8 * math.sin(2 * math.pi * 13 * t)) *
+          .07;
+      pcm[i] = ((motor * pulse + wind) * 24000).round();
+    }
+    return _encodeWav(pcm, rate);
+  }
+
+  static Uint8List _encodeWav(Int16List pcm, int sampleRate) {
     final dataLength = pcm.lengthInBytes;
     final bytes = ByteData(44 + dataLength);
     void ascii(int offset, String text) {
@@ -532,5 +590,63 @@ class GameFeedback {
       bytes.setInt16(44 + i * 2, pcm[i], Endian.little);
     }
     return bytes.buffer.asUint8List();
+  }
+}
+
+/// A screen-owned engine loop separate from short cues, so firing never cuts
+/// the motor off. Sound preferences cancel pending startup and playing audio.
+class GameFlightEngine {
+  GameFlightEngine() {
+    _settings.addListener(_sync);
+  }
+  final _settings = AppSettingsController.instance;
+  AudioPlayer? _player;
+  GameFeedbackAudioChannel? _channel;
+  GameFeedbackCancellation? _lifetime;
+  bool _flying = false, _disposed = false;
+  static final Uint8List _bytes = GameFeedback._engineWav();
+
+  void setFlying(bool value) {
+    _flying = value;
+    _sync();
+  }
+
+  void _sync() {
+    final enabled = !_disposed && _flying && _settings.soundEnabled;
+    if (!enabled) {
+      _lifetime?.cancel();
+      _lifetime = null;
+      return;
+    }
+    if (_lifetime != null) return;
+    final player = _player ??= AudioPlayer();
+    _channel ??= GameFeedbackAudioChannel(
+      stop: player.stop,
+      setVolume: player.setVolume,
+      setSourceBytes: player.setSourceBytes,
+      resume: player.resume,
+    );
+    final token = _lifetime = GameFeedbackCancellation();
+    unawaited(_channel!
+        .play(
+            bytes: _bytes,
+            volume: .19,
+            cancellation: token,
+            prepare: () => player.setReleaseMode(ReleaseMode.loop))
+        .catchError((Object _) {}));
+  }
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    _settings.removeListener(_sync);
+    _lifetime?.cancel();
+    final channel = _channel, player = _player;
+    if (channel != null && player != null) {
+      unawaited(channel
+          .close()
+          .whenComplete(player.dispose)
+          .catchError((Object _) {}));
+    }
   }
 }

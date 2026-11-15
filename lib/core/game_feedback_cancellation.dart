@@ -52,9 +52,18 @@ class GameFeedbackAudioChannel {
     return result;
   }
 
+  /// Release an owned channel after all pending preparation commands settle.
+  Future<void> close() {
+    _detach?.call();
+    _detach = null;
+    _owner = null;
+    return _enqueue(stop);
+  }
+
   Future<void> play({
     required Uint8List bytes,
     required double volume,
+    Future<void> Function()? prepare,
     GameFeedbackCancellation? cancellation,
   }) {
     if (cancellation?.isCancelled ?? false) return Future<void>.value();
@@ -75,6 +84,8 @@ class GameFeedbackAudioChannel {
       await stop();
       if (!active()) return;
       await setVolume(volume);
+      if (!active()) return;
+      if (prepare != null) await prepare();
       if (!active()) return;
       await setSourceBytes(bytes);
       if (!active()) return;
