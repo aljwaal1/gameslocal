@@ -1,9 +1,9 @@
 # تحميل نسخة التجربة
 
-[تحميل آخر APK متحقق منه مباشرة](https://raw.githubusercontent.com/aljwaal1/gameslocal/896759a18ad94be67bd1cb0e83099e1dd6aa4d29/apk/world-class-ui-v2/gameslocal-release.apk)
+[تحميل آخر APK متحقق منه مباشرة](https://raw.githubusercontent.com/aljwaal1/gameslocal/9002756805e0d8bcfe364011055cb0c3d4d9d7ae/apk/world-class-ui-v2/gameslocal-release.apk)
 
-المصدر: `fbce685e23c73a3e0d1c90dbabc5f04ef90cda46`.
+المصدر: `c2db63197694448b706fa9aa6697c683bb691af3`.
 
-[بناء ناجح و252 اختبارًا](https://github.com/aljwaal1/gameslocal/actions/runs/43400882778) · [حالة المشروع والملاحظات](PROJECT_STATUS.md).
+[بناء ناجح و253 اختبارًا](https://github.com/aljwaal1/gameslocal/actions/runs/43744755864) · [حالة المشروع والملاحظات](PROJECT_STATUS.md).
 
 توقيع Android Debug للتجربة. طلب #66 مفتوح ولم يُدمج في main.
