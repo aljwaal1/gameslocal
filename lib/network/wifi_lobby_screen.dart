@@ -27,7 +27,7 @@ class _WifiLobbyScreenState extends State<WifiLobbyScreen> {
     setState(() {
       hosting = false;
       status =
-          'وضع الانضمام مفعّل. في التحديث القادم سيتم البحث الفعلي عن المضيف.';
+          'وضع الانضمام مفعّل. في التحديث القادم سيتم البحث الفعلي عن الداعي.';
     });
   }
 

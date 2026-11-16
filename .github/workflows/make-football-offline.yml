@@ -1,16 +1,14 @@
 name: Make Football Offline
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/make-football-offline.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   convert:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,41 +38,41 @@ jobs:
           )
 
           old = """      onTap: () {
-        GameFeedback.tap();
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => Directionality(
-              textDirection: TextDirection.rtl,
-              child: GameRoomScreen(game: game),
-            ),
-          ),
-        );
-      },"""
+                  GameFeedback.tap();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Directionality(
+                        textDirection: TextDirection.rtl,
+                        child: GameRoomScreen(game: game),
+                      ),
+                    ),
+                  );
+                },"""
           new = """      onTap: () {
-        GameFeedback.tap();
-        if (game.id == 'football_penalties') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const Directionality(
-                textDirection: TextDirection.rtl,
-                child: ProPenaltyShootoutGameScreen(),
-              ),
-            ),
-          );
-          return;
-        }
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => Directionality(
-              textDirection: TextDirection.rtl,
-              child: GameRoomScreen(game: game),
-            ),
-          ),
-        );
-      },"""
+                  GameFeedback.tap();
+                  if (game.id == 'football_penalties') {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const Directionality(
+                          textDirection: TextDirection.rtl,
+                          child: ProPenaltyShootoutGameScreen(),
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Directionality(
+                        textDirection: TextDirection.rtl,
+                        child: GameRoomScreen(game: game),
+                      ),
+                    ),
+                  );
+                },"""
           if old not in text:
               raise SystemExit('Game card launch block not found')
           text = text.replace(old, new, 1)
@@ -88,17 +86,17 @@ jobs:
           test = Path('test/football_offline_launch_test.dart')
           test.write_text("""import 'dart:io';
 
-import 'package:flutter_test/flutter_test.dart';
+          import 'package:flutter_test/flutter_test.dart';
 
-void main() {
-  test('football launches directly in offline robot mode', () {
-    final source = File('lib/main.dart').readAsStringSync();
-    expect(source, contains("game.id == 'football_penalties'"));
-    expect(source, contains('const ProPenaltyShootoutGameScreen()'));
-    expect(source, contains('تعمل محليًا بالكامل دون Wi-Fi أو إنترنت'));
-  });
-}
-""", encoding='utf-8')
+          void main() {
+            test('football launches directly in offline robot mode', () {
+              final source = File('lib/main.dart').readAsStringSync();
+              expect(source, contains("game.id == 'football_penalties'"));
+              expect(source, contains('const ProPenaltyShootoutGameScreen()'));
+              expect(source, contains('تعمل محليًا بالكامل دون Wi-Fi أو إنترنت'));
+            });
+          }
+          """, encoding='utf-8')
           PY
 
       - name: Commit offline football mode

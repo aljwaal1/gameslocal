@@ -4,7 +4,8 @@ import 'package:gameslocal/games/domino/domino_turn_order.dart';
 void main() {
   test('cycles through four players', () {
     final turns = DominoTurnOrder(playerCount: 4);
-    expect([turns.next(), turns.next(), turns.next(), turns.next()], [1, 2, 3, 0]);
+    expect(
+        [turns.next(), turns.next(), turns.next(), turns.next()], [1, 2, 3, 0]);
   });
 
   test('skips blocked players', () {

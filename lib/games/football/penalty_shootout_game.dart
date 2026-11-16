@@ -481,8 +481,6 @@ class _PenaltyShootoutGameScreenState extends State<PenaltyShootoutGameScreen> {
                     onTapUp: (details) {
                       if (!_localTurn || _busy || _finished || _connectionLost)
                         return;
-                      final col = (details.localPosition.dx /
-                          (details.localPosition.dx.isFinite ? 1 : 1));
                       final width = MediaQuery.sizeOf(context).width - 52;
                       final column = (details.localPosition.dx / (width / 3))
                           .floor()

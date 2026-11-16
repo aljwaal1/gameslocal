@@ -43,6 +43,7 @@ class ProPenaltyShootoutGameScreen extends StatelessWidget {
 }
 
 enum _PenaltyPhase { aiming, saving, flying, result, finished }
+
 enum _PenaltyOutcome { goal, save, post, miss }
 
 class _PhotoPenaltyGame extends StatefulWidget {
@@ -81,8 +82,6 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
   Offset? _dragStart;
   Offset? _dragNow;
 
-  FootballTeam get _playerTeam => footballTeams.first;
-  FootballTeam get _robotTeam => footballTeams[1];
   bool get _suddenDeath => _playerShots >= 5 && _robotShots >= 5;
   bool get _playerIsShooting => _playerShots == _robotShots;
 
@@ -148,15 +147,20 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
     if (_phase != _PenaltyPhase.aiming) return;
     final spread = .015 + math.max(0.0, power - .90) * .30;
     final actual = Offset(
-      (aim.dx + (_random.nextDouble() - .5) * spread).clamp(-.06, 1.06).toDouble(),
-      (aim.dy + (_random.nextDouble() - .5) * spread).clamp(-.06, 1.06).toDouble(),
+      (aim.dx + (_random.nextDouble() - .5) * spread)
+          .clamp(-.06, 1.06)
+          .toDouble(),
+      (aim.dy + (_random.nextDouble() - .5) * spread)
+          .clamp(-.06, 1.06)
+          .toDouble(),
     );
     final keeper = Offset(
       .09 + _random.nextDouble() * .82,
       .10 + _random.nextDouble() * .76,
     );
     final distance = (actual - keeper).distance;
-    final outside = actual.dx < 0 || actual.dx > 1 || actual.dy < 0 || actual.dy > 1;
+    final outside =
+        actual.dx < 0 || actual.dx > 1 || actual.dy < 0 || actual.dy > 1;
     final nearFrame = actual.dx < .025 || actual.dx > .975 || actual.dy < .025;
 
     _PenaltyOutcome result;
@@ -178,7 +182,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.flying;
       _message = power > .93 ? 'قذيفة قوية...' : 'التسديدة انطلقت...';
     });
-    GameFeedback.kick();
+    GameFeedback.kick(GameAudioTheme.football);
     await _animateShot();
 
     if (!mounted) return;
@@ -191,16 +195,16 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
     });
     switch (result) {
       case _PenaltyOutcome.goal:
-        GameFeedback.goal();
+        GameFeedback.goal(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.save:
-        GameFeedback.save();
+        GameFeedback.save(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.post:
-        GameFeedback.post();
+        GameFeedback.post(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.miss:
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.football);
         break;
     }
     await Future<void>.delayed(const Duration(milliseconds: 900));
@@ -223,7 +227,8 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       result = _PenaltyOutcome.miss;
     } else if ((target.dx < .055 || target.dx > .945) && risk < .12) {
       result = _PenaltyOutcome.post;
-    } else if (distance < .13 || (distance < .22 && _random.nextDouble() < .62)) {
+    } else if (distance < .13 ||
+        (distance < .22 && _random.nextDouble() < .62)) {
       result = _PenaltyOutcome.save;
     } else {
       result = _PenaltyOutcome.goal;
@@ -237,7 +242,7 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _phase = _PenaltyPhase.flying;
       _message = 'المنافس يسدد...';
     });
-    GameFeedback.kick();
+    GameFeedback.kick(GameAudioTheme.football);
     await _animateShot();
 
     if (!mounted) return;
@@ -246,20 +251,22 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       _robotResults.add(result);
       if (result == _PenaltyOutcome.goal) _robotGoals++;
       _phase = _PenaltyPhase.result;
-      _message = result == _PenaltyOutcome.save ? 'تصـــدٍ رائع!' : _resultText(result);
+      _message = result == _PenaltyOutcome.save
+          ? 'تصـــدٍ رائع!'
+          : _resultText(result);
     });
     switch (result) {
       case _PenaltyOutcome.goal:
-        GameFeedback.goal();
+        GameFeedback.goal(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.save:
-        GameFeedback.save();
+        GameFeedback.save(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.post:
-        GameFeedback.post();
+        GameFeedback.post(GameAudioTheme.football);
         break;
       case _PenaltyOutcome.miss:
-        GameFeedback.error();
+        GameFeedback.error(GameAudioTheme.football);
         break;
     }
     await Future<void>.delayed(const Duration(milliseconds: 900));
@@ -334,7 +341,8 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
       child: Column(
         crossAxisAlignment: alignment,
         children: <Widget>[
-          Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+          Text(label,
+              style: const TextStyle(color: Colors.white60, fontSize: 11)),
           Text(
             '$score',
             style: const TextStyle(
@@ -395,7 +403,8 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
           ],
         ),
         actions: <Widget>[
-          IconButton(onPressed: _restart, icon: const Icon(Icons.refresh_rounded)),
+          IconButton(
+              onPressed: _restart, icon: const Icon(Icons.refresh_rounded)),
         ],
       ),
       body: SafeArea(
@@ -406,9 +415,11 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
               color: const Color(0xFF050A10),
               child: Row(
                 children: <Widget>[
-                  _scoreSide('أنت', _playerGoals, _playerResults, CrossAxisAlignment.start),
+                  _scoreSide('أنت', _playerGoals, _playerResults,
+                      CrossAxisAlignment.start),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       color: const Color(0xFF0D1722),
@@ -424,7 +435,8 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                       ),
                     ),
                   ),
-                  _scoreSide('الروبوت', _robotGoals, _robotResults, CrossAxisAlignment.end),
+                  _scoreSide('الروبوت', _robotGoals, _robotResults,
+                      CrossAxisAlignment.end),
                 ],
               ),
             ),
@@ -443,7 +455,8 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                   final keeperX = goal.left + goal.width * _keeper.dx;
                   final keeperY = goal.top + goal.height * _keeper.dy;
                   final keeperT = Curves.easeOutCubic.transform(_shot.value);
-                  final keeperPos = Offset.lerp(goal.center, Offset(keeperX, keeperY), keeperT)!;
+                  final keeperPos = Offset.lerp(
+                      goal.center, Offset(keeperX, keeperY), keeperT)!;
 
                   return GestureDetector(
                     behavior: HitTestBehavior.opaque,
@@ -453,11 +466,14 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                       _dragNow = details.localPosition;
                     },
                     onPanUpdate: (details) {
-                      if (_dragStart == null || _phase != _PenaltyPhase.aiming) return;
+                      if (_dragStart == null || _phase != _PenaltyPhase.aiming)
+                        return;
                       setState(() => _dragNow = details.localPosition);
                     },
                     onPanEnd: (_) {
-                      if (_dragStart == null || _dragNow == null || _phase != _PenaltyPhase.aiming) {
+                      if (_dragStart == null ||
+                          _dragNow == null ||
+                          _phase != _PenaltyPhase.aiming) {
                         _dragStart = null;
                         _dragNow = null;
                         return;
@@ -472,8 +488,10 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                       _shootPlayer(aim, power);
                     },
                     onTapDown: (details) {
-                      if (_phase == _PenaltyPhase.saving && goal.contains(details.localPosition)) {
-                        _shootRobot(_normalizeToGoal(details.localPosition, size));
+                      if (_phase == _PenaltyPhase.saving &&
+                          goal.contains(details.localPosition)) {
+                        _shootRobot(
+                            _normalizeToGoal(details.localPosition, size));
                       }
                     },
                     child: Stack(
@@ -502,10 +520,12 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                         ),
                         Positioned.fill(
                           child: IgnorePointer(
-                            child: CustomPaint(painter: _PitchPerspectivePainter()),
+                            child: CustomPaint(
+                                painter: _PitchPerspectivePainter()),
                           ),
                         ),
-                        if (_phase == _PenaltyPhase.aiming || _phase == _PenaltyPhase.saving)
+                        if (_phase == _PenaltyPhase.aiming ||
+                            _phase == _PenaltyPhase.saving)
                           Positioned(
                             left: ballStart.dx - 23,
                             top: ballStart.dy - 23,
@@ -541,7 +561,8 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                             top: _dragNow!.dy - 22,
                             child: const IgnorePointer(child: _AimMarker()),
                           ),
-                        if (_phase == _PenaltyPhase.flying || _phase == _PenaltyPhase.result)
+                        if (_phase == _PenaltyPhase.flying ||
+                            _phase == _PenaltyPhase.result)
                           Positioned(
                             left: ball.dx - (30 - flightT * 16),
                             top: ball.dy - (30 - flightT * 16),
@@ -558,13 +579,18 @@ class _PhotoPenaltyGameState extends State<_PhotoPenaltyGame>
                           right: 14,
                           bottom: 14,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               color: const Color(0xDA050A10),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0x3338BDF8)),
+                              border:
+                                  Border.all(color: const Color(0x3338BDF8)),
                               boxShadow: const <BoxShadow>[
-                                BoxShadow(color: Colors.black54, blurRadius: 18, offset: Offset(0, 8)),
+                                BoxShadow(
+                                    color: Colors.black54,
+                                    blurRadius: 18,
+                                    offset: Offset(0, 8)),
                               ],
                             ),
                             child: Text(
@@ -603,7 +629,8 @@ class _PenaltySpotBall extends StatelessWidget {
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         boxShadow: <BoxShadow>[
-          BoxShadow(color: Color(0xAA000000), blurRadius: 18, offset: Offset(5, 12)),
+          BoxShadow(
+              color: Color(0xAA000000), blurRadius: 18, offset: Offset(5, 12)),
           BoxShadow(color: Color(0x5538BDF8), blurRadius: 24),
         ],
       ),
@@ -630,7 +657,8 @@ class _PhotoBall extends StatelessWidget {
           BoxShadow(color: Colors.black54, blurRadius: 8, offset: Offset(3, 6)),
         ],
       ),
-      child: const Icon(Icons.sports_soccer, size: 21, color: Color(0xFF111827)),
+      child:
+          const Icon(Icons.sports_soccer, size: 21, color: Color(0xFF111827)),
     );
   }
 }
@@ -683,7 +711,10 @@ class _PitchPerspectivePainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
     }
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(center, size.height * .78), width: size.width * .42, height: size.height * .13),
+      Rect.fromCenter(
+          center: Offset(center, size.height * .78),
+          width: size.width * .42,
+          height: size.height * .13),
       glow,
     );
   }
@@ -699,16 +730,20 @@ class _GoalGridPainter extends CustomPainter {
       ..color = Colors.white.withAlpha(78)
       ..strokeWidth = 1;
     for (var i = 1; i < 7; i++) {
-      canvas.drawLine(Offset(size.width * i / 7, 0), Offset(size.width * i / 7, size.height), paint);
+      canvas.drawLine(Offset(size.width * i / 7, 0),
+          Offset(size.width * i / 7, size.height), paint);
     }
     for (var i = 1; i < 5; i++) {
-      canvas.drawLine(Offset(0, size.height * i / 5), Offset(size.width, size.height * i / 5), paint);
+      canvas.drawLine(Offset(0, size.height * i / 5),
+          Offset(size.width, size.height * i / 5), paint);
     }
     final frame = Paint()
       ..color = Colors.white.withAlpha(225)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 5;
-    canvas.drawRRect(RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(2)), frame);
+    canvas.drawRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(2)),
+        frame);
   }
 
   @override

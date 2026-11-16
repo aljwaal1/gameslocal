@@ -20,7 +20,8 @@ CheckersMove move({
 
 void main() {
   group('CheckersMoveRules', () {
-    test('forces captures by removing ordinary moves when a capture exists', () {
+    test('forces captures by removing ordinary moves when a capture exists',
+        () {
       final normalMove = move(fromRow: 5, fromCol: 0, toRow: 4, toCol: 1);
       final captureMove = move(
         fromRow: 5,
@@ -31,7 +32,8 @@ void main() {
       );
 
       expect(
-        CheckersMoveRules.requireCapture(<CheckersMove>[normalMove, captureMove]),
+        CheckersMoveRules.requireCapture(
+            <CheckersMove>[normalMove, captureMove]),
         <CheckersMove>[captureMove],
       );
     });

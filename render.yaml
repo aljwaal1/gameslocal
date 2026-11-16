@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: gameslocal-aljwaal1-relay
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: server/internet_relay
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30

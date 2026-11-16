@@ -2,7 +2,7 @@ name: Build Verified Android APK
 
 on:
   push:
-    branches: [main, feature/world-class-football]
+    branches: [main, feature/world-class-football, feature/world-class-ui-v2]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -41,6 +41,8 @@ jobs:
       - name: Build and capture diagnostics
         id: compile
         shell: bash
+        env:
+          INTERNET_RELAY_URL: ${{ vars.INTERNET_RELAY_URL }}
         run: |
           set +e
           mkdir -p build-status release apk/modern /tmp/gameslocal-output
@@ -48,12 +50,15 @@ jobs:
           echo "COMMIT=$GITHUB_SHA" | tee -a build-status/latest.log
           echo "RUN_ID=$GITHUB_RUN_ID" | tee -a build-status/latest.log
 
+          if [ -f pubspec.lock ]; then cp pubspec.lock /tmp/gameslocal-original-pubspec.lock; fi
+
           WIDGET_TEST_TRACKED=0
           git ls-files --error-unmatch test/widget_test.dart >/dev/null 2>&1 && WIDGET_TEST_TRACKED=1
 
           echo "=== CREATE ANDROID ===" | tee -a build-status/latest.log
           flutter create --platforms=android --org com.explapp --no-pub . 2>&1 | tee -a build-status/latest.log
           CREATE=${PIPESTATUS[0]}
+          if [ -f /tmp/gameslocal-original-pubspec.lock ]; then cp /tmp/gameslocal-original-pubspec.lock pubspec.lock; fi
           if [ "$WIDGET_TEST_TRACKED" -eq 0 ]; then
             rm -f test/widget_test.dart
           fi
@@ -80,14 +85,30 @@ jobs:
           flutter pub get 2>&1 | tee -a build-status/latest.log
           PUB=${PIPESTATUS[0]}
 
+          echo "=== FORMAT ===" | tee -a build-status/latest.log
+          dart format --output=none --set-exit-if-changed lib test 2>&1 | tee -a build-status/latest.log
+          FORMAT=${PIPESTATUS[0]}
+
+          echo "=== TEST ===" | tee -a build-status/latest.log
+          flutter test 2>&1 | tee -a build-status/latest.log
+          TEST=${PIPESTATUS[0]}
+
           echo "=== ANALYZE ===" | tee -a build-status/latest.log
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee -a build-status/latest.log
           ANALYZE=${PIPESTATUS[0]}
 
           BUILD=1
-          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$ANALYZE" -eq 0 ]; then
+          if [ "$CREATE" -eq 0 ] && [ "$MANIFEST" -eq 0 ] && [ "$PUB" -eq 0 ] && [ "$TEST" -eq 0 ] && [ "$ANALYZE" -eq 0 ] && [ "$FORMAT" -eq 0 ]; then
             echo "=== BUILD APK ===" | tee -a build-status/latest.log
-            flutter build apk --release 2>&1 | tee -a build-status/latest.log
+            if [ -n "$INTERNET_RELAY_URL" ]; then
+              echo "Using INTERNET_RELAY_URL from repository variable." | tee -a build-status/latest.log
+              flutter build apk --release \
+                --dart-define=INTERNET_RELAY_URL="$INTERNET_RELAY_URL" \
+                2>&1 | tee -a build-status/latest.log
+            else
+              echo "Using production relay URL compiled into the app." | tee -a build-status/latest.log
+              flutter build apk --release 2>&1 | tee -a build-status/latest.log
+            fi
             BUILD=${PIPESTATUS[0]}
           else
             echo "APK build skipped because a required check failed." | tee -a build-status/latest.log
@@ -96,6 +117,8 @@ jobs:
           echo "CREATE_CODE=$CREATE" | tee -a build-status/latest.log
           echo "MANIFEST_CODE=$MANIFEST" | tee -a build-status/latest.log
           echo "PUB_CODE=$PUB" | tee -a build-status/latest.log
+          echo "FORMAT_CODE=$FORMAT" | tee -a build-status/latest.log
+          echo "TEST_CODE=$TEST" | tee -a build-status/latest.log
           echo "ANALYZE_CODE=$ANALYZE" | tee -a build-status/latest.log
           echo "BUILD_CODE=$BUILD" | tee -a build-status/latest.log
 
@@ -124,6 +147,25 @@ jobs:
             release/gameslocal-flutter.apk.sha256
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish UI v2 APK on its own branch
+        if: steps.compile.outputs.success == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/feature/world-class-ui-v2'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin feature/world-class-ui-v2
+          # Never attach an APK to a newer, unverified source commit.
+          test "$(git rev-parse origin/feature/world-class-ui-v2)" = "$GITHUB_SHA"
+          git reset --hard "$GITHUB_SHA"
+          git clean -fd
+          mkdir -p apk/world-class-ui-v2 build-status
+          cp /tmp/gameslocal-output/gameslocal-flutter.apk apk/world-class-ui-v2/gameslocal-release.apk
+          cp /tmp/gameslocal-output/latest.log build-status/world-class-ui-v2.log
+          git add -f apk/world-class-ui-v2/gameslocal-release.apk build-status/world-class-ui-v2.log
+          git commit -m "Publish verified UI v2 APK [skip ci]"
+          git push origin HEAD:feature/world-class-ui-v2
 
       - name: Publish branch verification result
         if: always() && github.event_name == 'push' && github.ref == 'refs/heads/feature/world-class-football'

@@ -166,7 +166,8 @@ void main() {
   });
 
   group('CheckersMatchEvaluator blocked boards', () {
-    test('awards the win to the side with more pieces when neither can move', () {
+    test('awards the win to the side with more pieces when neither can move',
+        () {
       final redWin = CheckersMatchEvaluator.evaluate(
         redPieces: 8,
         blackPieces: 5,

@@ -12,11 +12,15 @@ void main() {
     'lib/games/domino/domino_four_player_game.dart',
     'lib/games/line_games/line_games.dart',
     'lib/games/name_animal_object/name_animal_object_game.dart',
-    'lib/games/football/photo_penalty_game_v3.dart',
+    'lib/games/football/world_class_penalty_game_v2.dart',
   ];
 
-  test('all active game screens stay inside one non-scrolling viewport', () {
-    for (final path in nativeGameFiles) {
+  test('board games retain their fixed gameplay viewport', () {
+    // Card hands require scrolling to keep enlarged identities touchable.
+    // Their full screens, narrow hand and text scaling are exercised by
+    // card_screen_layout_test.dart and card_readability_test.dart.
+    for (final path
+        in nativeGameFiles.where((path) => !path.contains('/cards/'))) {
       final source = File(path).readAsStringSync();
       expect(
         source.contains('SingleChildScrollView('),
@@ -58,7 +62,8 @@ void main() {
     for (final path in browserFiles) {
       final source = File(path).readAsStringSync();
       expect(
-        source.contains('AudioContext') || source.contains('webkitAudioContext'),
+        source.contains('AudioContext') ||
+            source.contains('webkitAudioContext'),
         isTrue,
         reason: '$path must provide sound to QR/browser players',
       );
