@@ -1107,7 +1107,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
                               ? (networkMode == 0
                                   ? 'مواجهة: آخر طائرة تبقى تفوز'
                                   : 'تعاون: اجمعا النقاط وابقيا معًا')
-                              : 'حرّك الطائرة يمينًا ويسارًا، واسحب للأعلى وثبّت للتسريع. الإطلاق تلقائي.'),
+                              : 'اسحب للأعلى للتسريع. الإطلاق تلقائي.'),
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Color(0xffd2e8ef),
