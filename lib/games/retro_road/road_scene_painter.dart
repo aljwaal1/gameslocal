@@ -156,8 +156,8 @@ class RoadScenePainter extends CustomPainter {
     final ground = weather == RoadSceneWeather.snow
         ? const Color(0xFFD8E4E7)
         : dark
-        ? const Color(0xFF263D39)
-        : const Color(0xFF6F9677);
+            ? const Color(0xFF263D39)
+            : const Color(0xFF6F9677);
     c.drawRect(
       Rect.fromLTWH(0, s.height * .14, s.width, s.height),
       Paint()
@@ -194,12 +194,13 @@ class RoadScenePainter extends CustomPainter {
     double right,
     double top,
     double bottom,
-  ) => Path()
-    ..moveTo(g.project(left, top).dx, g.project(left, top).dy)
-    ..lineTo(g.project(right, top).dx, g.project(right, top).dy)
-    ..lineTo(g.project(right, bottom).dx, g.project(right, bottom).dy)
-    ..lineTo(g.project(left, bottom).dx, g.project(left, bottom).dy)
-    ..close();
+  ) =>
+      Path()
+        ..moveTo(g.project(left, top).dx, g.project(left, top).dy)
+        ..lineTo(g.project(right, top).dx, g.project(right, top).dy)
+        ..lineTo(g.project(right, bottom).dx, g.project(right, bottom).dy)
+        ..lineTo(g.project(left, bottom).dx, g.project(left, bottom).dy)
+        ..close();
 
   void _road(Canvas c, RoadSceneGeometry g, Rect bounds) {
     final shoulder = _strip(g, .072, .928, 0, 1.4);

@@ -149,8 +149,7 @@ class PlaneScenePainter extends CustomPainter {
       ]) {
         double shore(double y) {
           final phase = (y - travel) * 2.5 + (right ? 1.8 : .6);
-          final inlet =
-              .14 +
+          final inlet = .14 +
               math.sin(phase) * .062 +
               math.sin(phase * 2.0 + .4) * .025 +
               math.sin(phase * 4) * .012;
@@ -267,8 +266,7 @@ class PlaneScenePainter extends CustomPainter {
     PlaneObstacle obstacle,
   ) {
     final center = geometry.project(obstacle.x, obstacle.y);
-    final scale =
-        geometry.aircraftSize(obstacle.y) *
+    final scale = geometry.aircraftSize(obstacle.y) *
         (obstacle.size / .066).clamp(.65, 1.3);
     switch (obstacle.kind) {
       case PlaneObstacleKind.enemy:
@@ -457,9 +455,8 @@ class PlaneScenePainter extends CustomPainter {
   ) {
     final center = geometry.project(shot.x, shot.y);
     final radius = (geometry.aircraftSize(shot.y).width * .055).clamp(1.3, 3.4);
-    final color = shot.remote
-        ? const Color(0xffffc475)
-        : const Color(0xffa4f5ff);
+    final color =
+        shot.remote ? const Color(0xffffc475) : const Color(0xffa4f5ff);
     final glow = Rect.fromCenter(
       center: center,
       width: radius * 7,

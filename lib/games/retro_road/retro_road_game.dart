@@ -21,18 +21,18 @@ enum _Weather { day, sunset, night, fog, snow, rain }
 
 extension on _Weather {
   String get label => switch (this) {
-    _Weather.day => 'نهار',
-    _Weather.sunset => 'غروب',
-    _Weather.night => 'ليل',
-    _Weather.fog => 'ضباب',
-    _Weather.snow => 'ثلج',
-    _Weather.rain => 'مطر',
-  };
+        _Weather.day => 'نهار',
+        _Weather.sunset => 'غروب',
+        _Weather.night => 'ليل',
+        _Weather.fog => 'ضباب',
+        _Weather.snow => 'ثلج',
+        _Weather.rain => 'مطر',
+      };
   double get steering => switch (this) {
-    _Weather.snow => 1.45,
-    _Weather.rain => 1.22,
-    _ => 1.0,
-  };
+        _Weather.snow => 1.45,
+        _Weather.rain => 1.22,
+        _ => 1.0,
+      };
 }
 
 class _Traffic {
@@ -245,14 +245,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
     weather = p < .16
         ? _Weather.day
         : p < .31
-        ? _Weather.sunset
-        : p < .47
-        ? _Weather.night
-        : p < .63
-        ? _Weather.fog
-        : p < .81
-        ? _Weather.snow
-        : _Weather.rain;
+            ? _Weather.sunset
+            : p < .47
+                ? _Weather.night
+                : p < .63
+                    ? _Weather.fog
+                    : p < .81
+                        ? _Weather.snow
+                        : _Weather.rain;
   }
 
   bool hasCrashAt(double x) {
@@ -316,8 +316,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
   void _onNetworkMessage(NetworkMessage m) {
     if (!mounted ||
         m.senderId == localPlayerId ||
-        m.type != NetworkMessageType.move)
-      return;
+        m.type != NetworkMessageType.move) return;
     final action = m.payload['action']?.toString();
     if (action == 'road_start_request' && isHost) {
       start();
@@ -360,19 +359,19 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
         resultText = hostText == 'فزت بالسباق'
             ? 'فاز اللاعب الآخر'
             : hostText == 'فاز اللاعب الآخر'
-            ? 'فزت بالسباق'
-            : hostText;
+                ? 'فزت بالسباق'
+                : hostText;
         cars
           ..clear()
           ..addAll(
             rawCars.whereType<Map>().map(
-              (e) => _Traffic(
-                (e['x'] as num).toDouble(),
-                (e['y'] as num).toDouble(),
-                (e['lane'] as num).toInt(),
-                (e['factor'] as num).toDouble(),
-              ),
-            ),
+                  (e) => _Traffic(
+                    (e['x'] as num).toDouble(),
+                    (e['y'] as num).toDouble(),
+                    (e['lane'] as num).toInt(),
+                    (e['factor'] as num).toDouble(),
+                  ),
+                ),
           );
       });
       _syncMotor();
@@ -480,9 +479,9 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
                       Size(roadBox.maxWidth, roadBox.maxHeight),
                     );
                     void touch(Offset point) => dragRoad(
-                      geometry.worldXForTouch(point.dx) * roadBox.maxWidth,
-                      roadBox.maxWidth,
-                    );
+                          geometry.worldXForTouch(point.dx) * roadBox.maxWidth,
+                          roadBox.maxWidth,
+                        );
                     return Stack(
                       children: [
                         Positioned.fill(
@@ -495,26 +494,26 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
                               duration: const Duration(milliseconds: 190),
                               builder: (context, settlingX, child) =>
                                   CustomPaint(
-                                    key: const ValueKey('road-scene'),
-                                    size: Size.infinite,
-                                    painter: RoadScenePainter(
-                                      playerX: playerX,
-                                      opponentX: isNetworkGame ? remoteX : null,
-                                      traffic: cars
-                                          .map(
-                                            (c) => RoadTrafficVisual(
-                                              c.x,
-                                              c.y,
-                                              c.lane,
-                                            ),
-                                          )
-                                          .toList(),
-                                      weather: RoadSceneWeather
-                                          .values[weather.index],
-                                      travel: distance + tickCarry,
-                                      steer: (playerX - settlingX) * 1.5,
-                                    ),
-                                  ),
+                                key: const ValueKey('road-scene'),
+                                size: Size.infinite,
+                                painter: RoadScenePainter(
+                                  playerX: playerX,
+                                  opponentX: isNetworkGame ? remoteX : null,
+                                  traffic: cars
+                                      .map(
+                                        (c) => RoadTrafficVisual(
+                                          c.x,
+                                          c.y,
+                                          c.lane,
+                                        ),
+                                      )
+                                      .toList(),
+                                  weather:
+                                      RoadSceneWeather.values[weather.index],
+                                  travel: distance + tickCarry,
+                                  steer: (playerX - settlingX) * 1.5,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -587,11 +586,11 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
                                       Text(
                                         gameOver
                                             ? (isNetworkGame
-                                                  ? resultText
-                                                  : 'نقاطك: $score')
+                                                ? resultText
+                                                : 'نقاطك: $score')
                                             : (isNetworkGame
-                                                  ? 'سباق مباشر: تجنب السيارات وابقَ آخر سيارة'
-                                                  : 'تجاوز 40 سيارة لتنتقل إلى يوم جديد'),
+                                                ? 'سباق مباشر: تجنب السيارات وابقَ آخر سيارة'
+                                                : 'تجاوز 40 سيارة لتنتقل إلى يوم جديد'),
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(
                                           color: Color(0xFF4F6671),
@@ -649,17 +648,17 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
   }
 
   Widget _stat(String label, int value) => Expanded(
-    child: FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Text(
-        '$label: $value',
-        style: const TextStyle(
-          color: Color(0xFF243D4A),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            '$label: $value',
+            style: const TextStyle(
+              color: Color(0xFF243D4A),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }
