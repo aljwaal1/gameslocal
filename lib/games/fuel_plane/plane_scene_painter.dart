@@ -6,11 +6,12 @@ import 'plane_scene_geometry.dart';
 import 'plane_scene_motion.dart';
 
 // Keep wire indices: fuel=0, ship (formerly rock)=1, enemy=2.
-enum PlaneObstacleKind { fuel, ship, enemy }
+enum PlaneObstacleKind { fuel, ship, enemy, crossing }
 
 class PlaneObstacle {
-  const PlaneObstacle(this.x, this.y, this.size, this.kind);
+  const PlaneObstacle(this.x, this.y, this.size, this.kind, {this.heading = 1});
   final double x, y, size;
+  final int heading;
   final PlaneObstacleKind kind;
 }
 
@@ -39,9 +40,13 @@ class PlaneScenePainter extends CustomPainter {
     required this.obstacles,
     required this.projectiles,
     this.motion,
+    this.gateY,
+    this.gateRatio = 0,
   }) : super(repaint: motion);
 
   final double localX;
+  final double? gateY;
+  final double gateRatio;
   final double? remoteX;
   final bool localAlive, remoteAlive;
   final int distance;
@@ -56,6 +61,8 @@ class PlaneScenePainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     _paintCoast(canvas, size);
+    final wall = gateY;
+    if (wall != null) _paintGate(canvas, geometry, wall);
     for (final obstacle in obstacles) {
       _paintObstacle(canvas, geometry, obstacle);
     }
@@ -142,7 +149,8 @@ class PlaneScenePainter extends CustomPainter {
       ]) {
         double shore(double y) {
           final phase = (y - travel) * 2.5 + (right ? 1.8 : .6);
-          final inlet = .14 +
+          final inlet =
+              .14 +
               math.sin(phase) * .062 +
               math.sin(phase * 2.0 + .4) * .025 +
               math.sin(phase * 4) * .012;
@@ -254,18 +262,62 @@ class PlaneScenePainter extends CustomPainter {
   }
 
   void _paintObstacle(
-      Canvas canvas, PlaneSceneGeometry geometry, PlaneObstacle obstacle) {
+    Canvas canvas,
+    PlaneSceneGeometry geometry,
+    PlaneObstacle obstacle,
+  ) {
     final center = geometry.project(obstacle.x, obstacle.y);
-    final scale = geometry.aircraftSize(obstacle.y) *
+    final scale =
+        geometry.aircraftSize(obstacle.y) *
         (obstacle.size / .066).clamp(.65, 1.3);
     switch (obstacle.kind) {
       case PlaneObstacleKind.enemy:
         _paintAircraft(canvas, center, scale * .83, _Aircraft.enemy);
+      case PlaneObstacleKind.crossing:
+        _paintAircraft(
+          canvas,
+          center,
+          scale * .87,
+          _Aircraft.enemy,
+          rotation: obstacle.heading * math.pi / 2,
+        );
       case PlaneObstacleKind.ship:
         _paintShip(canvas, center, scale.width * .78);
       case PlaneObstacleKind.fuel:
         _paintFuel(canvas, center, scale.width * .70);
     }
+  }
+
+  void _paintGate(Canvas canvas, PlaneSceneGeometry geometry, double y) {
+    final center = geometry.project(.5, y);
+    final width = geometry.size.width;
+    final deck = Rect.fromCenter(center: center, width: width, height: 24);
+    canvas.drawRect(
+      deck.shift(const Offset(0, 7)),
+      Paint()..color = const Color(0x66091821),
+    );
+    canvas.drawRect(
+      deck,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xffc5ccca), Color(0xff52646c)],
+        ).createShader(deck),
+    );
+    for (var column = 1; column < 8; column++) {
+      final x = column * width / 8;
+      canvas.drawRect(
+        Rect.fromCenter(center: Offset(x, center.dy), width: 4, height: 29),
+        Paint()..color = const Color(0xff263f49),
+      );
+    }
+    final bar = Rect.fromLTWH(width * .32, deck.bottom + 5, width * .36, 5);
+    canvas.drawRect(bar, Paint()..color = const Color(0xff242a32));
+    canvas.drawRect(
+      Rect.fromLTWH(bar.left, bar.top, bar.width * gateRatio, 5),
+      Paint()..color = const Color(0xffffab66),
+    );
   }
 
   void _paintFuel(Canvas canvas, Offset center, double size) {
@@ -295,12 +347,16 @@ class PlaneScenePainter extends CustomPainter {
     final dark = Paint()..color = const Color(0xff145943);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          const Rect.fromLTWH(-7, -16, 14, 6), const Radius.circular(2)),
+        const Rect.fromLTWH(-7, -16, 14, 6),
+        const Radius.circular(2),
+      ),
       dark,
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          const Rect.fromLTWH(-4, -14, 8, 3), const Radius.circular(1)),
+        const Rect.fromLTWH(-4, -14, 8, 3),
+        const Radius.circular(1),
+      ),
       Paint()..color = const Color(0xffb8f9c8),
     );
     final drop = Path()
@@ -324,15 +380,18 @@ class PlaneScenePainter extends CustomPainter {
         ..moveTo(side * 6, -18)
         ..quadraticBezierTo(side * 13, 7, side * 21, 23);
       canvas.drawPath(
-          wake,
-          paint
-            ..color = const Color(0x99b6f2f2)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.2);
+        wake,
+        paint
+          ..color = const Color(0x99b6f2f2)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2,
+      );
     }
     paint.style = PaintingStyle.fill;
-    canvas.drawOval(const Rect.fromLTWH(-15, -18, 34, 43),
-        paint..color = const Color(0x60052433));
+    canvas.drawOval(
+      const Rect.fromLTWH(-15, -18, 34, 43),
+      paint..color = const Color(0x60052433),
+    );
     final hull = Path()
       ..moveTo(0, -24)
       ..cubicTo(-8, -19, -14, -10, -14, 4)
@@ -342,66 +401,93 @@ class PlaneScenePainter extends CustomPainter {
       ..cubicTo(14, -10, 8, -19, 0, -24)
       ..close();
     canvas.drawPath(
-        hull,
-        paint
-          ..shader = const LinearGradient(
-            colors: [Color(0xff263e56), Color(0xffa2bec9), Color(0xff426077)],
-            stops: [0, .42, 1],
-          ).createShader(hull.getBounds()));
+      hull,
+      paint
+        ..shader = const LinearGradient(
+          colors: [Color(0xff263e56), Color(0xffa2bec9), Color(0xff426077)],
+          stops: [0, .42, 1],
+        ).createShader(hull.getBounds()),
+    );
     paint.shader = null;
     final deck = RRect.fromRectAndRadius(
-        const Rect.fromLTWH(-8, -12, 16, 29), const Radius.circular(4));
+      const Rect.fromLTWH(-8, -12, 16, 29),
+      const Radius.circular(4),
+    );
     canvas.drawRRect(deck, paint..color = const Color(0xffd0d9cb));
     canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            const Rect.fromLTWH(-6, -1, 12, 7), const Radius.circular(1.5)),
-        paint..color = const Color(0xffffad55));
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-6, -1, 12, 7),
+        const Radius.circular(1.5),
+      ),
+      paint..color = const Color(0xffffad55),
+    );
     canvas.drawRRect(
-        RRect.fromRectAndRadius(
-            const Rect.fromLTWH(-6, -9, 12, 7), const Radius.circular(2)),
-        paint..color = const Color(0xff264859));
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-6, -9, 12, 7),
+        const Radius.circular(2),
+      ),
+      paint..color = const Color(0xff264859),
+    );
     canvas.drawLine(
-        const Offset(-4, -7),
-        const Offset(4, -7),
-        paint
-          ..color = const Color(0xff9ee6f2)
-          ..strokeWidth = 1.7);
+      const Offset(-4, -7),
+      const Offset(4, -7),
+      paint
+        ..color = const Color(0xff9ee6f2)
+        ..strokeWidth = 1.7,
+    );
     canvas.drawCircle(
-        const Offset(0, 12), 4, paint..color = const Color(0xff647f90));
+      const Offset(0, 12),
+      4,
+      paint..color = const Color(0xff647f90),
+    );
     canvas.drawLine(
-        const Offset(0, 12),
-        const Offset(0, 20),
-        paint
-          ..color = const Color(0xffe4eeee)
-          ..strokeWidth = 2);
+      const Offset(0, 12),
+      const Offset(0, 20),
+      paint
+        ..color = const Color(0xffe4eeee)
+        ..strokeWidth = 2,
+    );
     canvas.restore();
   }
 
   void _paintProjectile(
-      Canvas canvas, PlaneSceneGeometry geometry, PlaneProjectile shot) {
+    Canvas canvas,
+    PlaneSceneGeometry geometry,
+    PlaneProjectile shot,
+  ) {
     final center = geometry.project(shot.x, shot.y);
     final radius = (geometry.aircraftSize(shot.y).width * .055).clamp(1.3, 3.4);
-    final color =
-        shot.remote ? const Color(0xffffc475) : const Color(0xffa4f5ff);
-    final glow =
-        Rect.fromCenter(center: center, width: radius * 7, height: radius * 9);
+    final color = shot.remote
+        ? const Color(0xffffc475)
+        : const Color(0xffa4f5ff);
+    final glow = Rect.fromCenter(
+      center: center,
+      width: radius * 7,
+      height: radius * 9,
+    );
     canvas.drawOval(
       glow,
       Paint()
-        ..shader =
-            RadialGradient(colors: [color.withAlpha(135), color.withAlpha(0)])
-                .createShader(glow),
+        ..shader = RadialGradient(
+          colors: [color.withAlpha(135), color.withAlpha(0)],
+        ).createShader(glow),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(
-            center: center, width: radius * 1.45, height: radius * 4.9),
+          center: center,
+          width: radius * 1.45,
+          height: radius * 4.9,
+        ),
         Radius.circular(radius),
       ),
       Paint()..color = color,
     );
-    canvas.drawCircle(center - Offset(0, radius), radius * .55,
-        Paint()..color = Colors.white);
+    canvas.drawCircle(
+      center - Offset(0, radius),
+      radius * .55,
+      Paint()..color = Colors.white,
+    );
   }
 
   void _paintAircraft(
@@ -411,11 +497,12 @@ class PlaneScenePainter extends CustomPainter {
     _Aircraft kind, {
     double bank = 0,
     double muzzle = 0,
+    double? rotation,
   }) {
     final hostile = kind == _Aircraft.enemy;
     canvas.save();
     canvas.translate(center.dx, center.dy);
-    canvas.rotate(hostile ? math.pi : bank);
+    canvas.rotate(rotation ?? (hostile ? math.pi : bank));
     canvas.scale(size.width / 100 * (1 - bank.abs() * .23), size.height / 100);
     final paint = Paint();
     final wings = Path()
@@ -487,7 +574,7 @@ class PlaneScenePainter extends CustomPainter {
         colors: [
           kind.trim,
           kind.highlight.withAlpha(170),
-          kind.highlight.withAlpha(0)
+          kind.highlight.withAlpha(0),
         ],
       ).createShader(exhaust.getBounds());
       canvas.drawPath(exhaust, paint);
@@ -499,7 +586,10 @@ class PlaneScenePainter extends CustomPainter {
       canvas.drawRRect(pod, paint..color = kind.base);
       final nacelle = RRect.fromRectAndRadius(
         Rect.fromCenter(
-            center: Offset(side * 18 - 1, 11), width: 6, height: 30),
+          center: Offset(side * 18 - 1, 11),
+          width: 6,
+          height: 30,
+        ),
         const Radius.circular(3),
       );
       canvas.drawRRect(nacelle, paint..color = kind.highlight);
@@ -553,7 +643,7 @@ class PlaneScenePainter extends CustomPainter {
           ..shader = RadialGradient(
             colors: [
               kind.trim.withAlpha((230 * muzzle).round()),
-              kind.trim.withAlpha(0)
+              kind.trim.withAlpha(0),
             ],
           ).createShader(glow),
       );
@@ -567,15 +657,21 @@ class PlaneScenePainter extends CustomPainter {
   }
 
   void _paintBurst(
-      Canvas canvas, PlaneSceneGeometry geometry, PlaneBurstFrame burst) {
+    Canvas canvas,
+    PlaneSceneGeometry geometry,
+    PlaneBurstFrame burst,
+  ) {
     final center = geometry.project(burst.x, burst.y);
     final progress = burst.progress;
     final remaining = 1 - progress;
     final extent =
         geometry.aircraftSize(burst.y).width * (burst.crash ? .94 : .67);
     final radius = extent * (.32 + progress * .68);
-    final hot =
-        Color.lerp(const Color(0xffffefae), const Color(0xfff57649), progress)!;
+    final hot = Color.lerp(
+      const Color(0xffffefae),
+      const Color(0xfff57649),
+      progress,
+    )!;
     final paint = Paint();
     final glow = Rect.fromCircle(center: center, radius: radius);
     canvas.drawCircle(
@@ -609,6 +705,8 @@ class PlaneScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PlaneScenePainter oldDelegate) =>
+      oldDelegate.gateY != gateY ||
+      oldDelegate.gateRatio != gateRatio ||
       oldDelegate.localX != localX ||
       oldDelegate.remoteX != remoteX ||
       oldDelegate.localAlive != localAlive ||

@@ -48,12 +48,14 @@ class GameFeedback {
     (_) => AudioPlayer(),
   );
   static final List<GameFeedbackAudioChannel> _channels = _players
-      .map((player) => GameFeedbackAudioChannel(
-            stop: player.stop,
-            setVolume: player.setVolume,
-            setSourceBytes: player.setSourceBytes,
-            resume: player.resume,
-          ))
+      .map(
+        (player) => GameFeedbackAudioChannel(
+          stop: player.stop,
+          setVolume: player.setVolume,
+          setSourceBytes: player.setSourceBytes,
+          resume: player.resume,
+        ),
+      )
       .toList(growable: false);
   static final Map<String, Uint8List> _cache = <String, Uint8List>{};
   static final Map<String, DateTime> _lastPlayed = <String, DateTime>{};
@@ -65,11 +67,11 @@ class GameFeedback {
       : Future<void>.value();
 
   static Future<void> uiTap() => _emit(
-        GameSound.uiTap,
-        vibration: false,
-        volume: .28,
-        minInterval: const Duration(milliseconds: 45),
-      );
+    GameSound.uiTap,
+    vibration: false,
+    volume: .28,
+    minInterval: const Duration(milliseconds: 45),
+  );
 
   static Future<void> tap([GameAudioTheme theme = GameAudioTheme.system]) =>
       _emit(
@@ -98,103 +100,107 @@ class GameFeedback {
       );
 
   /// Short plane cues follow simulation events, with an owned round lifetime.
-  static Future<void> planeShot(GameFeedbackCancellation lifetime) =>
-      _emit(GameSound.move,
-          theme: GameAudioTheme.plane,
-          cancellation: lifetime,
-          vibration: false,
-          volume: .42);
+  static Future<void> planeShot(GameFeedbackCancellation lifetime) => _emit(
+    GameSound.move,
+    theme: GameAudioTheme.plane,
+    cancellation: lifetime,
+    vibration: false,
+    volume: .42,
+  );
 
   static Future<void> planeExplosion(GameFeedbackCancellation lifetime) =>
-      _emit(GameSound.capture,
-          theme: GameAudioTheme.plane,
-          cancellation: lifetime,
-          haptic: HapticFeedback.mediumImpact,
-          volume: .70);
-
-  static Future<void> planeRefuel(GameFeedbackCancellation lifetime) =>
-      _emit(GameSound.tap,
-          theme: GameAudioTheme.plane,
-          cancellation: lifetime,
-          haptic: HapticFeedback.selectionClick,
-          volume: .64);
-
-  static Future<void> win(
-          [GameAudioTheme theme = GameAudioTheme.system,
-          GameFeedbackCancellation? cancellation]) =>
       _emit(
-        GameSound.win,
-        theme: theme,
-        cancellation: cancellation,
-        haptic: HapticFeedback.mediumImpact,
-        volume: theme == GameAudioTheme.domino ? .82 : .76,
-      );
-
-  static Future<void> lose(
-          [GameAudioTheme theme = GameAudioTheme.system,
-          GameFeedbackCancellation? cancellation]) =>
-      _emit(
-        GameSound.lose,
-        theme: theme,
-        cancellation: cancellation,
-        haptic: HapticFeedback.heavyImpact,
-        volume: theme == GameAudioTheme.domino ? .76 : .70,
-      );
-
-  static Future<void> error(
-          [GameAudioTheme theme = GameAudioTheme.system,
-          GameFeedbackCancellation? cancellation]) =>
-      _emit(
-        GameSound.error,
-        theme: theme,
-        cancellation: cancellation,
-        haptic: HapticFeedback.heavyImpact,
-        volume: .58,
-      );
-
-  static Future<void> kick(
-          [GameAudioTheme theme = GameAudioTheme.football,
-          GameFeedbackCancellation? cancellation]) =>
-      _emit(
-        GameSound.kick,
-        theme: theme,
-        cancellation: cancellation,
-        haptic: HapticFeedback.lightImpact,
-        volume: .70,
-      );
-
-  static Future<void> goal(
-          [GameAudioTheme theme = GameAudioTheme.football,
-          GameFeedbackCancellation? cancellation]) =>
-      _emit(
-        GameSound.goal,
-        theme: theme,
-        cancellation: cancellation,
-        haptic: HapticFeedback.heavyImpact,
-        volume: .84,
-      );
-
-  static Future<void> save(
-          [GameAudioTheme theme = GameAudioTheme.football,
-          GameFeedbackCancellation? cancellation]) =>
-      _emit(
-        GameSound.save,
-        theme: theme,
-        cancellation: cancellation,
+        GameSound.capture,
+        theme: GameAudioTheme.plane,
+        cancellation: lifetime,
         haptic: HapticFeedback.mediumImpact,
         volume: .70,
       );
 
-  static Future<void> post(
-          [GameAudioTheme theme = GameAudioTheme.football,
-          GameFeedbackCancellation? cancellation]) =>
-      _emit(
-        GameSound.post,
-        theme: theme,
-        cancellation: cancellation,
-        haptic: HapticFeedback.heavyImpact,
-        volume: .78,
-      );
+  static Future<void> planeRefuel(GameFeedbackCancellation lifetime) => _emit(
+    GameSound.tap,
+    theme: GameAudioTheme.plane,
+    cancellation: lifetime,
+    haptic: HapticFeedback.selectionClick,
+    volume: .64,
+  );
+
+  static Future<void> win([
+    GameAudioTheme theme = GameAudioTheme.system,
+    GameFeedbackCancellation? cancellation,
+  ]) => _emit(
+    GameSound.win,
+    theme: theme,
+    cancellation: cancellation,
+    haptic: HapticFeedback.mediumImpact,
+    volume: theme == GameAudioTheme.domino ? .82 : .76,
+  );
+
+  static Future<void> lose([
+    GameAudioTheme theme = GameAudioTheme.system,
+    GameFeedbackCancellation? cancellation,
+  ]) => _emit(
+    GameSound.lose,
+    theme: theme,
+    cancellation: cancellation,
+    haptic: HapticFeedback.heavyImpact,
+    volume: theme == GameAudioTheme.domino ? .76 : .70,
+  );
+
+  static Future<void> error([
+    GameAudioTheme theme = GameAudioTheme.system,
+    GameFeedbackCancellation? cancellation,
+  ]) => _emit(
+    GameSound.error,
+    theme: theme,
+    cancellation: cancellation,
+    haptic: HapticFeedback.heavyImpact,
+    volume: .58,
+  );
+
+  static Future<void> kick([
+    GameAudioTheme theme = GameAudioTheme.football,
+    GameFeedbackCancellation? cancellation,
+  ]) => _emit(
+    GameSound.kick,
+    theme: theme,
+    cancellation: cancellation,
+    haptic: HapticFeedback.lightImpact,
+    volume: .70,
+  );
+
+  static Future<void> goal([
+    GameAudioTheme theme = GameAudioTheme.football,
+    GameFeedbackCancellation? cancellation,
+  ]) => _emit(
+    GameSound.goal,
+    theme: theme,
+    cancellation: cancellation,
+    haptic: HapticFeedback.heavyImpact,
+    volume: .84,
+  );
+
+  static Future<void> save([
+    GameAudioTheme theme = GameAudioTheme.football,
+    GameFeedbackCancellation? cancellation,
+  ]) => _emit(
+    GameSound.save,
+    theme: theme,
+    cancellation: cancellation,
+    haptic: HapticFeedback.mediumImpact,
+    volume: .70,
+  );
+
+  static Future<void> post([
+    GameAudioTheme theme = GameAudioTheme.football,
+    GameFeedbackCancellation? cancellation,
+  ]) => _emit(
+    GameSound.post,
+    theme: theme,
+    cancellation: cancellation,
+    haptic: HapticFeedback.heavyImpact,
+    volume: .78,
+  );
 
   static Future<void> _emit(
     GameSound sound, {
@@ -220,8 +226,8 @@ class GameFeedback {
     // preparation. It must never be delayed by stop/source/resume futures.
     final vibrationFuture =
         vibration && _settings.vibrationEnabled && haptic != null
-            ? haptic()
-            : Future<void>.value();
+        ? haptic()
+        : Future<void>.value();
     if (_settings.soundEnabled) {
       try {
         final channel = _channels[_playerIndex++ % _channels.length];
@@ -285,8 +291,8 @@ class GameFeedback {
     final duration = theme == GameAudioTheme.plane && sound == GameSound.tap
         ? .38
         : theme == GameAudioTheme.plane && sound == GameSound.capture
-            ? .34
-            : baseDuration * durationScale;
+        ? .34
+        : baseDuration * durationScale;
     final sampleCount = (sampleRate * duration).round();
     final pcm = Int16List(sampleCount);
     final random = math.Random(sound.index * 7919 + theme.index * 104729 + 17);
@@ -302,7 +308,8 @@ class GameFeedback {
       if (dt < 0 || dt > length) return 0;
       final env = math.pow(1 - dt / length, 3.2).toDouble();
       final noise = random.nextDouble() * 2 - 1;
-      final ivory = math.sin(2 * math.pi * 1180 * dt) * .52 +
+      final ivory =
+          math.sin(2 * math.pi * 1180 * dt) * .52 +
           math.sin(2 * math.pi * 2360 * dt) * .22;
       final wood = math.sin(2 * math.pi * 172 * dt) * .44;
       return (noise * .52 + ivory + wood) * env * strength;
@@ -317,7 +324,8 @@ class GameFeedback {
       if (theme == GameAudioTheme.domino) {
         switch (sound) {
           case GameSound.move:
-            value = transient(t, 0, .055, .92) +
+            value =
+                transient(t, 0, .055, .92) +
                 transient(t, .042, .065, .56) +
                 note(t, 138, duration) * .14;
             break;
@@ -330,8 +338,8 @@ class GameFeedback {
             final index = math.min(3, (t / segment).floor());
             value =
                 note(t - index * segment, frequencies[index], segment) * .72 +
-                    transient(t, 0, .055, .35) +
-                    transient(t, duration * .70, .050, .28);
+                transient(t, 0, .055, .35) +
+                transient(t, duration * .70, .050, .28);
             break;
           case GameSound.lose:
             final segment = duration / 3;
@@ -339,7 +347,7 @@ class GameFeedback {
             final index = math.min(2, (t / segment).floor());
             value =
                 note(t - index * segment, frequencies[index], segment) * .66 +
-                    transient(t, 0, .060, .30);
+                transient(t, 0, .060, .30);
             break;
           case GameSound.error:
             value = transient(t, 0, .055, .44) + note(t, 118, duration) * .48;
@@ -355,7 +363,8 @@ class GameFeedback {
         switch (sound) {
           case GameSound.capture:
           case GameSound.move:
-            value = transient(t, 0, .032, .88) +
+            value =
+                transient(t, 0, .032, .88) +
                 note(t, 1760, duration) * .34 +
                 note(t, 260, duration) * .18;
             break;
@@ -365,7 +374,8 @@ class GameFeedback {
           case GameSound.goal:
           case GameSound.win:
             final rise = 620 + progress * 820;
-            value = math.sin(2 * math.pi * rise * t) * envelope * .72 +
+            value =
+                math.sin(2 * math.pi * rise * t) * envelope * .72 +
                 note(t, 1240, duration) * .28;
             break;
           case GameSound.lose:
@@ -379,7 +389,8 @@ class GameFeedback {
         switch (sound) {
           case GameSound.move:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .58 +
+            value =
+                (noise * .58 +
                     math.sin(2 * math.pi * (420 + progress * 250) * t) * .42) *
                 envelope *
                 .72;
@@ -387,17 +398,23 @@ class GameFeedback {
           case GameSound.tap:
             final segment = duration / 3;
             final index = math.min(2, (t / segment).floor());
-            value = note(t - index * segment, [660.0, 880.0, 1320.0][index],
-                    segment) *
+            value =
+                note(
+                  t - index * segment,
+                  [660.0, 880.0, 1320.0][index],
+                  segment,
+                ) *
                 .78;
             break;
           case GameSound.capture:
             final noise = random.nextDouble() * 2 - 1;
-            value = transient(t, 0, .045, .65) +
+            value =
+                transient(t, 0, .045, .65) +
                 (noise * .48 + note(t, 105, duration) * .7) * envelope;
             break;
           case GameSound.win:
-            value = note(t, 880, duration) * .52 +
+            value =
+                note(t, 880, duration) * .52 +
                 note(t, 1320, duration) * .38 +
                 transient(t, 0, .035, .28);
             break;
@@ -426,7 +443,8 @@ class GameFeedback {
             break;
           case GameSound.lose:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .64 +
+            value =
+                (noise * .64 +
                     note(t, 82, duration) * .72 +
                     note(t, 128, duration) * .25) *
                 envelope;
@@ -472,7 +490,8 @@ class GameFeedback {
             break;
           case GameSound.kick:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .72 + math.sin(2 * math.pi * 115 * t) * .28) *
+            value =
+                (noise * .72 + math.sin(2 * math.pi * 115 * t) * .28) *
                 envelope *
                 .82;
             break;
@@ -483,7 +502,8 @@ class GameFeedback {
             break;
           case GameSound.save:
             final noise = random.nextDouble() * 2 - 1;
-            value = (noise * .50 + math.sin(2 * math.pi * 255 * t) * .50) *
+            value =
+                (noise * .50 + math.sin(2 * math.pi * 255 * t) * .50) *
                 envelope *
                 .75;
             break;
@@ -546,18 +566,22 @@ class GameFeedback {
     return _encodeWav(pcm, sampleRate);
   }
 
-  static Uint8List _engineWav() {
+  static Uint8List _engineWav({bool road = false}) {
     const rate = 22050;
     final pcm = Int16List(rate);
     // Whole-cycle harmonics make the one-second motor/wind loop seamless.
     for (var i = 0; i < rate; i++) {
       final t = i / rate;
       final pulse = .78 + .22 * math.cos(2 * math.pi * 18 * t);
-      final motor = math.sin(2 * math.pi * 90 * t) * .42 +
-          math.sin(2 * math.pi * 180 * t) * .23 +
-          math.sin(2 * math.pi * 360 * t) * .10;
-      final wind = math.sin(
-              2 * math.pi * 733 * t + .8 * math.sin(2 * math.pi * 13 * t)) *
+      final rev = road ? 2 / 3 : 1.0;
+      final motor =
+          math.sin(2 * math.pi * 90 * rev * t) * .42 +
+          math.sin(2 * math.pi * 180 * rev * t) * .23 +
+          math.sin(2 * math.pi * 360 * rev * t) * .10;
+      final wind =
+          math.sin(
+            2 * math.pi * 733 * t + .8 * math.sin(2 * math.pi * 13 * t),
+          ) *
           .07;
       pcm[i] = ((motor * pulse + wind) * 24000).round();
     }
@@ -596,7 +620,7 @@ class GameFeedback {
 /// A screen-owned engine loop separate from short cues, so firing never cuts
 /// the motor off. Sound preferences cancel pending startup and playing audio.
 class GameFlightEngine {
-  GameFlightEngine() {
+  GameFlightEngine({this.road = false}) {
     _settings.addListener(_sync);
   }
   final _settings = AppSettingsController.instance;
@@ -604,6 +628,8 @@ class GameFlightEngine {
   GameFeedbackAudioChannel? _channel;
   GameFeedbackCancellation? _lifetime;
   bool _flying = false, _disposed = false;
+  final bool road;
+  static final Uint8List _roadBytes = GameFeedback._engineWav(road: true);
   static final Uint8List _bytes = GameFeedback._engineWav();
 
   void setFlying(bool value) {
@@ -627,13 +653,16 @@ class GameFlightEngine {
       resume: player.resume,
     );
     final token = _lifetime = GameFeedbackCancellation();
-    unawaited(_channel!
-        .play(
-            bytes: _bytes,
-            volume: .19,
+    unawaited(
+      _channel!
+          .play(
+            bytes: road ? _roadBytes : _bytes,
+            volume: road ? .36 : .19,
             cancellation: token,
-            prepare: () => player.setReleaseMode(ReleaseMode.loop))
-        .catchError((Object _) {}));
+            prepare: () => player.setReleaseMode(ReleaseMode.loop),
+          )
+          .catchError((Object _) {}),
+    );
   }
 
   void dispose() {
@@ -643,10 +672,9 @@ class GameFlightEngine {
     _lifetime?.cancel();
     final channel = _channel, player = _player;
     if (channel != null && player != null) {
-      unawaited(channel
-          .close()
-          .whenComplete(player.dispose)
-          .catchError((Object _) {}));
+      unawaited(
+        channel.close().whenComplete(player.dispose).catchError((Object _) {}),
+      );
     }
   }
 }

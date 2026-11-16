@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
+
 import '../../core/audio_feedback.dart';
 import '../../core/network/local_network_core.dart';
 import '../../core/network/network_message.dart';
@@ -19,15 +21,18 @@ enum _Weather { day, sunset, night, fog, snow, rain }
 
 extension on _Weather {
   String get label => switch (this) {
-        _Weather.day => 'نهار',
-        _Weather.sunset => 'غروب',
-        _Weather.night => 'ليل',
-        _Weather.fog => 'ضباب',
-        _Weather.snow => 'ثلج',
-        _Weather.rain => 'مطر'
-      };
-  double get steering =>
-      switch (this) { _Weather.snow => 1.45, _Weather.rain => 1.22, _ => 1.0 };
+    _Weather.day => 'نهار',
+    _Weather.sunset => 'غروب',
+    _Weather.night => 'ليل',
+    _Weather.fog => 'ضباب',
+    _Weather.snow => 'ثلج',
+    _Weather.rain => 'مطر',
+  };
+  double get steering => switch (this) {
+    _Weather.snow => 1.45,
+    _Weather.rain => 1.22,
+    _ => 1.0,
+  };
 }
 
 class _Traffic {
@@ -37,8 +42,21 @@ class _Traffic {
   final double factor;
 }
 
-class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
+class _RetroRoadGameScreenState extends State<RetroRoadGameScreen>
+    with WidgetsBindingObserver {
   final Random rnd = Random();
+  late final GameFlightEngine _motor;
+  bool _foreground = true;
+
+  void _syncMotor() =>
+      _motor.setFlying(_foreground && running && !localCrashed);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+    _syncMotor();
+  }
+
   Timer? timer;
   double playerX = .5, remoteX = .5, speed = .0068;
   int score = 0, distance = 0, day = 1, passed = 0, best = 0, scoreTick = 0;
@@ -64,12 +82,16 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
   @override
   void initState() {
     super.initState();
+    _motor = GameFlightEngine(road: true);
+    WidgetsBinding.instance.addObserver(this);
     if (isNetworkGame)
       networkSub = widget.networkCore!.messages.listen(_onNetworkMessage);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _motor.dispose();
     networkSub?.cancel();
     timer?.cancel();
     simulationClock.stop();
@@ -78,9 +100,9 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
 
   void start() {
     if (isNetworkGame && !isHost) {
-      widget.networkCore?.sendMove(
-          <String, dynamic>{'action': 'road_start_request'},
-          senderId: localPlayerId);
+      widget.networkCore?.sendMove(<String, dynamic>{
+        'action': 'road_start_request',
+      }, senderId: localPlayerId);
       return;
     }
     timer?.cancel();
@@ -107,6 +129,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
       lastWeather = _Weather.day;
       cars.clear();
     });
+    _syncMotor();
     timer = Timer.periodic(const Duration(milliseconds: 30), (_) => tick());
     if (isNetworkGame && isHost) _sendState('road_start');
   }
@@ -142,12 +165,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
     if (rnd.nextDouble() < ArcadeTiming.scaledProbability(spawn, step)) {
       const lanes = [.28, .40, .52, .64, .76];
       final lane = rnd.nextInt(lanes.length);
-      cars.add(_Traffic(
-        lanes[lane] + (rnd.nextDouble() - .5) * .020,
-        -.10,
-        lane,
-        .70 + rnd.nextDouble() * .42,
-      ));
+      cars.add(
+        _Traffic(
+          lanes[lane] + (rnd.nextDouble() - .5) * .020,
+          -.10,
+          lane,
+          .70 + rnd.nextDouble() * .42,
+        ),
+      );
     }
 
     for (final car in cars) {
@@ -211,6 +236,7 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
     }
     if (isNetworkGame && isHost && ++syncTick % 2 == 0)
       _sendState('road_state');
+    _syncMotor();
     if (mounted) setState(() {});
   }
 
@@ -219,14 +245,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
     weather = p < .16
         ? _Weather.day
         : p < .31
-            ? _Weather.sunset
-            : p < .47
-                ? _Weather.night
-                : p < .63
-                    ? _Weather.fog
-                    : p < .81
-                        ? _Weather.snow
-                        : _Weather.rain;
+        ? _Weather.sunset
+        : p < .47
+        ? _Weather.night
+        : p < .63
+        ? _Weather.fog
+        : p < .81
+        ? _Weather.snow
+        : _Weather.rain;
   }
 
   bool hasCrashAt(double x) {
@@ -238,8 +264,9 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
 
   void move(double dir) {
     if (!running || localCrashed) return;
-    setState(() =>
-        playerX = (playerX + dir * .034 * weather.steering).clamp(.16, .84));
+    setState(
+      () => playerX = (playerX + dir * .034 * weather.steering).clamp(.16, .84),
+    );
     _sendRoadControl();
   }
 
@@ -251,9 +278,10 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
 
   void _sendRoadControl() {
     if (isNetworkGame && !isHost) {
-      widget.networkCore?.sendMove(
-          <String, dynamic>{'action': 'road_control', 'x': playerX},
-          senderId: localPlayerId);
+      widget.networkCore?.sendMove(<String, dynamic>{
+        'action': 'road_control',
+        'x': playerX,
+      }, senderId: localPlayerId);
     }
   }
 
@@ -273,12 +301,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
       'remoteCrashed': remoteCrashed,
       'resultText': resultText,
       'cars': cars
-          .map((e) => <String, dynamic>{
-                'x': e.x,
-                'y': e.y,
-                'lane': e.lane,
-                'factor': e.factor
-              })
+          .map(
+            (e) => <String, dynamic>{
+              'x': e.x,
+              'y': e.y,
+              'lane': e.lane,
+              'factor': e.factor,
+            },
+          )
           .toList(),
     }, senderId: localPlayerId);
   }
@@ -286,7 +316,8 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
   void _onNetworkMessage(NetworkMessage m) {
     if (!mounted ||
         m.senderId == localPlayerId ||
-        m.type != NetworkMessageType.move) return;
+        m.type != NetworkMessageType.move)
+      return;
     final action = m.payload['action']?.toString();
     if (action == 'road_start_request' && isHost) {
       start();
@@ -307,10 +338,14 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
       final wasCrashed = localCrashed;
       final wasGameOver = gameOver;
       setState(() {
-        playerX = ((m.payload['remoteX'] as num?)?.toDouble() ?? playerX)
-            .clamp(.16, .84);
-        remoteX = ((m.payload['playerX'] as num?)?.toDouble() ?? remoteX)
-            .clamp(.16, .84);
+        playerX = ((m.payload['remoteX'] as num?)?.toDouble() ?? playerX).clamp(
+          .16,
+          .84,
+        );
+        remoteX = ((m.payload['playerX'] as num?)?.toDouble() ?? remoteX).clamp(
+          .16,
+          .84,
+        );
         score = (m.payload['score'] as num?)?.toInt() ?? score;
         distance = (m.payload['distance'] as num?)?.toInt() ?? distance;
         day = (m.payload['day'] as num?)?.toInt() ?? day;
@@ -325,16 +360,22 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
         resultText = hostText == 'فزت بالسباق'
             ? 'فاز اللاعب الآخر'
             : hostText == 'فاز اللاعب الآخر'
-                ? 'فزت بالسباق'
-                : hostText;
+            ? 'فزت بالسباق'
+            : hostText;
         cars
           ..clear()
-          ..addAll(rawCars.whereType<Map>().map((e) => _Traffic(
-              (e['x'] as num).toDouble(),
-              (e['y'] as num).toDouble(),
-              (e['lane'] as num).toInt(),
-              (e['factor'] as num).toDouble())));
+          ..addAll(
+            rawCars.whereType<Map>().map(
+              (e) => _Traffic(
+                (e['x'] as num).toDouble(),
+                (e['y'] as num).toDouble(),
+                (e['lane'] as num).toInt(),
+                (e['factor'] as num).toDouble(),
+              ),
+            ),
+          );
       });
+      _syncMotor();
       if (!wasCrashed && localCrashed) {
         _showEffect('💥 حادث!');
         GameFeedback.lose(GameAudioTheme.road);
@@ -376,163 +417,249 @@ class _RetroRoadGameScreenState extends State<RetroRoadGameScreen> {
       backgroundColor: const Color(0xFFF1F5F5),
       appBar: AppBar(
         toolbarHeight: compact ? 36 : 48,
-        title: const Text('طريق التحمل',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'طريق التحمل',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+        ),
         backgroundColor: const Color(0xFFF1F5F5),
         foregroundColor: const Color(0xFF243D4A),
       ),
       body: SafeArea(
-          child: Column(children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: Column(children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              _stat('النقاط', score),
-              _stat('اليوم', day),
-              _stat('الأفضل', best),
-            ]),
-            const SizedBox(height: 4),
-            Row(children: [
-              Expanded(
-                  child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                          value: progress,
-                          minHeight: 4,
-                          backgroundColor: const Color(0xFFD8E3E5),
-                          color: const Color(0xFF398D96)))),
-              const SizedBox(width: 10),
-              Text(weather.label,
-                  style: const TextStyle(
-                      color: Color(0xFF496470),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700)),
-            ]),
-          ]),
-        ),
-        Expanded(
-            child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 10),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(18)),
-          child: LayoutBuilder(builder: (context, roadBox) {
-            final geometry =
-                RoadSceneGeometry(Size(roadBox.maxWidth, roadBox.maxHeight));
-            void touch(Offset point) => dragRoad(
-                geometry.worldXForTouch(point.dx) * roadBox.maxWidth,
-                roadBox.maxWidth);
-            return Stack(children: [
-              Positioned.fill(
-                  child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanDown: (d) => touch(d.localPosition),
-                onPanUpdate: (d) => touch(d.localPosition),
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: .5, end: playerX),
-                  duration: const Duration(milliseconds: 190),
-                  builder: (context, settlingX, child) => CustomPaint(
-                    key: const ValueKey('road-scene'),
-                    size: Size.infinite,
-                    painter: RoadScenePainter(
-                      playerX: playerX,
-                      opponentX: isNetworkGame ? remoteX : null,
-                      traffic: cars
-                          .map((c) => RoadTrafficVisual(c.x, c.y, c.lane))
-                          .toList(),
-                      weather: RoadSceneWeather.values[weather.index],
-                      travel: distance + tickCarry,
-                      steer: (playerX - settlingX) * 1.5,
-                    ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _stat('النقاط', score),
+                      _stat('اليوم', day),
+                      _stat('الأفضل', best),
+                    ],
                   ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 4,
+                            backgroundColor: const Color(0xFFD8E3E5),
+                            color: const Color(0xFF398D96),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        weather.label,
+                        style: const TextStyle(
+                          color: Color(0xFF496470),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 10),
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
                 ),
-              )),
-              Positioned.fill(
-                  child: IgnorePointer(
-                      child: AnimatedOpacity(
-                opacity: effectVisible ? 1 : 0,
-                duration: const Duration(milliseconds: 120),
-                child: Align(
-                    alignment: const Alignment(0, -.55),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                          color: const Color(0xEA253E4C),
-                          borderRadius: BorderRadius.circular(12)),
-                      child: Text(effectText,
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700)),
-                    )),
-              ))),
-              if (!running)
-                Positioned.fill(
-                    child: Center(
-                        child: SingleChildScrollView(
-                            child: Container(
-                  margin: const EdgeInsets.all(12),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  constraints: const BoxConstraints(maxWidth: 340),
-                  decoration: BoxDecoration(
-                      color: const Color(0xF0F5F8F6),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x260C2531), blurRadius: 20)
-                      ]),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text(gameOver ? 'انتهى السباق' : 'جاهز للطريق؟',
-                        style: const TextStyle(
-                            color: Color(0xFF243D4A),
-                            fontSize: 21,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 5),
-                    Text(
-                        gameOver
-                            ? (isNetworkGame ? resultText : 'نقاطك: $score')
-                            : (isNetworkGame
-                                ? 'سباق مباشر: تجنب السيارات وابقَ آخر سيارة'
-                                : 'تجاوز 40 سيارة لتنتقل إلى يوم جديد'),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            color: Color(0xFF4F6671), fontSize: 12)),
-                    const SizedBox(height: 8),
-                    FilledButton.icon(
-                        onPressed: start,
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: Text(gameOver ? 'إعادة اللعب' : 'ابدأ')),
-                  ]),
-                )))),
-            ]);
-          }),
-        )),
-        Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            child: Row(children: [
-              Expanded(
-                  child: FilledButton.icon(
+                child: LayoutBuilder(
+                  builder: (context, roadBox) {
+                    final geometry = RoadSceneGeometry(
+                      Size(roadBox.maxWidth, roadBox.maxHeight),
+                    );
+                    void touch(Offset point) => dragRoad(
+                      geometry.worldXForTouch(point.dx) * roadBox.maxWidth,
+                      roadBox.maxWidth,
+                    );
+                    return Stack(
+                      children: [
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onPanDown: (d) => touch(d.localPosition),
+                            onPanUpdate: (d) => touch(d.localPosition),
+                            child: TweenAnimationBuilder<double>(
+                              tween: Tween<double>(begin: .5, end: playerX),
+                              duration: const Duration(milliseconds: 190),
+                              builder: (context, settlingX, child) =>
+                                  CustomPaint(
+                                    key: const ValueKey('road-scene'),
+                                    size: Size.infinite,
+                                    painter: RoadScenePainter(
+                                      playerX: playerX,
+                                      opponentX: isNetworkGame ? remoteX : null,
+                                      traffic: cars
+                                          .map(
+                                            (c) => RoadTrafficVisual(
+                                              c.x,
+                                              c.y,
+                                              c.lane,
+                                            ),
+                                          )
+                                          .toList(),
+                                      weather: RoadSceneWeather
+                                          .values[weather.index],
+                                      travel: distance + tickCarry,
+                                      steer: (playerX - settlingX) * 1.5,
+                                    ),
+                                  ),
+                            ),
+                          ),
+                        ),
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: AnimatedOpacity(
+                              opacity: effectVisible ? 1 : 0,
+                              duration: const Duration(milliseconds: 120),
+                              child: Align(
+                                alignment: const Alignment(0, -.55),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xEA253E4C),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    effectText,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (!running)
+                          Positioned.fill(
+                            child: Center(
+                              child: SingleChildScrollView(
+                                child: Container(
+                                  margin: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 340,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xF0F5F8F6),
+                                    borderRadius: BorderRadius.circular(18),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x260C2531),
+                                        blurRadius: 20,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        gameOver
+                                            ? 'انتهى السباق'
+                                            : 'جاهز للطريق؟',
+                                        style: const TextStyle(
+                                          color: Color(0xFF243D4A),
+                                          fontSize: 21,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        gameOver
+                                            ? (isNetworkGame
+                                                  ? resultText
+                                                  : 'نقاطك: $score')
+                                            : (isNetworkGame
+                                                  ? 'سباق مباشر: تجنب السيارات وابقَ آخر سيارة'
+                                                  : 'تجاوز 40 سيارة لتنتقل إلى يوم جديد'),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          color: Color(0xFF4F6671),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      FilledButton.icon(
+                                        onPressed: start,
+                                        icon: const Icon(
+                                          Icons.play_arrow_rounded,
+                                        ),
+                                        label: Text(
+                                          gameOver ? 'إعادة اللعب' : 'ابدأ',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
                       onPressed: running ? () => move(1) : null,
                       icon: const Icon(Icons.arrow_forward_rounded),
-                      label: const Text('يمين'))),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: FilledButton.icon(
+                      label: const Text('يمين'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
                       onPressed: running ? () => move(-1) : null,
                       icon: const Icon(Icons.arrow_back_rounded),
-                      label: const Text('يسار'))),
-            ])),
-      ])),
+                      label: const Text('يسار'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _stat(String label, int value) => Expanded(
-      child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text('$label: $value',
-              style: const TextStyle(
-                  color: Color(0xFF243D4A),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700))));
+    child: FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        '$label: $value',
+        style: const TextStyle(
+          color: Color(0xFF243D4A),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+  );
 }
