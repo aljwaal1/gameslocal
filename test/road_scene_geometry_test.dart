@@ -15,9 +15,9 @@ void main() {
         final y = i / 100;
         expect(g.depthScale(y), greaterThanOrEqualTo(previous));
         previous = g.depthScale(y);
-        expect(g.project(.5, y).dx, closeTo(size.width / 2, .00001));
+        final centerX = g.project(.5, y).dx;
         expect(g.project(.28, y).dx + g.project(.72, y).dx,
-            closeTo(size.width, .00001));
+            closeTo(centerX * 2, .00001));
         expect(g.roadHalfWidth(y), greaterThan(0));
       }
       for (final x in [.16, .28, .5, .76, .84]) {
@@ -30,6 +30,19 @@ void main() {
       expect(g.carSize(.8).width, greaterThan(g.carSize(.1).width));
     });
   }
+  test('the road bends both ways while the contact line stays fixed', () {
+    const size = Size(320, 640);
+    final left = RoadSceneGeometry(size, travel: 1200);
+    final right = RoadSceneGeometry(size, travel: 3000);
+    expect(left.project(.5, .05).dx, lessThan(120));
+    expect(right.project(.5, .05).dx, greaterThan(200));
+    expect(left.roadHalfWidth(0), lessThan(left.roadHalfWidth(.82) / 20));
+    for (final road in [left, right]) {
+      expect(road.project(.28, .82).dx, closeTo(89.6, .00001));
+      expect(road.project(.28, .82).dy, closeTo(524.8, .00001));
+    }
+  });
+
   test('invalid and offscreen inputs remain finite and bounded', () {
     for (final size in [
       Size.zero,

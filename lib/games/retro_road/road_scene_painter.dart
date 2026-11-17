@@ -35,12 +35,13 @@ class RoadScenePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-    final g = RoadSceneGeometry(size);
+    final g = RoadSceneGeometry(size, travel: travel);
     final bounds = Offset.zero & size;
     canvas.save();
     canvas.clipRect(bounds);
     _landscape(canvas, g, bounds);
     _road(canvas, g, bounds);
+    _roadside(canvas, g);
     final sorted = [...traffic]..sort((a, b) => a.y.compareTo(b.y));
     for (final car in sorted) {
       if (car.y < -.02 || car.y > 1.25) continue;
@@ -159,7 +160,7 @@ class RoadScenePainter extends CustomPainter {
             ? const Color(0xFF263D39)
             : const Color(0xFF6F9677);
     c.drawRect(
-      Rect.fromLTWH(0, s.height * .14, s.width, s.height),
+      Rect.fromLTWH(0, s.height * RoadSceneGeometry.horizon, s.width, s.height),
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
@@ -168,7 +169,8 @@ class RoadScenePainter extends CustomPainter {
         ).createShader(bounds),
     );
     for (var side = 0; side < 2; side++) {
-      final verge = Path()..moveTo(side == 0 ? 0 : s.width, s.height * .18);
+      final verge = Path()
+        ..moveTo(side == 0 ? 0 : s.width, s.height * RoadSceneGeometry.horizon);
       for (var i = 0; i <= 16; i++) {
         final y = i / 16;
         final p = g.project(side == 0 ? -.02 : 1.02, y);
@@ -193,14 +195,78 @@ class RoadScenePainter extends CustomPainter {
     double left,
     double right,
     double top,
-    double bottom,
-  ) =>
-      Path()
-        ..moveTo(g.project(left, top).dx, g.project(left, top).dy)
-        ..lineTo(g.project(right, top).dx, g.project(right, top).dy)
-        ..lineTo(g.project(right, bottom).dx, g.project(right, bottom).dy)
-        ..lineTo(g.project(left, bottom).dx, g.project(left, bottom).dy)
-        ..close();
+    double bottom, {
+    double height = 0,
+  }) {
+    final segments = math.max(1, ((bottom - top) * 24).ceil());
+    Offset point(double x, int i) {
+      final y = top + (bottom - top) * i / segments;
+      return g.project(x, y).translate(0, -height * g.depthScale(y));
+    }
+
+    final first = point(left, 0);
+    final path = Path()..moveTo(first.dx, first.dy);
+    for (var i = 0; i <= segments; i++) {
+      final p = point(right, i);
+      path.lineTo(p.dx, p.dy);
+    }
+    for (var i = segments; i > 0; i--) {
+      final p = point(left, i);
+      path.lineTo(p.dx, p.dy);
+    }
+    return path..close();
+  }
+
+  void _roadside(Canvas canvas, RoadSceneGeometry g) {
+    final paint = Paint();
+    final unit = math.min(g.size.width, g.size.height);
+    final trees = List.generate(
+        22,
+        (i) => (
+              index: i,
+              y: (i * .064 + travel * .0025) % 1.4,
+            ))
+      ..sort((a, b) => a.y.compareTo(b.y));
+    for (final tree in trees) {
+      final side = tree.index.isEven ? -1 : 1;
+      final x = .5 + side * (.52 + (tree.index % 5) * .035);
+      final base = g.project(x, tree.y);
+      final scale = g.depthScale(tree.y);
+      final height = unit * (.12 + (tree.index % 3) * .031) * scale;
+      final spread = height * .24;
+      if (base.dx < -spread || base.dx > g.size.width + spread) continue;
+      final air = 1 - scale.clamp(0.0, 1.0);
+      final foliage = Color.lerp(
+        dark ? const Color(0xff172e30) : const Color(0xff244a39),
+        const Color(0xff89a69f),
+        air * .68,
+      )!;
+      canvas.drawOval(
+        Rect.fromCenter(
+            center: base, width: height * .85, height: height * .16),
+        paint..color = const Color(0x55304134),
+      );
+      canvas.drawLine(
+          base,
+          base.translate(0, -height * .52),
+          paint
+            ..color = const Color(0xff554536)
+            ..strokeWidth = math.max(.6, height * .045));
+      for (var tier = 0; tier < 3; tier++) {
+        final top = base.dy - height * (1 - tier * .18);
+        final width = spread * (.65 + tier * .22);
+        canvas.drawPath(
+          Path()
+            ..moveTo(base.dx, top)
+            ..lineTo(base.dx - width, top + height * .51)
+            ..quadraticBezierTo(base.dx, top + height * .57, base.dx + width,
+                top + height * .51)
+            ..close(),
+          paint..color = foliage,
+        );
+      }
+    }
+  }
 
   void _road(Canvas c, RoadSceneGeometry g, Rect bounds) {
     final shoulder = _strip(g, .072, .928, 0, 1.4);
@@ -225,17 +291,27 @@ class RoadScenePainter extends CustomPainter {
     );
     c.save();
     c.clipPath(road);
+    // Subtle tire-polished bands converge with the road instead of sliding
+    // over the scene in screen space.
+    for (final lane in [.28, .40, .52, .64, .76]) {
+      for (final offset in [-.026, .026]) {
+        c.drawPath(
+          _strip(g, lane + offset - .011, lane + offset + .011, 0, 1.4),
+          Paint()..color = const Color(0x16111820),
+        );
+      }
+    }
     // Deterministic low contrast aggregate texture, independent of gameplay RNG.
-    for (var i = 0; i < 540; i++) {
-      final y = ((i * 41.73 + travel * .23) % g.size.height);
-      final x = ((i * 73.17) % g.size.width);
+    final grain = Paint();
+    for (var i = 0; i < 420; i++) {
+      final y = (i * .2173 + travel * .0025) % 1.4;
+      final x = .1 + ((i * .7317) % .8);
       c.drawCircle(
-        Offset(x, y),
-        .45 + (i % 3) * .16,
-        Paint()
-          ..color = (i.isEven ? Colors.white : Colors.black).withValues(
-            alpha: .045,
-          ),
+        g.project(x, y),
+        (.5 + (i % 3) * .19) * g.depthScale(y),
+        grain
+          ..color =
+              i.isEven ? const Color(0x18ffffff) : const Color(0x20000000),
       );
     }
     if (wet) {
@@ -265,6 +341,7 @@ class RoadScenePainter extends CustomPainter {
         );
       }
     }
+    final railHeight = math.min(g.size.width, g.size.height) * .034;
     for (final edge in [.062, .938]) {
       for (var i = 0; i < 10; i++) {
         final y = ((i * .14 + travel * .003) % 1.4);
@@ -272,17 +349,24 @@ class RoadScenePainter extends CustomPainter {
         final scale = g.depthScale(y);
         c.drawLine(
           point,
-          point.translate(0, -6 * scale),
+          point.translate(0, -railHeight * scale),
           Paint()
             ..color = const Color(0xFF5C6771)
             ..strokeWidth = 3 * scale,
         );
       }
-      final rail = _strip(g, edge - .005, edge + .005, 0, 1.4);
-      c.save();
-      c.translate(0, -2);
-      c.drawPath(rail, Paint()..color = const Color(0xFFBAC8D1));
-      c.restore();
+      c.drawPath(
+        _strip(g, edge - .012, edge + .012, 0, 1.4),
+        Paint()..color = const Color(0x57232c33),
+      );
+      c.drawPath(
+        _strip(g, edge - .006, edge + .006, 0, 1.4, height: railHeight),
+        Paint()..color = const Color(0xff81909a),
+      );
+      c.drawPath(
+        _strip(g, edge - .003, edge + .003, 0, 1.4, height: railHeight + 1.2),
+        Paint()..color = const Color(0xffd7e0e3),
+      );
     }
     if (weather == RoadSceneWeather.fog) {
       final fog = Rect.fromLTWH(
