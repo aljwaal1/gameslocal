@@ -12,6 +12,7 @@ import 'plane_campaign.dart';
 import 'plane_scene_geometry.dart';
 import 'plane_scene_motion.dart';
 import 'plane_scene_painter.dart';
+import 'plane_stage_scenery.dart';
 
 class FuelPlaneGameScreen extends StatefulWidget {
   const FuelPlaneGameScreen({super.key, this.networkCore});
@@ -881,7 +882,9 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
                     'الآخر: $remoteScore',
                     style: dataStyle.copyWith(color: const Color(0xffffc366)),
                   ),
-                Text('المرحلة: $level', style: dataStyle),
+                Text(
+                    'المرحلة $level · ${PlaneStageScenery.forStage(level).label}',
+                    style: dataStyle),
                 if (!isNetworkGame)
                   Text('الأرواح: ${_campaign.lives}', style: dataStyle),
                 if (!isNetworkGame && _campaign.gateHealth > 0)
@@ -992,6 +995,7 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
                     child: CustomPaint(
                       key: const ValueKey('plane-scene'),
                       painter: PlaneScenePainter(
+                        scenery: PlaneStageScenery.forStage(level),
                         localX: planeX,
                         gateY: _campaign.gateHealth > 0 ? _gateY : null,
                         gateRatio:

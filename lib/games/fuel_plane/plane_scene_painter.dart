@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'plane_stage_scenery.dart';
 import 'plane_scene_geometry.dart';
 import 'plane_scene_motion.dart';
 
@@ -40,11 +41,13 @@ class PlaneScenePainter extends CustomPainter {
     required this.obstacles,
     required this.projectiles,
     this.motion,
+    this.scenery = PlaneStageScenery.river,
     this.gateY,
     this.gateRatio = 0,
   }) : super(repaint: motion);
 
   final double localX;
+  final PlaneStageScenery scenery;
   final double? gateY;
   final double gateRatio;
   final double? remoteX;
@@ -60,7 +63,11 @@ class PlaneScenePainter extends CustomPainter {
     final geometry = PlaneSceneGeometry(size);
     canvas.save();
     canvas.clipRect(Offset.zero & size);
-    _paintCoast(canvas, size);
+    if (scenery == PlaneStageScenery.river) {
+      _paintCoast(canvas, size);
+    } else {
+      scenery.paint(canvas, size, distance);
+    }
     final wall = gateY;
     if (wall != null) _paintGate(canvas, geometry, wall);
     for (final obstacle in obstacles) {
@@ -702,6 +709,7 @@ class PlaneScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant PlaneScenePainter oldDelegate) =>
+      oldDelegate.scenery != scenery ||
       oldDelegate.gateY != gateY ||
       oldDelegate.gateRatio != gateRatio ||
       oldDelegate.localX != localX ||
