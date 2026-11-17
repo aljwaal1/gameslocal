@@ -883,7 +883,9 @@ class _FuelPlaneGameScreenState extends State<FuelPlaneGameScreen>
                     style: dataStyle.copyWith(color: const Color(0xffffc366)),
                   ),
                 Text(
-                    'المرحلة $level · ${PlaneStageScenery.forStage(level).label}',
+                    running && !isNetworkGame
+                        ? 'المرحلة $level · ${PlaneStageScenery.forStage(level).label}'
+                        : 'المرحلة: $level',
                     style: dataStyle),
                 if (!isNetworkGame)
                   Text('الأرواح: ${_campaign.lives}', style: dataStyle),
